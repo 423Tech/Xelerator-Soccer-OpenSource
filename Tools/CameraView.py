@@ -74,7 +74,7 @@ def stream_video(camera_index_str):
         # 循环结束（无论是因为错误还是被Gradio停止），释放摄像头
         print(f"释放摄像头 {camera_index}")
         cap.release()
-        yield None # 清空图像
+        # yield None # 清空图像
 
 # --- 构建 Gradio 界面 ---
 
