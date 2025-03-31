@@ -140,49 +140,34 @@ def find_nearest_element(arr, target):
     return min(arr, key=lambda x: abs(x - target))
 
     
-def AvoidObt(iAimAngle: int) -> None:
+def AvoidObt(iFacingAngle: int) -> None:
     ObtDetect()
-    lTrueAngles = []
-    iPerAngle = 359/iNumOfDist
-    iPerAngle = int(iPerAngle)
+    lAvailbeAngles = []
+    lBlockedAngles = []
+    iPerAngle = int(359/iNumOfDist)
     for i in range(iNumOfDist):
         if lStatusOfDist[i]:
-            lTrueAngles.append(i*iPerAngle)
-    if len(lTrueAngles) == 1:
-        moveAngle = 1*iPerAngle
-        GoV(iAimAngle,moveAngle,150)
-        # car.z_move(0,iAimAngle,200)
-    if len(lTrueAngles) > 1:
-        moveAngle = find_nearest_element(lTrueAngles,iAimAngle)
-        GoV(iAimAngle,moveAngle,150)
-    print(len(lTrueAngles))
-    print(moveAngle)
+            lAvailbeAngles.append(i*iPerAngle)
+        else:
+            lBlockedAngles.append(i*iPerAngle)
+    if len(lBlockedAngles) == 3:
+        iAimAngle = 1*iPerAngle
+    if len(lBlockedAngles) == 2:
+        iAimAngle = find_nearest_element(lAvailbeAngles,iFacingAngle)
+    if len(lBlockedAngles) == 1:
+        iAimAngle = lBlockedAngles[0] + 180
+        if iAimAngle > 360:
+            iAimAngle = iAimAngle - 360
+        else:
+            iAimAngle = iAimAngle
+    GoV(iFacingAngle,iAimAngle,200)
+    # car.z_move(iFacingAngle,iAimAngle,200)  
+    print(len(lAvailbeAngles))
+    print(iAimAngle)
 
-
-def screen():
-    clock.tick()
-    img = image.Image(160,120,sensor.RGB565,copy_to_fb=True)
-    getadc()
-    img.draw_string(88,0,"Tof0:%f"% (iTof0),color=(0,255,0),scale=1)
-    img.draw_string(88,8,"Tof1:%f"% (iTof1),color=(0,255,0),scale=1)
-    img.draw_string(88,16,"Tof2:%f"% (iTof2),color=(0,255,0),scale=1)
-    img.draw_string(88,24,"Tof3:%f"% (iTof3),color=(0,255,0),scale=1)
-    # img.draw_string(88,32,"dhf:%4d"% (dhf),color=(0,255,0),scale=1)
-    # img.draw_string(88,40,"dhb:%4d"% (dhb),color=(0,255,0),scale=1)
-    # img.draw_string(88,48,"dhl:%4d"% (dhl),color=(0,255,0),scale=1)
-    # img.draw_string(88,56,"dhr:%4d"% (dhr),color=(0,255,0),scale=1)
-    # img.draw_string(88,64,"fx :%4d"% (fx),color=(255,0,0),scale=1)
-    # img.draw_string(88,72,"fy :%4d"% (fy),color=(255,0,0),scale=1)
-    # img.draw_string(88,80,"bx :%4d"% (bx),color=(255,0,0),scale=1)
-    # img.draw_string(88,88,"by :%4d"% (by),color=(255,0,0),scale=1)
-    img.draw_string(88,96,"but:%1d%1d%1d%1d"% (set_io.read(7,0),set_io.read(8,0),set_io.read(9,0),set_io.read(10,0),),color=(255,0,255),scale=1)
-    img.draw_string(88,104,"cmp:%4d"% (compass.read()),color=(0,255,255),scale=1)
-    img.draw_string(88,112,"BAT:%.1fV"% (set_adc.read(14)*11*3.3/1024),color=(255,255,0),scale=1)
-    img.draw_string(0,112,"FR:%4dfps"% (clock.fps()),color=(0,0,255),scale=1)
-    lcd.display(img)
 
 while(key.read() == 0):
-    screen()
+    print(getDists(4))
 
 while(True):
     AvoidObt(0)
