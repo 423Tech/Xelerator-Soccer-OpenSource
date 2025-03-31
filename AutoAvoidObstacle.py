@@ -34,7 +34,7 @@ class QkJson:
                     "AvRange": 40,
                     "IgnrRange": 80,
                     "NumOfDist" : 4,
-                    "LifeTime" : 4,
+                    "LifeTime" : 1,
                 },
                 "Border" : {
                     "0": 20,
@@ -67,19 +67,14 @@ class QkJson:
 
 Cfg = QkJson()
 
-
-
 def getadc():
     global iTof1,iTof0,iTof3,iTof2,dhl,dhb,dhr,bx,by
     bx = set_adc.read(11)
     by = set_adc.read(12)
-    iTof0 = int(set_adc.read(Cfg.read("adcs","tof0"))/3.5)
-    iTof1 = int(set_adc.read(Cfg.read("adcs","tof1"))/3.5)
-    iTof2 = int(set_adc.read(Cfg.read("adcs","tof2"))/3.5)
-    iTof3 = int(set_adc.read(Cfg.read("adcs","tof3"))/3.5)
-    dhl = set_adc.read(Cfg.read("adcs","gs1"))
-    dhb = set_adc.read(Cfg.read("adcs","gs2"))
-    dhr = set_adc.read(Cfg.read("adcs","gs3"))
+    iTof0 = int(set_adc.read(Cfg.read("Tofs","0"))/3.5)
+    iTof1 = int(set_adc.read(Cfg.read("Tofs","1"))/3.5)
+    iTof2 = int(set_adc.read(Cfg.read("Tofs","2"))/3.5)
+    iTof3 = int(set_adc.read(Cfg.read("Tofs","3"))/3.5)
 
 
 iNumOfDist = Cfg.read("A2AOb","NumOfDist")
@@ -89,11 +84,25 @@ bLife = False
 lBlockedMemo = []
 lStatusOfDist = []
 
+def GoV(iFacingAngle,iAimAngle,iSpeed):
+    iGlobalPIDK = 2
+    iCMP = compass.read()
+    iSpeedX = int(math.sin(math.radians(iAimAngle)) * iSpeed)
+    iSpeedY = int(math.cos(math.radians(iAimAngle)) * iSpeed)
+    iSpeedU = iSpeedX + iSpeedY
+    iSpeedV = iSpeedY - iSpeedX
+    iDeltaAngle = iCMP-iFacingAngle
+    if iDeltaAngle > 180:
+        iDeltaAngle = iDeltaAngle - 360
+    set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK)
+
+
 def getDists(Num: int) -> list[int,int,int]:
     lDists = []
     for i in range(Num):
-        lDists.append(set_adc.read(i))
-        # lDists.append(set_adc.read(Cfg.read("Tofs",str(i))))
+        # lDists.append(set_adc.read(i))
+        lDists.append(set_adc.read(Cfg.read("Tofs",str(i))))
+    print(lDists)
     return lDists
     
 def ObtDetect():
@@ -114,7 +123,7 @@ def ObtDetect():
         if not lStatusOfDist[i] and lDists[i] >= Cfg.read("A2AOb","IgnrRange")*2:
             bLife = True
         else:
-            bLife = False
+            bLife = True
     if bLife:
         if len(lBlockedMemo) > 0 and iMemoLife > 0:
             iMemoLife = iMemoLife - 1
@@ -126,25 +135,28 @@ def ObtDetect():
             iMemoLife = iMaxLife
         bLife = False
 
+
+def find_nearest_element(arr, target):
+    return min(arr, key=lambda x: abs(x - target))
+
     
 def AvoidObt(iAimAngle: int) -> None:
     ObtDetect()
     lTrueAngles = []
     iPerAngle = 359/iNumOfDist
+    iPerAngle = int(iPerAngle)
     for i in range(iNumOfDist):
         if lStatusOfDist[i]:
             lTrueAngles.append(i*iPerAngle)
     if len(lTrueAngles) == 1:
-        iAoidAngle = 1*iPerAngle
-        print(iAoidAngle)
-        # car.straight(iAoidAngle,150,5,5)
-        car.z_move(0,iAimAngle,200)
+        moveAngle = 1*iPerAngle
+        GoV(iAimAngle,moveAngle,150)
+        # car.z_move(0,iAimAngle,200)
     if len(lTrueAngles) > 1:
-        for a in lTrueAngles:
-            if a == iAimAngle:
-                # print("move to %s",iAimAngle)
-                car.move(iAoidAngle,150,5,5)
-    # print(len(lTrueAngles))
+        moveAngle = find_nearest_element(lTrueAngles,iAimAngle)
+        GoV(iAimAngle,moveAngle,150)
+    print(len(lTrueAngles))
+    print(moveAngle)
 
 
 def screen():
@@ -173,5 +185,4 @@ while(key.read() == 0):
     screen()
 
 while(True):
-    car.turn(0,4,30,10,1)
-    AvoidObt()
+    AvoidObt(0)

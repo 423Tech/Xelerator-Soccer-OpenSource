@@ -19,12 +19,14 @@ class QkJson:
                     1: 2,
                     2: 3,
                     3: 4,
+                    "K": 6.7,
+                    "B": 40,
                     },
                 "A2AOb": {
-                    "AvRange": 40,
-                    "IgnrRange": 80,
+                    "ActiveRange": 40,
+                    "IgnoreRange": 80,
                     "NumOfDist" : 4,
-                    "LifeTime" : 4,
+                    "LifeTime" : 2,
                 },
                 "Border" : {
                     "0": 20,
@@ -33,10 +35,8 @@ class QkJson:
                     "3": 30,
                 },
                 "Position" : {
-                    "home": [0,0],
-                },
-                "Advanced": {
-                    "Luna": "False",
+                    "Width": 1800,
+                    "Height": 2400,
                 },
                 "Versions": {
                     "v": 0.1,

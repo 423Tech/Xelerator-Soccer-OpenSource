@@ -177,3 +177,5 @@ main.py
 cfg.json
 config.json
 .vscode
+
+.DS_Store
