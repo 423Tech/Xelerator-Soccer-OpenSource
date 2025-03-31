@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
+    <title>Joystick Control</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            touch-action: none; /* 禁用滚动、放大缩小 */
+            overflow: hidden; /* 禁止滚动 */
+        }
+
+        .joystick-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            background-color: #ddd;
+            border-radius: 50%;
+            margin: 20px;
+        }
+
+        .joystick {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #888;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+            touch-action: none; /* 禁用缩放和滑动 */
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧控制速度的摇杆 -->
+    <div class="joystick-container" id="speed-joystick">
+        <div class="joystick" id="speed-knob"></div>
+    </div>
+
+    <!-- 右侧控制方向的摇杆 -->
+    <div class="joystick-container" id="direction-joystick">
+        <div class="joystick" id="direction-knob"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io.connect();
+
+        // 左手速度摇杆
+        const speedKnob = document.getElementById('speed-knob');
+        const speedContainer = document.getElementById('speed-joystick');
+        let speed = 0;
+
+        // 右手方向摇杆
+        const directionKnob = document.getElementById('direction-knob');
+        const directionContainer = document.getElementById('direction-joystick');
+        let x = 0, y = 0;
+
+        // 用来存储每个触摸点的状态
+        let touchData = {};
+        let isMoving = false;
+
+        // 更新摇杆位置的函数
+        function updateJoystick(knob, container, dx, dy) {
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const maxDistance = rect.width / 2 - knob.offsetWidth / 2;
+
+            // 计算摇杆的偏移量，限制摇杆不能超过容器范围
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > maxDistance) {
+                const angle = Math.atan2(dy, dx);
+                dx = Math.cos(angle) * maxDistance;
+                dy = Math.sin(angle) * maxDistance;
+            }
+
+            // 设置摇杆位置
+            knob.style.left = `${centerX + dx}px`;
+            knob.style.top = `${centerY + dy}px`;
+
+            return { dx, dy };
+        }
+
+        // 发送数据的函数
+        function sendData() {
+            if (isMoving) {
+                socket.emit('speed', speed);
+                socket.emit('direction', { x, y });
+            }
+        }
+
+        // 监听多个触摸点
+        document.addEventListener('touchmove', (event) => {
+            const touches = event.changedTouches;
+
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                const touchId = touch.identifier;
+
+                // 判断触摸点是控制哪个摇杆
+                if (touchData[touchId] && touchData[touchId].containerId === 'speed-joystick') {
+                    const rect = speedContainer.getBoundingClientRect();
+                    const dx = 0;
+                    const dy = touch.clientY - (rect.top + rect.height / 2);
+
+                    const { dy: adjustedY } = updateJoystick(speedKnob, speedContainer, dx, dy);
+
+                    // 归一化 speed 到 [0, 100]，最下面是0，最上面是100
+                    speed = Math.round((1 - (adjustedY / (rect.height / 2))) * 100); // 确保底部是0，顶部是100
+                    isMoving = true;  // 开始移动，允许发送数据
+                }
+
+                if (touchData[touchId] && touchData[touchId].containerId === 'direction-joystick') {
+                    const rect = directionContainer.getBoundingClientRect();
+                    const dx = touch.clientX - (rect.left + rect.width / 2);
+                    const dy = touch.clientY - (rect.top + rect.height / 2);
+
+                    const { dx: adjustedX, dy: adjustedY } = updateJoystick(directionKnob, directionContainer, dx, dy);
+                    x = Math.round(adjustedX / (rect.width / 2) * 100); // 归一化到 [-100, 100]
+                    y = Math.round(-adjustedY / (rect.height / 2) * 100); // 归一化到 [-100, 100]
+                    isMoving = true;  // 开始移动，允许发送数据
+                }
+            }
+        });
+
+        // 监听多个触摸开始事件
+        document.addEventListener('touchstart', (event) => {
+            const touches = event.touches;
+
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                const touchId = touch.identifier;
+
+                // 记录触摸点信息，用来判断触摸哪个摇杆
+                if (speedContainer.contains(touch.target)) {
+                    touchData[touchId] = { containerId: 'speed-joystick' };
+                } else if (directionContainer.contains(touch.target)) {
+                    touchData[touchId] = { containerId: 'direction-joystick' };
+                }
+            }
+        });
+
+        // 监听多个触摸结束事件
+        document.addEventListener('touchend', (event) => {
+            const touches = event.changedTouches;
+
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                const touchId = touch.identifier;
+
+                // 清理触摸点数据
+                if (touchData[touchId]) {
+                    if (touchData[touchId].containerId === 'speed-joystick') {
+                        speed = 0;
+                        speedKnob.style.left = '50%';
+                        speedKnob.style.top = '100%';  // 设置到最底下
+                        socket.emit('speed', speed);
+                    }
+
+                    if (touchData[touchId].containerId === 'direction-joystick') {
+                        x = 0;
+                        y = 0;
+                        directionKnob.style.left = '50%';
+                        directionKnob.style.top = '50%';
+                        socket.emit('direction', { x, y });
+                    }
+
+                    delete touchData[touchId];
+                }
+            }
+
+            // 停止移动，暂停发送数据
+            isMoving = false;
+        });
+
+        // 设置每50ms发送一次数据，确保数据流畅
+        setInterval(() => {
+            sendData();
+        }, 50);
+    </script>
+</body>
+</html>
