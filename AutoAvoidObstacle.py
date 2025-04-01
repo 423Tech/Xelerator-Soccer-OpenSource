@@ -98,8 +98,6 @@ def AvoidObt(iFacingAngle: int) -> None:
             lBlockedAngles.append(i*iPerAngle)
    #判断
     if len(lBlockedAngles) == 3:#被挡住三个
-        if lAvailbeAngles[0] == 89:
-            lAvailbeAngles[0] = lAvailbeAngles + 180
         iAimAngle = lAvailbeAngles[0]
     elif len(lBlockedAngles) == 2:#被挡住两个
         iAimAngle = find_nearest_element(lAvailbeAngles,iFacingAngle)
