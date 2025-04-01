@@ -1,4 +1,4 @@
-from models import set_adc
+import set_adc,time
 from cfg import QkJson
 
 Cfg = QkJson()
@@ -14,15 +14,15 @@ def getDists(Num: int) -> list[int,int,int]:
 
 def GetPos() -> list[int,int]:
     Distance = getDists(4)
-    if Distance[0]+Distance[2] < Cfg.read("Position","Height") - 100:
+    if Distance[0]+Distance[2] < Cfg.read("Position","Height") - 10:
         if Distance[0] > Distance[2]:
             Y = Cfg.read("Position","Height")/2 - Distance[0]
         else:
             Y = Cfg.read("Position","Height")/2 - Distance[2]
     else:
         Y = ((Cfg.read("Position","Height")/2 - Distance[0]) + (Cfg.read("Position","Height")/2 - Distance[2]))/2
-    if Distance[1]+Distance[3] < Cfg.read("Position","Width") - 100:
-        if Distance[0] > Distance[2]:
+    if Distance[1]+Distance[3] < Cfg.read("Position","Width") - 10:
+        if Distance[1] > Distance[3]:
             X = Cfg.read("Position","Width")/2 - Distance[1]
         else:
             X = Cfg.read("Position","Width")/2 - Distance[3]
@@ -30,3 +30,8 @@ def GetPos() -> list[int,int]:
         X = ((Cfg.read("Position","Width")/2 - Distance[1]) + (Cfg.read("Position","Width")/2 - Distance[3]))/2
 
     return [X,Y]
+
+while(True):
+    print(GetPos())
+    print(getDists(4))
+    time.sleep(500)
