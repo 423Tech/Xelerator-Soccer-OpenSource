@@ -28,10 +28,10 @@ class QkJson:
                     "B": 40,
                     },
                 "A2AOb": {
-                    "ActiveRange": 60,
-                    "IgnoreRange": 100,
+                    "ActiveRange": 30,
+                    "IgnoreRange": 40,
                     "NumOfDist" : 4,
-                    "LifeTime" : 3,
+                    "LifeTime" : 2,
                 },
                 "Border" : {
                     "0": 20,
@@ -92,8 +92,8 @@ def GoV(iFacingAngle,iAimAngle,iSpeed):
 def Go2(iFacingAngle,iSpeedX,iSpeedY):
     iGlobalPIDK = 2
     iCMP = compass.read()
-    iSpeedU = iSpeedX + iSpeedY
-    iSpeedV = iSpeedY - iSpeedX
+    iSpeedU = int(iSpeedX + iSpeedY)
+    iSpeedV = int(iSpeedY - iSpeedX)
     iDeltaAngle = iCMP-iFacingAngle
     if iDeltaAngle > 180:
         iDeltaAngle = iDeltaAngle - 360
@@ -113,20 +113,20 @@ def GetDists(Num: int) -> list[int,int,int]:
 
 def GetPos() -> list[int,int]:
     Distance = GetDists(cfg.read("A2AOb","NumOfDist"))
-    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 10:
+    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 70:
         if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")/2 - Distance[0]
+            Y = cfg.read("Position","Height")/2 + Distance[0]
         else:
             Y = cfg.read("Position","Height")/2 - Distance[2]
     else:
-        Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (cfg.read("Position","Height")/2 - Distance[2]))/2
-    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 10:
+        Y = ((cfg.read("Position","Height")/2 + Distance[0]) + (cfg.read("Position","Height")/2 - Distance[2]))/2
+    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 70:
         if Distance[1] > Distance[3]:
             X = cfg.read("Position","Width")/2 - Distance[1]
         else:
-            X = cfg.read("Position","Width")/2 - Distance[3]
+            X = cfg.read("Position","Width")/2 + Distance[3]
     else:
-        X = ((cfg.read("Position","Width")/2 - Distance[1]) + (cfg.read("Position","Width")/2 - Distance[3]))/2
+        X = ((cfg.read("Position","Width")/2 - Distance[1]) + (cfg.read("Position","Width")/2 + Distance[3]))/2
 
     return [X,Y]
 
@@ -139,7 +139,8 @@ def ObtDetect():
         for d in range(iNumOfDist):
             lStatusOfDist.append(True)
     for i in range(iNumOfDist):
-        if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
+        if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
+        # if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
             lStatusOfDist[i] = False
             iMemoLife = iMaxLife
             lBlockedMemo.append(i)
@@ -147,10 +148,11 @@ def ObtDetect():
                 lStatusOfDist[lBlockedMemo[0]] = True
                 lBlockedMemo.pop(0)
             bLife = False
-        if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
-            bLife = True
+        # if lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
+        # # if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
+        #     bLife = True
         else:
-            bLife = False
+            bLife = True
     if bLife:
         if len(lBlockedMemo) > 0 and iMemoLife > 0:
             iMemoLife = iMemoLife - 1
@@ -158,28 +160,34 @@ def ObtDetect():
                 lStatusOfDist[lBlockedMemo[0]] = True
                 lBlockedMemo.pop(0)
                 iMemoLife = iMaxLife
-        if len(lStatusOfDist) == 0:
+        if len(lBlockedMemo) == 0:
             iMemoLife = iMaxLife
         bLife = False
 
     
-def AvoidObt(iFacingAngle: int) -> None:
+def AvoidObt(iFacingAngle: int,iTargetAngle:int) -> None:
     ObtDetect()
     lAvailbeAngles = []
     lBlockedAngles = []
     iNumOfDist = cfg.read("A2AOb","NumOfDist")
-    iPerAngle = int(359/iNumOfDist)
+    iPerAngle = int(360/iNumOfDist)
     #获取挡住/被挡住的角度
     for i in range(iNumOfDist):
-        if lStatusOfDist[i]:
-            lAvailbeAngles.append(i*iPerAngle)
-        else:
-            lBlockedAngles.append(i*iPerAngle)
+        if i <= iNumOfDist/2:#左半部分
+            if lStatusOfDist[i]:
+                lAvailbeAngles.append(-i*iPerAngle)
+            else:
+                lBlockedAngles.append(-i*iPerAngle)
+        else:#右半部分
+            if lStatusOfDist[1]:
+                lAvailbeAngles.append((i-iNumOfDist+1)*iPerAngle)
+            else:
+                lBlockedAngles.append((i-iNumOfDist+1)*iPerAngle)
    #判断
     if len(lBlockedAngles) == 3:#被挡住三个
         iAimAngle = lAvailbeAngles[0]
     elif len(lBlockedAngles) == 2:#被挡住两个
-        iAimAngle = FindNearstAngle(lAvailbeAngles,iFacingAngle)
+        iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
     elif len(lBlockedAngles) == 1:#被挡住一个
         iAimAngle = lBlockedAngles[0] + 180
         if iAimAngle > 360:
