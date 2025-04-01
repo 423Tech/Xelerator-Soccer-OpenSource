@@ -23,10 +23,10 @@ class QkJson:
                     "B": 40,
                     },
                 "A2AOb": {
-                    "ActiveRange": 40,
-                    "IgnoreRange": 80,
+                    "ActiveRange": 60,
+                    "IgnoreRange": 100,
                     "NumOfDist" : 4,
-                    "LifeTime" : 2,
+                    "LifeTime" : 3,
                 },
                 "Border" : {
                     "0": 20,
@@ -38,8 +38,8 @@ class QkJson:
                     "Width": 1800,
                     "Height": 2400,
                 },
-                "Versions": {
-                    "v": 0.1,
+                "Advanced": {
+                    "Cover2Start": False,
                 }
             }
             with open(CONFIG_FILE, "w") as f:

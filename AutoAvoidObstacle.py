@@ -7,64 +7,9 @@ import binascii
 import framebuf
 
 
-
 clock = time.clock()
 
-# config.py | RCJ Version 1.0.2(2025032800) Developer 423
-import ujson
-import os
-CONFIG_FILE = "./config.json"
-class QkJson:
-    def __init__(self):
-        try:
-            os.stat(CONFIG_FILE)
-        except:
-            data = {
-                "model": {
-                    "number" : 1,
-                    "type": "Off",
-                },
-                "Tofs": {
-                    0: 1,
-                    1: 2,
-                    2: 3,
-                    3: 4,
-                    },
-                "A2AOb": {
-                    "AvRange": 40,
-                    "IgnrRange": 80,
-                    "NumOfDist" : 4,
-                    "LifeTime" : 1,
-                },
-                "Border" : {
-                    "0": 20,
-                    "1": 30,
-                    "2": 20,
-                    "3": 30,
-                },
-                "Position" : {
-                    "home": [0,0],
-                },
-                "Advanced": {
-                    "Luna": "False",
-                },
-                "Versions": {
-                    "v": 0.1,
-                }
-            }
-            with open(CONFIG_FILE, "w") as f:
-                ujson.dump(data, f)
-        with open(CONFIG_FILE) as f:
-            self.cfg = ujson.load(f)
-
-    def write(self, section: str, option: str, value: int) -> int:
-        self.cfg[section][option] = value
-        with open(CONFIG_FILE, "w") as f:
-            ujson.dump(self.cfg, f)
-
-    def read(self, section: str, option: str) -> int:
-        return self.cfg[section][option]
-
+from cfg import QkJson
 Cfg = QkJson()
 
 def getadc():
@@ -112,7 +57,7 @@ def ObtDetect():
         for d in range(iNumOfDist):
             lStatusOfDist.append(True)
     for i in range(iNumOfDist):
-        if lStatusOfDist[i] and lDists[i] <= Cfg.read("A2AOb","AvRange"):
+        if lStatusOfDist[i] and lDists[i] <= Cfg.read("A2AOb","ActiveRange"):
             lStatusOfDist[i] = False
             iMemoLife = iMaxLife
             lBlockedMemo.append(i)
@@ -120,10 +65,10 @@ def ObtDetect():
                 lStatusOfDist[lBlockedMemo[0]] = True
                 lBlockedMemo.pop(0)
             bLife = False
-        if not lStatusOfDist[i] and lDists[i] >= Cfg.read("A2AOb","IgnrRange")*2:
+        if not lStatusOfDist[i] and lDists[i] >= Cfg.read("A2AOb","IgnoreRange"):
             bLife = True
         else:
-            bLife = True
+            bLife = False
     if bLife:
         if len(lBlockedMemo) > 0 and iMemoLife > 0:
             iMemoLife = iMemoLife - 1
@@ -145,25 +90,31 @@ def AvoidObt(iFacingAngle: int) -> None:
     lAvailbeAngles = []
     lBlockedAngles = []
     iPerAngle = int(359/iNumOfDist)
+    #获取挡住/被挡住的角度
     for i in range(iNumOfDist):
         if lStatusOfDist[i]:
             lAvailbeAngles.append(i*iPerAngle)
         else:
             lBlockedAngles.append(i*iPerAngle)
-    if len(lBlockedAngles) == 3:
-        iAimAngle = 1*iPerAngle
-    if len(lBlockedAngles) == 2:
+   #判断
+    if len(lBlockedAngles) == 3:#被挡住三个
+        if lAvailbeAngles[0] == 89:
+            lAvailbeAngles[0] = lAvailbeAngles + 180
+        iAimAngle = lAvailbeAngles[0]
+    elif len(lBlockedAngles) == 2:#被挡住两个
         iAimAngle = find_nearest_element(lAvailbeAngles,iFacingAngle)
-    if len(lBlockedAngles) == 1:
+    elif len(lBlockedAngles) == 1:#被挡住一个
         iAimAngle = lBlockedAngles[0] + 180
         if iAimAngle > 360:
             iAimAngle = iAimAngle - 360
         else:
             iAimAngle = iAimAngle
-    GoV(iFacingAngle,iAimAngle,200)
+    else:
+        # iAimAngle = iFacingAngle
+        return 0
+    GoV(iFacingAngle,iAimAngle,150)
     # car.z_move(iFacingAngle,iAimAngle,200)  
-    print(len(lAvailbeAngles))
-    print(iAimAngle)
+    print(lAvailbeAngles[0])
 
 
 while(key.read() == 0):

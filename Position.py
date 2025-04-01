@@ -1,5 +1,5 @@
 from models import set_adc
-from QkConf import QkJson
+from cfg import QkJson
 
 Cfg = QkJson()
 

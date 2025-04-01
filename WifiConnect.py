@@ -1,7 +1,7 @@
 import network
 import socket
 import time
-from QkConf import QkJson
+from cfg import QkJson
 
 cfg = QkJson()
 

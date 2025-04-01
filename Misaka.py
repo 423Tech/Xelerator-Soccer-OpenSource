@@ -1,7 +1,7 @@
 from machine import UART,Pin
 
 from MisakaNet import misakaNet
-from QkConf import QkJson
+from cfg import QkJson
 
 cfg = QkJson()
 
