@@ -80,10 +80,6 @@ def ObtDetect():
             iMemoLife = iMaxLife
         bLife = False
 
-
-def find_nearest_element(arr, target):
-    return min(arr, key=lambda x: abs(x - target))
-
     
 def AvoidObt(iFacingAngle: int) -> None:
     ObtDetect()
