@@ -24,14 +24,14 @@ class QkJson:
                     1: 2,
                     2: 3,
                     3: 4,
-                    "K": 6.7,
-                    "B": 40,
+                    "K": 0.67,
+                    "B": 4,
                     },
                 "A2AOb": {
                     "ActiveRange": 30,
                     "IgnoreRange": 40,
                     "NumOfDist" : 4,
-                    "LifeTime" : 2,
+                    "LifeTime" : 3,
                 },
                 "Border" : {
                     "0": 20,
@@ -113,22 +113,43 @@ def GetDists(Num: int) -> list[int,int,int]:
 
 def GetPos() -> list[int,int]:
     Distance = GetDists(cfg.read("A2AOb","NumOfDist"))
-    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 70:
+    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 50:
         if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")/2 + Distance[0]
+            Y = cfg.read("Position","Height")/2 - Distance[0] -4
         else:
-            Y = cfg.read("Position","Height")/2 - Distance[2]
+            Y = Distance[2] - cfg.read("Position","Height")/2 + 4
     else:
-        Y = ((cfg.read("Position","Height")/2 + Distance[0]) + (cfg.read("Position","Height")/2 - Distance[2]))/2
-    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 70:
+        Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
+    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 50:
         if Distance[1] > Distance[3]:
-            X = cfg.read("Position","Width")/2 - Distance[1]
+            X = cfg.read("Position","Width")/2 - Distance[1] - 4
         else:
-            X = cfg.read("Position","Width")/2 + Distance[3]
+            X = Distance[3] - cfg.read("Position","Width")/2 + 4
     else:
-        X = ((cfg.read("Position","Width")/2 - Distance[1]) + (cfg.read("Position","Width")/2 + Distance[3]))/2
-
+        X = ((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X,Y]
+
+def AvoidOutBorder():
+    lAvailbeAngles = []
+    lBlockedAngles = []
+    Dists = GetDists("A2AOb","NumOfDist")
+    iNumOfDist = cfg.read("A2AOb","NumOfDist")
+    iPerAngle = int(359/iNumOfDist)
+    for i in range(iNumOfDist):
+        if i < iNumOfDist/2:#左半部分
+            if lStatusOfDist[i]:
+                lAvailbeAngles.append(-i*iPerAngle)
+            else:
+                lBlockedAngles.append(-i*iPerAngle)
+        else:#右半部分
+            if lStatusOfDist[1]:
+                lAvailbeAngles.append((i-iNumOfDist+1)*iPerAngle)
+            else:
+                lBlockedAngles.append((i-iNumOfDist+1)*iPerAngle)          
+    for d in Dists:
+        if d < cfg.read("Border",str(d)):  
+            pass
+
 
 def ObtDetect():
     global lBlockedMemo,lStatusOfDist,iMemoLife,bLife
@@ -170,32 +191,70 @@ def AvoidObt(iFacingAngle: int,iTargetAngle:int) -> None:
     lAvailbeAngles = []
     lBlockedAngles = []
     iNumOfDist = cfg.read("A2AOb","NumOfDist")
-    iPerAngle = int(360/iNumOfDist)
+    iPerAngle = int(359/iNumOfDist)
     #获取挡住/被挡住的角度
     for i in range(iNumOfDist):
-        if i <= iNumOfDist/2:#左半部分
+        if i < iNumOfDist/2:#左半部分
             if lStatusOfDist[i]:
                 lAvailbeAngles.append(-i*iPerAngle)
             else:
                 lBlockedAngles.append(-i*iPerAngle)
         else:#右半部分
-            if lStatusOfDist[1]:
+            if lStatusOfDist[i]:
                 lAvailbeAngles.append((i-iNumOfDist+1)*iPerAngle)
             else:
                 lBlockedAngles.append((i-iNumOfDist+1)*iPerAngle)
    #判断
+
     if len(lBlockedAngles) == 3:#被挡住三个
         iAimAngle = lAvailbeAngles[0]
-    elif len(lBlockedAngles) == 2:#被挡住两个
+    elif len(lBlockedAngles) <= 2:#被挡住两个
         iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-    elif len(lBlockedAngles) == 1:#被挡住一个
-        iAimAngle = lBlockedAngles[0] + 180
-        if iAimAngle > 360:
-            iAimAngle = iAimAngle - 360
-        else:
-            iAimAngle = iAimAngle
     else:
-        # iAimAngle = iFacingAngle
-        return 0
-    GoV(iFacingAngle,iAimAngle,150)
+        iAimAngle = 0
+        car.stop()
     # car.z_move(iFacingAngle,iAimAngle,200)
+
+
+def Pos2Angle(lAimPos:list[int,int]) -> int:
+    iAimX = lAimPos[0]
+    iAimY = lAimPos[1]
+    iLocX = GetPos()[0]
+    iLocY = GetPos()[1]
+    iDeltaX = iAimX - iLocX
+    iDeltaY = iAimY - iLocY
+    try:
+        iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
+    except:
+        if iDeltaX > 0:
+            iDeltaAngle = 90
+        else:
+            iDeltaAngle = 180
+    return int(iDeltaAngle)
+
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
+    iAimX = lAimPos[0]
+    iAimY = lAimPos[1]
+    iLocX = GetPos()[0]
+    iLocY = GetPos()[1]
+    iDeltaX = iAimX - iLocX
+    iDeltaY = iAimY - iLocY
+    if A2O:
+        if 5 > iDeltaX > -5 and 5 > iDeltaY > -5:
+            car.stop()
+        else:
+            AvoidObt(iFacingAngle,Pos2Angle(lAimPos))
+    else:
+        if iDeltaX > 500:
+            iDeltaX = iDeltaX/5
+        if iDeltaY > 500:
+            iDeltaY = iDeltaY/5
+        if iDeltaX < 100:
+            iDeltaX = iDeltaX*5
+        if iDeltaY < 100:
+            iDeltaY = iDeltaY*5
+        Go2(iFacingAngle,iDeltaX,iDeltaY)
+        # print(iDeltaX,iDeltaY)
+
+        # print(GetPos())
+
