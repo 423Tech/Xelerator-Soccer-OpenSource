@@ -34,14 +34,14 @@ class QkJson:
                     "LifeTime" : 3,
                 },
                 "Border" : {
-                    "0": 20,
-                    "1": 30,
-                    "2": 20,
-                    "3": 30,
+                    "0": [-40,-100],
+                    "1": [-40,-85],
+                    "2": [--60,-100],
                 },
                 "Position" : {
-                    "Width": 1800,
-                    "Height": 2400,
+                    "Width": 180,
+                    "Height": 240,
+                    "Home": [0,-70],
                 },
                 "Advanced": {
                     "Cover2Start": False,
@@ -113,14 +113,14 @@ def GetDists(Num: int) -> list[int,int,int]:
 
 def GetPos() -> list[int,int]:
     Distance = GetDists(cfg.read("A2AOb","NumOfDist"))
-    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 50:
+    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 35:
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")/2 - Distance[0] -4
         else:
             Y = Distance[2] - cfg.read("Position","Height")/2 + 4
     else:
         Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
-    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 50:
+    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 35:
         if Distance[1] > Distance[3]:
             X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
         else:
@@ -247,8 +247,6 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool) -> int:
         if 5 > iDeltaX > -5 and 5 > iDeltaY > -5:
             car.stop()
         else:
-            # print(lAimPos)
-            # print(Pos2Angle(lAimPos))
             if 0 > iDeltaX:
                 PA = Pos2Angle(lAimPos) + 180
             else:
