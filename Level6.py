@@ -122,11 +122,11 @@ def GetPos() -> list[int,int]:
         Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
     if Distance[1]+Distance[3] < cfg.read("Position","Width") - 50:
         if Distance[1] > Distance[3]:
-            X = cfg.read("Position","Width")/2 - Distance[1] - 4
+            X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
         else:
-            X = Distance[3] - cfg.read("Position","Width")/2 + 4
+            X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
     else:
-        X = ((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
+        X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X,Y]
 
 def AvoidOutBorder():
@@ -163,30 +163,32 @@ def ObtDetect():
         if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
         # if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
             lStatusOfDist[i] = False
-            iMemoLife = iMaxLife
-            lBlockedMemo.append(i)
-            if len(lBlockedMemo) > (iNumOfDist - 1):
-                lStatusOfDist[lBlockedMemo[0]] = True
-                lBlockedMemo.pop(0)
-            bLife = False
+            # iMemoLife = iMaxLife
+            # lBlockedMemo.append(i)
+            # if len(lBlockedMemo) > (iNumOfDist - 1):
+            #     lStatusOfDist[lBlockedMemo[0]] = True
+            #     lBlockedMemo.pop(0)
+            # bLife = False
         # if lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
         # # if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
         #     bLife = True
         else:
-            bLife = True
-    if bLife:
-        if len(lBlockedMemo) > 0 and iMemoLife > 0:
-            iMemoLife = iMemoLife - 1
-            if iMemoLife == 0:
-                lStatusOfDist[lBlockedMemo[0]] = True
-                lBlockedMemo.pop(0)
-                iMemoLife = iMaxLife
-        if len(lBlockedMemo) == 0:
-            iMemoLife = iMaxLife
-        bLife = False
+            lStatusOfDist[i] = True
+            # bLife = True
+    # if bLife:
+    #     if len(lBlockedMemo) > 0 and iMemoLife > 0:
+    #         iMemoLife = iMemoLife - 1
+    #         if iMemoLife == 0:
+    #             lStatusOfDist[lBlockedMemo[0]] = True
+    #             lBlockedMemo.pop(0)
+    #             iMemoLife = iMaxLife
+    #     if len(lBlockedMemo) == 0:
+    #         iMemoLife = iMaxLife
+    #     bLife = False
 
     
 def AvoidObt(iFacingAngle: int,iTargetAngle:int) -> None:
+    iTargetAngle = -iTargetAngle
     ObtDetect()
     lAvailbeAngles = []
     lBlockedAngles = []
@@ -196,23 +198,25 @@ def AvoidObt(iFacingAngle: int,iTargetAngle:int) -> None:
     for i in range(iNumOfDist):
         if i < iNumOfDist/2:#左半部分
             if lStatusOfDist[i]:
-                lAvailbeAngles.append(-i*iPerAngle)
+                lAvailbeAngles.append(-i*iPerAngle-1)
             else:
-                lBlockedAngles.append(-i*iPerAngle)
+                lBlockedAngles.append(-i*iPerAngle-1)
         else:#右半部分
             if lStatusOfDist[i]:
-                lAvailbeAngles.append((i-iNumOfDist+1)*iPerAngle)
+                lAvailbeAngles.append((abs(i-iNumOfDist))*iPerAngle+1)
             else:
-                lBlockedAngles.append((i-iNumOfDist+1)*iPerAngle)
+                lBlockedAngles.append((abs(i-iNumOfDist))*iPerAngle+1)
    #判断
-
     if len(lBlockedAngles) == 3:#被挡住三个
         iAimAngle = lAvailbeAngles[0]
+        GoV(iFacingAngle,iAimAngle,100)
     elif len(lBlockedAngles) <= 2:#被挡住两个
         iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
+        GoV(iFacingAngle,iAimAngle,200)
     else:
-        iAimAngle = 0
         car.stop()
+    # print(iAimAngle)
+    print(iTargetAngle)
     # car.z_move(iFacingAngle,iAimAngle,200)
 
 
@@ -227,12 +231,12 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
         iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
     except:
         if iDeltaX > 0:
-            iDeltaAngle = 90
+            iDeltaAngle = -90
         else:
-            iDeltaAngle = 180
+            iDeltaAngle = 90
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool) -> int:
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
     iLocX = GetPos()[0]
@@ -243,7 +247,15 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
         if 5 > iDeltaX > -5 and 5 > iDeltaY > -5:
             car.stop()
         else:
-            AvoidObt(iFacingAngle,Pos2Angle(lAimPos))
+            # print(lAimPos)
+            # print(Pos2Angle(lAimPos))
+            if 0 > iDeltaX:
+                PA = Pos2Angle(lAimPos) + 180
+            else:
+                PA = Pos2Angle(lAimPos)
+            if 0 > iDeltaY:
+                PA = Pos2Angle(lAimPos) - 180
+            AvoidObt(iFacingAngle,PA)
     else:
         if iDeltaX > 500:
             iDeltaX = iDeltaX/5
@@ -254,7 +266,5 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
         if iDeltaY < 100:
             iDeltaY = iDeltaY*5
         Go2(iFacingAngle,iDeltaX,iDeltaY)
-        # print(iDeltaX,iDeltaY)
 
-        # print(GetPos())
 
