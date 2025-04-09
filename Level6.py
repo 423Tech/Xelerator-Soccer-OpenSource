@@ -1,5 +1,4 @@
 import sensor,image,lcd,math,time,pyb
-from pyb import UART
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led
 import binascii
 import framebuf
@@ -34,7 +33,7 @@ class QkJson:
                     "LifeTime" : 3,
                 },
                 "Border" : {
-                    "0": [60,100],
+                    "0": [60,95],
                     "1": [40,85],
                 },
                 "Position" : {
@@ -113,14 +112,14 @@ def GetDists() -> list[int,int,int]:
 
 def GetPos() -> list[int,int]:
     Distance = GetDists()
-    if Distance[0]+Distance[2] < cfg.read("Position","Height") - 35:
+    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")/2 - Distance[0] -4
         else:
             Y = Distance[2] - cfg.read("Position","Height")/2 + 4
     else:
         Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
-    if Distance[1]+Distance[3] < cfg.read("Position","Width") - 35:
+    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
         if Distance[1] > Distance[3]:
             X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
         else:
@@ -139,15 +138,16 @@ def AvoidOutBorder():
         iKY = -1
     else:
         iKY = 1
-    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]*iKY:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]*iKY:
+    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
+        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
             iMoveAngle = -135
         else:
             iMoveAngle = 180
-    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]*iKY:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]*iKY:
+    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
+        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
             iMoveAngle = -90
-        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]*iKY:
+        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
+            print(GetPos())
             iMoveAngle = 180
         else:
             pass
@@ -155,9 +155,11 @@ def AvoidOutBorder():
         pass
     try:
         iMoveAngle = iMoveAngle*iKX*iKY
-        GoV(0,iMoveAngle,200)
+        if iMoveAngle == -180:
+            iMoveAngle = 0
+        GoV(0,-iMoveAngle,200)
     except:
-        pass
+        car.stop()
 
 
 
@@ -166,10 +168,11 @@ def ObtDetect() -> list[bool,bool]:
     '''
     返回一个列表，包含了每个角度是否被遮挡
     '''
+    #TODO 无法走迷宫
     global lBlockedMemo,iMemoLife,bLife
     lStatusOfDist = []
     iNumOfDist = cfg.read("A2AOb","NumOfDist")
-    iMaxLife = cfg.read("A2AOb","LifeTime")
+    # iMaxLife = cfg.read("A2AOb","LifeTime")
     lDists = GetDists()
     if len(lStatusOfDist) < iNumOfDist:
         for d in range(iNumOfDist):
