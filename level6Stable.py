@@ -5,7 +5,7 @@ import binascii
 import framebuf
 
 
-# config.py | RCJ Version 1.4.0(2025040800) Developer 423
+# config.py | RCJ Version 1.2.0(2025040800) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
@@ -29,16 +29,16 @@ class QkJson:
                     },
                 "A2AOb": {
                     "ActiveRange": 30,
-                    "IgnoreRange": 30,
+                    "IgnoreRange": 40,
                     "NumOfDist" : 4,
                     "LifeTime" : 3,
                 },
                 "Border" : {
-                    "0": [60,100],
-                    "1": [40,85],
+                    "0": [-40,-100],
+                    "1": [-40,-85],
+                    "2": [--60,-100],
                 },
                 "Position" : {
-                    "ErrorRange": 10,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70],
@@ -101,9 +101,8 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
-def GetDists() -> list[int,int,int]:
+def GetDists(Num: int) -> list[int,int,int]:
     lDists = []
-    Num = cfg.read("A2AOb","NumOfDist")
     for i in range(Num):
         # lDists.append(set_adc.read(i))
         lDists.append(
@@ -112,7 +111,7 @@ def GetDists() -> list[int,int,int]:
     return lDists
 
 def GetPos() -> list[int,int]:
-    Distance = GetDists()
+    Distance = GetDists(cfg.read("A2AOb","NumOfDist"))
     if Distance[0]+Distance[2] < cfg.read("Position","Height") - 35:
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")/2 - Distance[0] -4
@@ -130,47 +129,33 @@ def GetPos() -> list[int,int]:
     return [X,Y]
 
 def AvoidOutBorder():
-    lLocalPos = GetPos()
-    if lLocalPos[0] <= 0:
-        iKX = -1
-    else:
-        iKX = 1
-    if lLocalPos[1] <= 0:
-        iKY = -1
-    else:
-        iKY = 1
-    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]*iKY:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]*iKY:
-            iMoveAngle = -135
-        else:
-            iMoveAngle = 180
-    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]*iKY:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]*iKY:
-            iMoveAngle = -90
-        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]*iKY:
-            iMoveAngle = 180
-        else:
+    lAvailbeAngles = []
+    lBlockedAngles = []
+    Dists = GetDists("A2AOb","NumOfDist")
+    iNumOfDist = cfg.read("A2AOb","NumOfDist")
+    iPerAngle = int(359/iNumOfDist)
+    for i in range(iNumOfDist):
+        if i < iNumOfDist/2:#左半部分
+            if lStatusOfDist[i]:
+                lAvailbeAngles.append(-i*iPerAngle)
+            else:
+                lBlockedAngles.append(-i*iPerAngle)
+        else:#右半部分
+            if lStatusOfDist[1]:
+                lAvailbeAngles.append((i-iNumOfDist+1)*iPerAngle)
+            else:
+                lBlockedAngles.append((i-iNumOfDist+1)*iPerAngle)          
+    for d in Dists:
+        if d < cfg.read("Border",str(d)):  
             pass
-    else:
-        pass
-    try:
-        iMoveAngle = iMoveAngle*iKX*iKY
-        GoV(0,iMoveAngle,200)
-    except:
-        pass
 
 
-
-
-def ObtDetect() -> list[bool,bool]:
-    '''
-    返回一个列表，包含了每个角度是否被遮挡
-    '''
+def ObtDetect():
     global lBlockedMemo,iMemoLife,bLife
     lStatusOfDist = []
     iNumOfDist = cfg.read("A2AOb","NumOfDist")
     iMaxLife = cfg.read("A2AOb","LifeTime")
-    lDists = GetDists()
+    lDists = GetDists(iNumOfDist)
     if len(lStatusOfDist) < iNumOfDist:
         for d in range(iNumOfDist):
             lStatusOfDist.append(True)
@@ -202,12 +187,8 @@ def ObtDetect() -> list[bool,bool]:
     #     bLife = False
     return lStatusOfDist
 
-def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int | None = 150) -> None:
-    '''
-    iFacingAngle 移动时面对的方向 0~360
-    iTargetAngle 需要移动的方向 可能不采用 -180~180
-    iSpeed 移动的速度 默认150
-    '''
+    
+def AvoidObt(iFacingAngle: int,iTargetAngle:int,iSpeed:int) -> None:
     iTargetAngle = -iTargetAngle
     lAvailbeAngles = []
     lBlockedAngles = []
@@ -237,23 +218,20 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
             iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
         # print(lBlockedAngles,lAvailbeAngles)
         GoV(iFacingAngle,iAimAngle,iSpeed)
-    elif len(lBlockedAngles) < 1:
-        iAimAngle = iTargetAngle
-        # if lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]:
-        #     print(1)
-        # else:
-        #     iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-        # # print(iTargetAngle,iFacingAngle,iAimAngle,iSpeed)
-        print(lAvailbeAngles,lBlockedAngles)
+    elif len(lBlockedAngles) <= 1:
+        if lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]:
+            iAimAngle = iTargetAngle
+            print(1)
+        else:
+            iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
+        print(iTargetAngle,iFacingAngle,iAimAngle,iSpeed)
         GoV(iFacingAngle,iAimAngle,iSpeed)
     else:
         car.stop()
     # car.z_move(iFacingAngle,iAimAngle,200)
 
+
 def Pos2Angle(lAimPos:list[int,int]) -> int:
-    '''
-    lAimPos 一个坐标 示例：[0,0]
-    '''
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
     iLocX = GetPos()[0]
@@ -269,13 +247,7 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
             iDeltaAngle = 90
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
-    '''
-    iFacingAngle 移动时面对的方向 0~360
-    lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
-    A2O 是否开启自动避障 默认True
-    '''
-    AvoidOutBorder()
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool) -> int:
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
     iLocX = GetPos()[0]
@@ -291,9 +263,8 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     if iDeltaY < 100:
         iDeltaY = iDeltaY*5
     #TODO 得出的是0刻度与目标距离的夹角
-    iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
-        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
+        if 5 > iDeltaX > -5 and 5 > iDeltaY > -5:
             car.stop()
         else:
             if 0 > iDeltaX:
@@ -302,6 +273,18 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
                 PA = Pos2Angle(lAimPos)
             if 0 > iDeltaY:
                 PA = Pos2Angle(lAimPos) - 180
-            AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
+            AvoidObt(iFacingAngle,PA,(abs(iDeltaX)+abs(iDeltaY)/1.3))
     else:
         Go2(iFacingAngle,iDeltaX,iDeltaY)
+
+
+def Move2Points(lPos:list[list[int,int]]):
+    '''
+    lPos 多个点的坐标 例如:[[0,0],[0,70]]
+    ! Important ! :这行代码会卡在最后一个点执行完毕后再继续下一行代码!
+    '''
+    for p in lPos:
+        lLocalP = GetPos()
+        while(not(-10 < (lLocalP[0] - p[0]) < 10 and -10 < (lLocalP[1] - p[1]) < 10)):
+            lLocalP = GetPos()
+            Pos2Pos(0,p,True)
