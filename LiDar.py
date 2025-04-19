@@ -7,13 +7,12 @@
 from models import *
 
 import math
-# timer.start(1)
 PI = 3.14159265 #//定义π常量  用PI是3.14
 
 
 def LidarPos():
-    iJumpSample = 18
-    iSampleNumber = 20
+    iJumpSample = 2
+    iSampleNumber = 18
     lOutData = [[],[]]
     for _ in range(iSampleNumber*iJumpSample):
         lRawData=lidar.read()
