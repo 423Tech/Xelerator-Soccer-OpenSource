@@ -11,8 +11,10 @@ PI = 3.14159265 #//定义π常量  用PI是3.14
 
 
 def LidarPos():
-    iJumpSample = 2
-    iSampleNumber = 18
+    iJumpSample = 10
+    iSampleNumber = 8
+    angle = 20*iSampleNumber
+    print(angle)
     lOutData = [[],[]]
     for _ in range(iSampleNumber*iJumpSample):
         lRawData=lidar.read()
