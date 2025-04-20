@@ -7,41 +7,39 @@
 from models import *
 
 import math
-PI = 3.14159265 #//定义π常量  用PI是3.14
 
 
 def LidarPos():
     iJumpSample = 10
-    iSampleNumber = 8
+    iSampleNumber = 6
     angle = 20*iSampleNumber
     print(angle)
+    lRawDists = [[],[],[],[]]
     lOutData = [[],[]]
-    for _ in range(iSampleNumber*iJumpSample):
+    lOutDists = []
+    for _ in range(iSampleNumber):
         lRawData=lidar.read()
         for i in range(int(40/iJumpSample)):
             lOutData[0].append(lRawData[0][int(i*iJumpSample)])
             lOutData[1].append(lRawData[1][int(i*iJumpSample)])
-    print(len(lOutData[0]))
-    lRawDists = [[],[],[],[]]
-    lOutDists = []
-    for i in range(iSampleNumber):
-        # x方向 sin 270-90
-        if 90 < lRawData[0][i] < 270:
-            lRawDists[0].append(int(lOutData[1][i]*math.cos(lOutData[0][i]*PI/180)))
+    for i in range(int(40/iJumpSample)*iSampleNumber):
+        # y方向 sin 270-90
+        if 90 < lOutData[0][i] < 270:
+            lRawDists[0].append(lOutData[1][i]*math.cos(math.radians(lOutData[0][i])))
         else:
-            lRawDists[2].append(int(lOutData[1][i]*math.cos(lOutData[0][i]*PI/180)))
-        # y方向 sin 0-180
-        if 0 < lRawData[0][i] < 180:
-            lRawDists[1].append(int(lOutData[1][i]*math.sin(lOutData[0][i]*PI/180)))
+            lRawDists[2].append(lOutData[1][i]*math.cos(math.radians(lOutData[0][i])))
+        # x方向 sin 0-180
+        if 0 < lOutData[0][i] < 180:
+            lRawDists[1].append(lOutData[1][i]*math.sin(math.radians(lOutData[0][i])))
         else:
-            lRawDists[3].append(int(lOutData[1][i]*math.sin(lOutData[0][i]*PI/180)))
+            lRawDists[3].append(lOutData[1][i]*math.sin(math.radians(lOutData[0][i])))
 
     for l in lRawDists:
         iOut = 0
         iDist = 0
         for i in l:
             iOut = iOut + i**2
-            print(i)
+            # print(i)
         iDist = int((iOut/40)**0.5)
         lOutDists.append(iDist)
     return lOutDists

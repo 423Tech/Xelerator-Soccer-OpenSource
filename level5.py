@@ -1,8 +1,9 @@
 import sensor,image,lcd,math,time,pyb
-import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led
+import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 import binascii
 import framebuf
 
+set_io.out(15,1)
 
 # config.py | RCJ Version 1.4.0(2025040800) Developer 423
 import ujson
@@ -100,6 +101,47 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
+def LidarPos():
+    iJumpSample = 1
+    iSampleNumber = 8
+    angle = 20*iSampleNumber
+    # print(angle)
+    lRawDists = [[],[],[],[]]
+    lOutData = [[],[]]
+    lOutDists = []
+    for _ in range(iSampleNumber):
+        lRawData=lidar.read()
+        for i in range(0,40,iJumpSample):
+            lOutData[0].append(lRawData[0][iJumpSample])
+            lOutData[1].append(lRawData[1][iJumpSample])
+        delay.ms(28)
+    for i in range(len(lOutData[0])):
+        # y方向 sin 270-90
+        # print(i)
+        if 90 < lOutData[0][i] < 270:
+            lRawDists[0].append(lOutData[1][i]*abs(math.cos(math.radians(lOutData[0][i]))))
+        else:
+            lRawDists[2].append(lOutData[1][i]*abs(math.cos(math.radians(lOutData[0][i]))))
+        # x方向 sin 0-180
+        if 0 < lOutData[0][i] < 180:
+            lRawDists[1].append(lOutData[1][i]*abs(math.sin(math.radians(lOutData[0][i]))))
+        else:
+            lRawDists[3].append(lOutData[1][i]*abs(math.sin(math.radians(lOutData[0][i]))))
+
+    # print(lOutData[0])
+    # print(len(lOutData[0]))
+
+    for l in lRawDists:
+        # iOut = 0
+        # iDist = 0
+        # for i in l:
+        #     k = 1
+        #     iOut = iOut + i*k*10
+        # #     # print(i)
+        # iDist = int((iOut/(len(lOutData[0])))/100)
+        lOutDists.append(int(max(l)/10))
+    return lOutDists
+
 def GetDists() -> list[int,int,int]:
     lDists = []
     Num = cfg.read("A2AOb","NumOfDist")
@@ -111,7 +153,7 @@ def GetDists() -> list[int,int,int]:
     return lDists
 
 def GetPos() -> list[int,int]:
-    Distance = GetDists()
+    Distance = LidarPos()
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")/2 - Distance[0] -4
