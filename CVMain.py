@@ -3,21 +3,32 @@ import numpy as np
 import time
 import multiprocessing as mp
 
-lCamPorts = [0,2,6,4]
+fHorizontalTransformK = 0.054
+fHorizontalTransformB = -17.55
+fVerticalTransformK = -0.06
+fVerticalTransformB = 32.28
+
+lCamPorts = [2,0,4,6]
 lCams = []
 
 tGreenHSV = []
 tOrangeLAB = (0, 255, 140, 190, 150, 190)
-tOrangeHSV = (5, 15, 100, 255, 180, 255)
+tOrangeHSV = (5, 15, 100, 255, 200, 255)
 tBlueLAB = []
 tYellowLAB = []
 
-lSRCPoints = []
-lDSTPoints = []
+lSRCPoints = np.float32([(160,325),(480,325),(376,200),(264,200)])
+lDSTPoints = np.float32([(160,325),(480,325),(480,-117),(160,-117)])
 
-# aPerspectiveMatrix = cv2.getPerspectiveTransform(lSRCPoints,lDSTPoints)
+aPerspectiveMatrix = cv2.getPerspectiveTransform(lSRCPoints,lDSTPoints)
 
-def findBlobs(Frame, tThreshold, iFormat = 2, ROI = None, iMinPixelCount = 1):
+def applyPerspectiveTransform(X, Y, Matrix):
+    Point = np.array([X, Y, 1], dtype=np.float64)
+    Transformed = Matrix @ Point
+    Transformed /= Transformed[2]
+    return int(Transformed[0]), int(Transformed[1])
+
+def findBlobs(Frame, tThreshold, iFormat = 2, ROI = None, iMinPixelCount = 5):
     if iFormat == 1:
         Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2LAB)
     
@@ -49,10 +60,21 @@ def findBlobs(Frame, tThreshold, iFormat = 2, ROI = None, iMinPixelCount = 1):
             lBlobs.append((iX, iY, iW, iH, iCX, iCY))
     return lBlobs
 
-
-    
-
-
+def camTest():
+    lCams = camInit([0,2,4,6],320,240,3,0,32,64)
+    while(1):
+        lFrames = readCam(lCams)
+        UpperFrame = cv2.hconcat([lFrames[0],lFrames[1]])
+        LowerFrame = cv2.hconcat([lFrames[2],lFrames[3]])
+        Frame = cv2.vconcat([UpperFrame,LowerFrame])
+        cv2.imshow('CameraTest', Frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+    cv2.destroyAllWindows()
+    for oCam in lCams:
+        oCam.release()
+    time.sleep(114514)
 
 def imageResize(Frame, fScale=1, iXOffset=0, iYOffset=0):
     iOriginalHeight = Frame.shape[0]
@@ -144,37 +166,45 @@ def findBlobProcess(lCam, iCam, tThreshold, ROI, iBX, iBY, iXOffset=0, iYOffset=
     while(1):
         # print(1)
         Frame = readCam(lCams,iCam)
+        Frame = imageResize(Frame,1,iXOffset=iXOffset,iYOffset=iYOffset)
         lBlobs = findBlobs(Frame,tThreshold=tThreshold,ROI = ROI)
         if lBlobs:
             oMaxBlob = findMaxBlob(lBlobs)
             cv2.circle(Frame, (oMaxBlob[4], oMaxBlob[5]), 2, (0,255,0), 2)
-            iBX.value = oMaxBlob[4]
-            iBY.value = oMaxBlob[5]
+            iX = oMaxBlob[4]
+            iY = oMaxBlob[5]
+            
+            iX,iY = applyPerspectiveTransform(iX,iY,aPerspectiveMatrix)
+            iX = int(fHorizontalTransformK * iX + fHorizontalTransformB)
+            iY = int(fVerticalTransformK * iY + fVerticalTransformB)
+
+            iBX.value = iX
+            iBY.value = iY
         else:
             iBX.value = 0
             iBY.value = 0
+        time.sleep(0.02)
         # cv2.putText(Frame, f"FPS: {1.0/(time.time()-t0):.1f}", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2); t0 = time.time()
-        # if iCam == 2:
-        #     cv2.imshow('Camera' + str(iCam), Frame)
-        #     key = cv2.waitKey(1) & 0xFF
-        #     if key == ord('q'):
-        #         break
-        time.sleep(0.01)
+        # if iCam == 1 or iCam == 2:
+            # cv2.imshow('Camera' + str(iCam), Frame)
+            # key = cv2.waitKey(1) & 0xFF
+            # if key == ord('q'):
+            #     break
 
 def integrateBallPos(oFrontBallX,oFrontBallY,oRightBallX,oRightBallY,oBackBallX,oBackBallY,oLeftBallX,oLeftBallY,oIX,oIY):
     while(1):
         if oFrontBallY.value != 0:
-            iX = oFrontBallX.value - 320
-            iY = 480 - oFrontBallY.value
+            iX = oFrontBallX.value
+            iY = oFrontBallY.value
         elif oRightBallY.value != 0:
-            iY = -(oRightBallX.value - 320)
-            iX = 480 - oRightBallY.value
+            iY = -oRightBallX.value
+            iX = oRightBallY.value
         elif oBackBallY.value != 0:
-            iX = -(oBackBallX.value - 320)
-            iY = -(480 - oBackBallY.value)
+            iX = -oBackBallX.value
+            iY = -oBackBallY.value
         elif oLeftBallY.value != 0:
-            iY = oLeftBallX.value - 320
-            iX = -(480 - oLeftBallY.value)
+            iY = oLeftBallX.value
+            iX = -oLeftBallY.value
         else:
             iX = 0
             iY = 0
@@ -182,15 +212,13 @@ def integrateBallPos(oFrontBallX,oFrontBallY,oRightBallX,oRightBallY,oBackBallX,
         oIX.value = iX
         oIY.value = iY
 
-        time.sleep(0.1)
+        time.sleep(0.02)
 
-
-        
-
-
-
+# camTest()
 
 lCams = camInit(iWidth=640, iHeight=480)
+
+
 
 t0 = time.time()
 
@@ -206,13 +234,13 @@ oIX = mp.Value('i',0)
 oIY = mp.Value('i',0)
 
 
-oFrontFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,0,tOrangeHSV,(95,0,450,480),oFrontBallX,oFrontBallY,0,0))
+oFrontFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,0,tOrangeHSV,(80,0,480,480),oFrontBallX,oFrontBallY,0,0))
 oFrontFindBlobProcess.start()
-oRightFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,1,tOrangeHSV,(95,0,450,480),oRightBallX,oRightBallY,0,14))
+oRightFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,1,tOrangeHSV,(80,0,480,480),oRightBallX,oRightBallY,0,20))
 oRightFindBlobProcess.start()
-oBackFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,2,tOrangeHSV,(95,0,450,480),oBackBallX,oBackBallY,0,0))
+oBackFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,2,tOrangeHSV,(80,0,480,480),oBackBallX,oBackBallY,0,20))
 oBackFindBlobProcess.start()
-oRightFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,3,tOrangeHSV,(95,0,450,480),oLeftBallX,oLeftBallY,0,14))
+oRightFindBlobProcess = mp.Process(target = findBlobProcess,args=(lCams,3,tOrangeHSV,(80,0,480,480),oLeftBallX,oLeftBallY,0,20))
 oRightFindBlobProcess.start()
 oIntegrateBallPosProcess = mp.Process(target = integrateBallPos,args=(oFrontBallX,oFrontBallY,oRightBallX,oRightBallY,oBackBallX,oBackBallY,oLeftBallX,oLeftBallY,oIX,oIY))
 oIntegrateBallPosProcess.start()
@@ -220,51 +248,5 @@ oIntegrateBallPosProcess.start()
 
 
 while(1):
-    time.sleep(0.01)
     print(oIX.value,oIY.value)
-
-
-while(1):
-    Frame = readCam(lCams,0)
-
-
-    # iCropWidth = 95
-    # lFrames[0] = imageCrop(lFrames[0],[(iCropWidth,0),(iCropWidth,480),(640-iCropWidth,480),(640-iCropWidth,0)])
-    # lFrames[1] = imageCrop(lFrames[1],[(iCropWidth,0),(iCropWidth,480),(640-iCropWidth,480),(640-iCropWidth,0)])
-    # lFrames[3] = imageCrop(lFrames[3],[(iCropWidth,0),(iCropWidth,480),(640-iCropWidth,480),(640-iCropWidth,0)])
-
-    # Frame = imageResize(lFrames[0],fScale = 0.8)
-
-    # lFrames[1] = imageResize(lFrames[1],fScale = 1,iYOffset=14)
-    # lFrames[3] = imageResize(lFrames[3],fScale = 1,iYOffset=14)
-
-    # lRightBlobs = findBlobs(lFrames[1],tThreshold=tOrangeLAB)
-    lFrontBlobs = findBlobs(Frame,tOrangeHSV,ROI = (95,0,450,480))
-
-    if lFrontBlobs:
-        oMaxBlob = findMaxBlob(lFrontBlobs)
-        print(oMaxBlob[4]-320,480-oMaxBlob[5])
-        cv2.circle(Frame, (oMaxBlob[4], oMaxBlob[5]), 2, (0,255,0), 2)
-
-
-    # for oBlob in lFrontBlobs:
-    #     cv2.circle(Frame, (oBlob[4], oBlob[5]), 2, (0,255,0), 2)
-        
-    # Frame = imageCrop(Frame,[(0,0),(0,160),(320,480),(640,180),(640,0)])
-
-    # Frame = imageResize(cv2.hconcat([lFrames[0],lFrames[1]]),0.6)
-    # LowerFrame = cv2.hconcat([lFrames[2],lFrames[3]])
-    # Frame  = cv2.vconcat([UpperFrame,LowerFrame])
-    # print(lBlobs)
-    # cv2.putText(lFrames[1], f"FPS: {1.0/(time.time()-t0):.1f}", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2); t0 = time.time()
-    cv2.putText(Frame, f"FPS: {1.0/(time.time()-t0):.1f}", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2); t0 = time.time()
-    # cv2.imshow('Right', lFrames[1])
-    cv2.imshow('Front', Frame)
-    # cv2.imshow('Right', lFrames[1])
-    # cv2.imshow('Left', lFrames[3])
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
-
-
-cv2.destroyAllWindows()
+    time.sleep(0.02)
