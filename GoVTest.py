@@ -1,4 +1,4 @@
-from Level6 import GoV
+from Level5 import GoV
 import key
 
 while(key.read() == 0):

@@ -1,4 +1,4 @@
-from Level6 import GetPos, Pos2Pos
+from Level5 import GetPos, Pos2Pos
 
 def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]]):
     for i in Posistions:

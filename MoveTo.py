@@ -1,5 +1,5 @@
 import math
-from Level6 import GetPos, key, Go2, GetDists, AvoidObt, GoV
+from Level5 import GetPos, key, Go2, GetDists, AvoidObt, GoV
 import car
 
 def Pos2Angle(lAimPos:list[int,int]) -> int:
