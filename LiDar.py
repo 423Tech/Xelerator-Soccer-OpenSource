@@ -4,7 +4,7 @@
 # import binascii
 # import framebuf
 
-from models import *
+# from models import *
 
 import math
 PI = 3.14159265 #//定义π常量  用PI是3.14
