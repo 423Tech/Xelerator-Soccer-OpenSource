@@ -95,7 +95,9 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
     iSpeedV = int(iSpeedY - iSpeedX)
     iDeltaAngle = iCMP-iFacingAngle
     if iDeltaAngle > 180:
-        iDeltaAngle = iDeltaAngle - 360
+        iDeltaAngle = int(iDeltaAngle - 360)
+    else:
+        iDeltaAngle = int(iDeltaAngle)
     set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK)
 
 
@@ -103,72 +105,100 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 #Value Mod
 def LidarPos():
     iJumpSample = 1
-    iSampleNumber = 8
-    angle = 20*iSampleNumber
-    # print(angle)
-    lRawDists = [[],[],[],[]]
+    iSampleNumber = 5
     lOutData = [[],[]]
+    lCache = [0,0,0,0]
+    lRawDists = [[],[],[],[]]
+    lOut = [[],[],[],[]]
     lOutDists = []
     for _ in range(iSampleNumber):
         lRawData=lidar.read()
         for i in range(0,40,iJumpSample):
-            lOutData[0].append(lRawData[0][iJumpSample])
-            lOutData[1].append(lRawData[1][iJumpSample])
-        delay.ms(28)
+            # if lRawData[1][i] < 4000:
+                lOutData[0].append(lRawData[0][i]-compass.read()+180-4.3)
+                lOutData[1].append(lRawData[1][i])
+        delay.us(22700)
+
     for i in range(len(lOutData[0])):
-        # y方向 sin 270-90
-        # print(i)
-        if 90 < lOutData[0][i] < 270:
-            lRawDists[0].append(lOutData[1][i]*abs(math.cos(math.radians(lOutData[0][i]))))
-        else:
-            lRawDists[2].append(lOutData[1][i]*abs(math.cos(math.radians(lOutData[0][i]))))
-        # x方向 sin 0-180
-        if 0 < lOutData[0][i] < 180:
-            lRawDists[1].append(lOutData[1][i]*abs(math.sin(math.radians(lOutData[0][i]))))
-        else:
-            lRawDists[3].append(lOutData[1][i]*abs(math.sin(math.radians(lOutData[0][i]))))
+        if lOutData[1][i] < 3000:
+            # y方向 sin 270-90
+            if 90 < lOutData[0][i] < 270:
+                lRawDists[0].append(lOutData[1][i]*abs(math.cos(abs(math.radians(lOutData[0][i])))))
+            else:
+                lRawDists[2].append(lOutData[1][i]*abs(math.cos(abs(math.radians(lOutData[0][i])))))
+            # x方向 sin 0-180
+            if 0 < lOutData[0][i] < 180:
+                lRawDists[1].append(lOutData[1][i]*abs(math.sin(abs(math.radians(lOutData[0][i])))))
+            else:
+                lRawDists[3].append(lOutData[1][i]*abs(math.sin(abs(math.radians(lOutData[0][i])))))
 
-    # print(lOutData[0])
-    # print(len(lOutData[0]))
+    for i in range(len(lRawDists)):
+        for j in range(len(lRawDists[i])):
+            if (0 < abs(lRawDists[i][j]-lCache[i]) < 10):
+                lOut[i].append(lRawDists[i][j])
+                lCache[i] = lRawDists[i][j]
+            else:
+                lCache[i] = lRawDists[i][j]
+        if len(lOut[i]) == 0:
+            try:
+                lOut[i].append(max(lRawDists[i]))
+            except:
+                lOut[i].append(0)
 
-    for l in lRawDists:
-        # iOut = 0
-        # iDist = 0
-        # for i in l:
-        #     k = 1
-        #     iOut = iOut + i*k*10
-        # #     # print(i)
-        # iDist = int((iOut/(len(lOutData[0])))/100)
-        lOutDists.append(int(max(l)/10))
+    for l in lOut:
+        iDist = int(((sum(l))/len(l)))
+        lOutDists.append(iDist)
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
     lDists = []
     Num = cfg.read("A2AOb","NumOfDist")
     for i in range(Num):
-        # lDists.append(set_adc.read(i))
         lDists.append(
             int(set_adc.read(cfg.read("Tofs",str(i)))*cfg.read("Tofs","K")+cfg.read("Tofs","B"))
             )
     return lDists
 
 def GetPos() -> list[int,int]:
-    Distance = LidarPos()
-    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
-        if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")/2 - Distance[0] -4
+    if LidarPos():
+        Distance = LidarPos()
+        iCfgK = 10
+        if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK-30):
+        # if Distance[0]+Distance[2] < (cfg.read("Position","Height")-30)*1000:
+            if Distance[0] > Distance[2]:
+                Y = ((cfg.read("Position","Height")*iCfgK)/2) - (Distance[0]) +100
+            else:
+                Y = (Distance[2]) - (cfg.read("Position","Height")*iCfgK)
         else:
-            Y = Distance[2] - cfg.read("Position","Height")/2 + 4
-    else:
-        Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
-    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
-        if Distance[1] > Distance[3]:
-            X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
+            Y = ((cfg.read("Position","Height")*(iCfgK/2) - Distance[0]/10) + (Distance[2]/10 - cfg.read("Position","Height")*(iCfgK/2)))/2
+        if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK - 800)*1000:
+        # if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK - 800):
+            if Distance[1] < Distance[3]:
+                X = -(cfg.read("Position","Width")*(iCfgK/2) - Distance[1] - 950)
+                print("****///****||")
+            else:
+                X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2) - 200)
         else:
-            X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
+            print("////////////////////")
+            X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] -850) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2) +200))/2
+        return [X,int(Y)/10]
     else:
-        X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
-    return [X,Y]
+        Distance = GetDists()
+        if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
+            if Distance[0] > Distance[2]:
+                Y = cfg.read("Position","Height")/2 - Distance[0] -4
+            else:
+                Y = Distance[2] - cfg.read("Position","Height")/2 + 4
+        else:
+            Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
+        if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
+            if Distance[1] > Distance[3]:
+                X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
+            else:
+                X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
+        else:
+            X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
+        return [X,Y]
 
 def AvoidOutBorder():
     lLocalPos = GetPos()
@@ -189,7 +219,7 @@ def AvoidOutBorder():
         if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
             iMoveAngle = -90
         elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
-            print(GetPos())
+            # print(GetPos())
             iMoveAngle = 180
         else:
             pass
