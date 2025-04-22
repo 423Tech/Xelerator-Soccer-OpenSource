@@ -2,31 +2,32 @@ import matplotlib.pyplot as plt
 import math
 
 # 假设你有以下数据结构
-data = [[267.1, 271.1, 276.1, 281.1, 285.1, 199.1, 203.1, 299.1, 258.1, 262.1, 358.1, 363.1, 367.1, 372.1, 413.1, 417.1, 422.1, 426.1, 431.1, 435.1, 193.1, 512.1, 517.1, 521.1, 526.1, 170.1, 467.1, 179.1, 184.1, 189.1, 241.1, 200.1, 205.1, 209.1, 259.1, 263.1, 268.1, 227.1, 232.1, 236.1, 378.1, 382.1, 341.1, 346.1, 350.1, 417.1, 422.1, 426.1, 431.1, 435.1, 193.1, 512.1, 517.1, 521.1, 526.1, 170.1, 175.1, 180.1, 184.1, 189.1, 241.1, 245.1, 205.1, 209.1, 214.1, 263.1, 268.1, 227.1, 232.1, 189.1, 378.1, 382.1, 341.1, 391.1, 350.1, 355.1, 359.1, 364.1, 369.1, 373.1, 440.1, 512.1, 517.1, 521.1, 526.1, 463.1, 467.1, 472.1, 431.1, 435.1, 195.1, 200.1, 231.1, 235.1, 240.1, 244.1, 249.1, 253.1, 431.1, 435.1, 358.1, 363.1, 367.1, 372.1, 376.1, 381.1, 340.1, 344.1, 349.1, 354.1, 449.1, 470.1, 474.1, 463.1, 422.1, 426.1, 431.1, 435.1, 440.1, 444.1], [875, 877, 894, 911, 941, 4361, 4328, 1061, 885, 874, 1163, 1176, 1193, 1221, 1102, 1055, 1017, 987, 964, 955, 1348, 1382, 1343, 1315, 1293, 1280, 1024, 1282, 1294, 1317, 949, 4351, 4172, 1077, 1145, 874, 873, 1089, 1031, 1297, 1266, 1306, 1194, 1176, 1166, 1052, 1017, 989, 963, 955, 1348, 1382, 1343, 1314, 1292, 1278, 1277, 1283, 1296, 1317, 949, 919, 4160, 4109, 4073, 873, 872, 1087, 1032, 1317, 1266, 1306, 1194, 1447, 1166, 1163, 1168, 1180, 1200, 1229, 947, 1381, 1343, 1314, 1293, 998, 1031, 1064, 969, 957, 4247, 4354, 1043, 995, 957, 924, 904, 885, 969, 957, 1167, 1176, 1193, 1217, 1255, 1299, 1200, 1180, 1166, 1163, 950, 1044, 1093, 995, 1020, 987, 968, 956, 947, 945]]
+data = [[],[2271.975, 62.58864, 2257.375, 2259.9, 2250.609, 2246.352, 205.9093, 206.7702, 205.3073, 205.9765, 205.5863, 206.1245, 206.5952, 206.9977, 207.7888, 206.9953, 207.6802, 207.439, 205.9093, 206.7702, 205.3073, 205.9765, 205.5863, 206.1245, 206.5952, 206.9977, 207.7888, 206.9953, 207.6802, 207.439, 205.9093, 206.7702, 205.3073, 205.9765, 205.5863, 206.1245, 206.5952, 206.9977, 207.7888, 206.9953, 207.6802, 207.439, 206.9953, 207.439, 858.7335, 868.0794, 875.7299, 206.9953, 2282.417, 2276.356, 2272.342, 2267.507, 2263.815, 2258.356, 2255.064, 2258.098, 2250.328, 2246.355, 2243.667, 2241.277, 2235.198, 2232.97, 2229.833, 2225.02, 2219.533, 2215.373, 2214.528, 2200.387, 206.9953, 2282.417, 2276.356, 2272.342, 2267.507, 2263.815, 2258.356, 2255.064, 2258.098, 2250.328, 2246.355, 2243.667, 2241.277, 2235.198, 2232.97, 2229.833, 2225.02, 2219.533, 2215.373, 2214.528, 2200.387, 206.9953, 91.7665]]
 
+for i in range(len(data[1])):
+    data[0].append(i)
 
+# lRawDists = [[],[],[],[]]
+# lAngles = [[],[],[],[]]
+# lCache = [0,0,0,0]
 
-lRawDists = [[],[],[],[]]
-lAngles = [[],[],[],[]]
-lCache = [0,0,0,0]
-
-for i in range(len(data[0])):
-    # y方向 sin 270-90
-    # print(i)
-    if data[1][i] < 3000:
-        if 90 < data[0][i] < 270:
-            lAngles[0].append(data[0][i])
-            lRawDists[0].append(data[1][i]*abs(math.cos(abs(math.radians(data[0][i])))))
-        else:
-            lAngles[2].append(data[0][i])
-            lRawDists[2].append(data[1][i]*abs(math.cos(abs(math.radians(data[0][i])))))
-        # x方向 sin 0-180
-        if 0 < data[0][i] < 180:
-            lAngles[1].append(data[0][i])
-            lRawDists[1].append(data[1][i]*abs(math.sin(abs(math.radians(data[0][i])))))
-        else:
-            lAngles[3].append(data[0][i])
-            lRawDists[3].append(data[1][i]*abs(math.sin(abs(math.radians(data[0][i])))))
+# for i in range(len(data[0])):
+#     # y方向 sin 270-90
+#     # print(i)
+#     if data[1][i] < 3000:
+#         if 90 < data[0][i] < 270:
+#             lAngles[0].append(data[0][i])
+#             lRawDists[0].append(data[1][i]*abs(math.cos(abs(math.radians(data[0][i])))))
+#         else:
+#             lAngles[2].append(data[0][i])
+#             lRawDists[2].append(data[1][i]*abs(math.cos(abs(math.radians(data[0][i])))))
+#         # x方向 sin 0-180
+#         if 0 < data[0][i] < 180:
+#             lAngles[1].append(data[0][i])
+#             lRawDists[1].append(data[1][i]*abs(math.sin(abs(math.radians(data[0][i])))))
+#         else:
+#             lAngles[3].append(data[0][i])
+#             lRawDists[3].append(data[1][i]*abs(math.sin(abs(math.radians(data[0][i])))))
 
 MetaData = [
     [[],[]],  # 第一组数据: x1 = [1, 2, 3], y1 = [4, 5, 6]
@@ -39,24 +40,31 @@ MetaData = [
     [[],[]],  # 第一组数据: x1 = [1, 2, 3], y1 = [4, 5, 6]
 ]
 
-for i in range(len(lRawDists)):
-    for j in range(len(lRawDists[i])):
-                MetaData[i][0].append(lAngles[i][j])
-                MetaData[i][1].append(lRawDists[i][j])
-                lCache[i] = lRawDists[i][j]
+# for i in range(len(lRawDists)):
+#     for j in range(len(lRawDists[i])):
+#                 MetaData[i][0].append(lAngles[i][j])
+#                 MetaData[i][1].append(lRawDists[i][j])
+#                 lCache[i] = lRawDists[i][j]
 
-for i in range(len(lRawDists)):
-    for j in range(len(lRawDists[i])):
-        if (0 <abs(lRawDists[i][j]-lRawDists[i][j-1]) < -100):
-            # if :
-                MetaData[i+4][0].append(lAngles[i][j])
-                MetaData[i+4][1].append(lRawDists[i][j])
-                lCache[i] = lRawDists[i][j]
-        else:
-            lCache[i] = lRawDists[i][j]
+# for i in range(len(lRawDists)):
+#     for j in range(len(lRawDists[i])):
+#         if (0 <abs(lRawDists[i][j]-lRawDists[i][j-1]) < -100):
+#             # if :
+#                 MetaData[i+4][0].append(lAngles[i][j])
+#                 MetaData[i+4][1].append(lRawDists[i][j])
+#                 lCache[i] = lRawDists[i][j]
+#         else:
+#             lCache[i] = lRawDists[i][j]
 
-print(len(MetaData[7][0]))
-print(len(MetaData[0][1]))
+# for i in range(len(data)):
+#     for j in range(len(data[i])):
+#         if (0 <abs(data[i][j]-data[i][j-1]) < 10):
+#             # if :
+#                 MetaData[i][0].append(data[0][j])
+#                 MetaData[i][1].append(data[1][j])
+    
+# print(len(MetaData[7][0]))
+# print(len(MetaData[0][1]))
 
 # 假设你有以下数据结构，表示三组数据
 
@@ -67,8 +75,8 @@ colors = ['r',"y", "o","p" ,'g', 'b',"pink","cryan"]  # 'r' = 红色, 'g' = 绿�
 plt.figure()
 
 # 遍历每组数据并绘制
-for i, (x, y) in enumerate(MetaData):
-    plt.scatter(x, y, label=f"Group {i+1}")
+# for i, (x, y) in enumerate(data):
+plt.scatter(data[0], data[1], label=f"Group {i+1}")
 
 # 添加标题和标签
 plt.title("Scatter Plot with Multiple Groups")
