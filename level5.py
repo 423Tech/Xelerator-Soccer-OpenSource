@@ -99,6 +99,8 @@ cfg = QkJson()
 #Values
 bLife = False
 lBlockedMemo = []
+lxCache = 32767
+lyCache = 32767
 
 
 #Math Mod
@@ -141,7 +143,7 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
-def LidarDists()->list[list[int],list[int]]:
+def LidarCache()->list[list[int],list[int]]:
     iJumpSample = 2
     iSampleNumber = 10
     lOutData = [[],[]]
@@ -153,25 +155,26 @@ def LidarDists()->list[list[int],list[int]]:
         delay.us(8050)
     return lOutData
 
-def LidarPos():
+def LidarDists():
     lOutData = [[],[]]
     lCache = [0,0,0,0]
     lRawDists = [[],[],[],[]]
     lOut = [[],[],[],[]]
     lOutDists = []
-    lOutData = LidarDists()
+    lOutData = LidarCache()
 
     for i in range(len(lOutData[0])):
-            # y方向 sin 270-90
-            if 90 < lOutData[0][i] < 270:
-                lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-            else:
-                lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-            # x方向 sin 0-180
-            if 0 < lOutData[0][i] < 180:
-                lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-            else:
-                lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+            if lOutData[1][i] < 3000:
+                # y方向 sin 270-90
+                if 90 < lOutData[0][i] < 270:
+                    lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+                else:
+                    lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+                # x方向 sin 0-180
+                if 0 < lOutData[0][i] < 180:
+                    lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+                else:
+                    lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
 
     for i in range(len(lRawDists)):
         for j in range(len(lRawDists[i])):
@@ -192,7 +195,7 @@ def LidarPos():
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
-    if not cfg.read("Tof","On"):
+    if not cfg.read("Tofs","On"):
         return LidarDists()
     else:
         lDists = []
@@ -204,23 +207,34 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
+    global lxCache
     if not cfg.read("Tofs","On"):
+        Distance = GetDists()
         iCfgK = 10
-        if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-            if Distance[0] > Distance[2]:
-                Y = -((cfg.read("Position","Height")*iCfgK/2)) - (Distance[0])
+        if  (cfg.read("Position","Height")*iCfgK*2)  < Distance[0]+Distance[2] or Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
+                Y = -(((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
             else:
-                Y = -((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2))
+                print(Distance[0])
+                Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
         else:
-            Y = -((cfg.read("Position","Height")*(iCfgK/2) - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*(iCfgK/2)))/2
-        if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-            if Distance[1] > Distance[3]:
+            Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        if (cfg.read("Position","Height")*iCfgK*2) < Distance[1]+Distance[3] or Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
                 X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
             else:
                 X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
             # print(1)
             X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        if lxCache == 32767:
+            lxCache = X
+        if (60 > abs(X - lxCache) > 0):
+            lxCache = X
+        if lyCache == 32767:
+            lyCache = Y
+        if (60 > abs(Y - lXCache) > 0):
+            lyCache = Y
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -242,37 +256,37 @@ def GetPos() -> list[int,int]:
 
 def AvoidOutBorder():
     return 0
-    # lLocalPos = GetPos()
-    # if lLocalPos[0] <= 0:
-    #     iKX = -1
-    # else:
-    #     iKX = 1
-    # if lLocalPos[1] <= 0:
-    #     iKY = -1
-    # else:
-    #     iKY = 1
-    # if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
-    #     if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-    #         iMoveAngle = -135
-    #     else:
-    #         iMoveAngle = 180
-    # elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
-    #     if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-    #         iMoveAngle = -90
-    #     elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
-    #         # print(GetPos())
-    #         iMoveAngle = 180
-    #     else:
-    #         pass
-    # else:
-    #     pass
-    # try:
-    #     iMoveAngle = iMoveAngle*iKX*iKY
-    #     if iMoveAngle == -180:
-    #         iMoveAngle = 0
-    #     GoV(0,-iMoveAngle,200)
-    # except:
-    #     car.stop()
+    lLocalPos = GetPos()
+    if lLocalPos[0] <= 0:
+        iKX = -1
+    else:
+        iKX = 1
+    if lLocalPos[1] <= 0:
+        iKY = -1
+    else:
+        iKY = 1
+    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
+        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
+            iMoveAngle = -135
+        else:
+            iMoveAngle = 180
+    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
+        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
+            iMoveAngle = -90
+        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
+            # print(GetPos())
+            iMoveAngle = 180
+        else:
+            pass
+    else:
+        pass
+    try:
+        iMoveAngle = iMoveAngle*iKX*iKY
+        if iMoveAngle == -180:
+            iMoveAngle = 0
+        GoV(0,-iMoveAngle,200)
+    except:
+        car.stop()
 
 def ObtDetect() -> list[bool,bool]:
     '''
@@ -281,9 +295,9 @@ def ObtDetect() -> list[bool,bool]:
     #TODO 无法走迷宫
     global lBlockedMemo,iMemoLife,bLife
     lStatusOfDist = []
-    iNumOfDist = cfg.read("A2AOb","NumOfDist")
     # iMaxLife = cfg.read("A2AOb","LifeTime")
     lDists = GetDists()
+    iNumOfDist = len(lDists)
     if len(lStatusOfDist) < iNumOfDist:
         for d in range(iNumOfDist):
             lStatusOfDist.append(True)
@@ -325,7 +339,7 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     lAvailbeAngles = []
     lBlockedAngles = []
     lStatusOfDist = ObtDetect()
-    iNumOfDist = cfg.read("A2AOb","NumOfDist")
+    iNumOfDist = len(GetDists())
     iPerAngle = int(359/iNumOfDist)
     #获取挡住/被挡住的角度
     for i in range(iNumOfDist):
