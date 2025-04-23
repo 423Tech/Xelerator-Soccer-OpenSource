@@ -5,21 +5,20 @@ import framebuf
 
 set_io.out(15,1)
 
-# config.py | RCJ Version 1.4.0(2025040800) Developer 423
+# config.py | RCJ Version 1.8.0(2025042300) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
+CACHE_FILE = "./cfg.cache.json"
 class QkJson:
     def __init__(self):
-        try:
-            os.stat(CONFIG_FILE)
-        except:
-            data = {
+        data = {
                 "model": {
                     "number" : 1,
                     "type": "Off",
                 },
                 "Tofs": {
+                    "On": True,
                     0: 1,
                     1: 2,
                     2: 3,
@@ -38,19 +37,53 @@ class QkJson:
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 10,
+                    "ErrorRange": 20,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70],
+                },
+                "BLE" : {
+                    "MAC" : "NONE",
+                    "Type" : "Domain",
                 },
                 "Advanced": {
                     "Cover2Start": False,
                 }
             }
+        try:
+            os.stat(CONFIG_FILE)
+        except:
             with open(CONFIG_FILE, "w") as f:
                 ujson.dump(data, f)
         with open(CONFIG_FILE) as f:
             self.cfg = ujson.load(f)
+            bUpdate = False
+            for i in data:
+                for c in data[i].keys():
+                    try:
+                        self.cfg[str(i)][str(c)]
+                    except:
+                        bUpdate = True
+        if bUpdate:
+            os.rename(CONFIG_FILE,CACHE_FILE)
+            with open(CACHE_FILE, "r") as ca:
+                self.cache = ujson.load(ca)
+            with open(CONFIG_FILE, "w") as d:
+                ujson.dump(data, d)
+            with open(CONFIG_FILE, "r") as d:
+                self.cfg = ujson.load(d)
+            for i in data:
+                for c in data[i].keys():
+                    try:
+                        vCache = self.cache[str(i)][str(c)]
+                        print(vCache)
+                        self.cfg[str(i)][str(c)] = vCache
+                        with open(CONFIG_FILE, "w") as d:
+                            ujson.dump(self.cfg, d)
+                    except:
+                        pass
+            os.remove(CACHE_FILE)
+                
 
     def write(self, section: str, option: str, value: int) -> int:
         self.cfg[section][option] = value
@@ -129,7 +162,6 @@ def LidarPos():
     lOutData = LidarDists()
 
     for i in range(len(lOutData[0])):
-        # if lOutData[1][i] < 3000:
             # y方向 sin 270-90
             if 90 < lOutData[0][i] < 270:
                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
@@ -160,20 +192,19 @@ def LidarPos():
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
-    lDists = []
-    Num = cfg.read("A2AOb","NumOfDist")
-    for i in range(Num):
-        lDists.append(
-            int(set_adc.read(cfg.read("Tofs",str(i)))*cfg.read("Tofs","K")+cfg.read("Tofs","B"))
-            )
-    return lDists
+    if not cfg.read("Tof","On"):
+        return LidarDists()
+    else:
+        lDists = []
+        Num = cfg.read("A2AOb","NumOfDist")
+        for i in range(Num):
+            lDists.append(
+                int(set_adc.read(cfg.read("Tofs",str(i)))*cfg.read("Tofs","K")+cfg.read("Tofs","B"))
+                )
+        return lDists
 
 def GetPos() -> list[int,int]:
-    try:
-        Distance = LidarPos()
-    except:
-        pass
-    if Distance:
+    if not cfg.read("Tofs","On"):
         iCfgK = 10
         if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
             if Distance[0] > Distance[2]:
@@ -211,37 +242,37 @@ def GetPos() -> list[int,int]:
 
 def AvoidOutBorder():
     return 0
-    lLocalPos = GetPos()
-    if lLocalPos[0] <= 0:
-        iKX = -1
-    else:
-        iKX = 1
-    if lLocalPos[1] <= 0:
-        iKY = -1
-    else:
-        iKY = 1
-    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-            iMoveAngle = -135
-        else:
-            iMoveAngle = 180
-    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-            iMoveAngle = -90
-        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
-            # print(GetPos())
-            iMoveAngle = 180
-        else:
-            pass
-    else:
-        pass
-    try:
-        iMoveAngle = iMoveAngle*iKX*iKY
-        if iMoveAngle == -180:
-            iMoveAngle = 0
-        GoV(0,-iMoveAngle,200)
-    except:
-        car.stop()
+    # lLocalPos = GetPos()
+    # if lLocalPos[0] <= 0:
+    #     iKX = -1
+    # else:
+    #     iKX = 1
+    # if lLocalPos[1] <= 0:
+    #     iKY = -1
+    # else:
+    #     iKY = 1
+    # if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
+    #     if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
+    #         iMoveAngle = -135
+    #     else:
+    #         iMoveAngle = 180
+    # elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
+    #     if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
+    #         iMoveAngle = -90
+    #     elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
+    #         # print(GetPos())
+    #         iMoveAngle = 180
+    #     else:
+    #         pass
+    # else:
+    #     pass
+    # try:
+    #     iMoveAngle = iMoveAngle*iKX*iKY
+    #     if iMoveAngle == -180:
+    #         iMoveAngle = 0
+    #     GoV(0,-iMoveAngle,200)
+    # except:
+    #     car.stop()
 
 def ObtDetect() -> list[bool,bool]:
     '''
@@ -351,33 +382,6 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
             iDeltaAngle = 90
     return int(iDeltaAngle)
 
-    '''
-    iFacingAngle 移动时面对的方向 0~360
-    lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
-    A2O 是否开启自动避障 默认True
-    '''
-    AvoidOutBorder()
-    iAimX = lAimPos[0]
-    iAimY = lAimPos[1]
-    iLocX = GetPos()[0]
-    iLocY = GetPos()[1]
-    iDeltaX = iAimX - iLocX
-    iDeltaY = iAimY - iLocY
-    #TODO 得出的是0刻度与目标距离的夹角
-    iErrorRange = cfg.read("Position","ErrorRange")/2
-    if A2O:
-        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
-            car.stop()
-        else:
-            if 0 > iDeltaX:
-                PA = Pos2Angle(lAimPos) + 180
-            else:
-                PA = Pos2Angle(lAimPos)
-            if 0 > iDeltaY:
-                PA = Pos2Angle(lAimPos) - 180
-            AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
-    else:
-        Go2(iFacingAngle,iDeltaX,iDeltaY)
 def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
 
     '''
@@ -420,4 +424,4 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.stop()
         else:
         # car.turn(iFacingAngle)
-            Go2(iFacingAngle,iDeltaX/100,iDeltaY/100)
+            Go2(iFacingAngle,iDeltaX,iDeltaY)
