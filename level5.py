@@ -38,7 +38,7 @@ class QkJson:
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 20,
+                    "ErrorRange": 10,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70],
@@ -108,21 +108,26 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
+def LidarDists()->list[list[int],list[int]]:
+    iJumpSample = 2
+    iSampleNumber = 10
+    lOutData = [[],[]]
+    for _ in range(iSampleNumber):
+        lRawData=lidar.read()
+        for i in range(0,40,iJumpSample):
+            lOutData[0].append(lRawData[0][i])
+            lOutData[1].append(lRawData[1][i])
+        delay.us(8050)
+    return lOutData
+
 def LidarPos():
-    iJumpSample = 1
-    iSampleNumber = 9
     lOutData = [[],[]]
     lCache = [0,0,0,0]
     lRawDists = [[],[],[],[]]
     lOut = [[],[],[],[]]
     lOutDists = []
-    for _ in range(iSampleNumber):
-        lRawData=lidar.read()
-        for i in range(0,40,iJumpSample):
-            # if lRawData[1][i] < 4000:
-                lOutData[0].append(lRawData[0][i]-compass.read()+180)
-                lOutData[1].append(lRawData[1][i])
-        delay.us(8235)
+    lOutData = LidarDists()
+
     for i in range(len(lOutData[0])):
         # if lOutData[1][i] < 3000:
             # y方向 sin 270-90
@@ -138,9 +143,8 @@ def LidarPos():
 
     for i in range(len(lRawDists)):
         for j in range(len(lRawDists[i])):
-            if (0 < abs(lRawDists[i][j]-lCache[i]) < 10):
+            if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.7):
                 lOut[i].append(lRawDists[i][j])
-                lCache[i] = lRawDists[i][j]
             else:
                 lCache[i] = lRawDists[i][j]
         if len(lOut[i]) == 0:
@@ -152,7 +156,7 @@ def LidarPos():
     for l in lOut:
         iDist = (((sum(l))/len(l)))
         lOutDists.append(iDist)
-    # print(lOutDists[0]+lOutDists[2])
+    
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
@@ -173,18 +177,18 @@ def GetPos() -> list[int,int]:
         iCfgK = 10
         if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
             if Distance[0] > Distance[2]:
-                Y = ((cfg.read("Position","Height")*iCfgK/2)) - (Distance[0])
+                Y = -((cfg.read("Position","Height")*iCfgK/2)) - (Distance[0])
             else:
-                Y = ((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2))
+                Y = -((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2))
         else:
-            Y = ((cfg.read("Position","Height")*(iCfgK/2) - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*(iCfgK/2)))/2
+            Y = -((cfg.read("Position","Height")*(iCfgK/2) - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*(iCfgK/2)))/2
         if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
             if Distance[1] > Distance[3]:
                 X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
             else:
                 X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
-            print(1)
+            # print(1)
             X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
         return [int(X)/10,int(Y)/10]
     else:
@@ -238,9 +242,6 @@ def AvoidOutBorder():
         GoV(0,-iMoveAngle,200)
     except:
         car.stop()
-
-
-
 
 def ObtDetect() -> list[bool,bool]:
     '''
@@ -378,6 +379,7 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
     else:
         Go2(iFacingAngle,iDeltaX,iDeltaY)
 def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
+
     '''
     iFacingAngle 移动时面对的方向 0~360
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
@@ -391,13 +393,13 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     iLocY = lLocal[1]
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
-    if iDeltaX > 500:
+    if iDeltaX > 50:
         iDeltaX = iDeltaX/10
-    if iDeltaY > 500:
+    if iDeltaY > 50:
         iDeltaY = iDeltaY/10
-    if iDeltaX < 100:
-        iDeltaX = iDeltaX*2.5
-    if iDeltaY < 100:
+    if iDeltaX < 10:
+        iDeltaX = iDeltaX*2
+    if iDeltaY < 10:
         iDeltaY = iDeltaY*2.5
     #TODO 得出的是0刻度与目标距离的夹角
     iErrorRange = cfg.read("Position","ErrorRange")/2
@@ -418,4 +420,4 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.stop()
         else:
         # car.turn(iFacingAngle)
-            Go2(iFacingAngle,iDeltaX,iDeltaY)
+            Go2(iFacingAngle,iDeltaX/100,iDeltaY/100)
