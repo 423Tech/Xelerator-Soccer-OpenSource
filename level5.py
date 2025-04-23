@@ -44,6 +44,7 @@ class QkJson:
                 },
                 "BLE" : {
                     "MAC" : "NONE",
+                    "REMOTE" : "NONE",
                     "Type" : "Domain",
                 },
                 "Advanced": {
@@ -178,7 +179,7 @@ def LidarDists():
 
     for i in range(len(lRawDists)):
         for j in range(len(lRawDists[i])):
-            if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.7):
+            if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.65):
                 lOut[i].append(lRawDists[i][j])
             else:
                 lCache[i] = lRawDists[i][j]
@@ -207,34 +208,26 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
-    global lxCache
+    global lxCache,lyCache
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
-        if  (cfg.read("Position","Height")*iCfgK*2)  < Distance[0]+Distance[2] or Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-            if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
-                Y = -(((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
-            else:
-                print(Distance[0])
-                Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
-        else:
-            Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        if (cfg.read("Position","Height")*iCfgK*2) < Distance[1]+Distance[3] or Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-            if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-                X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
-            else:
-                X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
-        else:
-            # print(1)
-            X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-        if lxCache == 32767:
-            lxCache = X
-        if (60 > abs(X - lxCache) > 0):
-            lxCache = X
-        if lyCache == 32767:
-            lyCache = Y
-        if (60 > abs(Y - lXCache) > 0):
-            lyCache = Y
+        # if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
+        #     if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
+        #         Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
+        #     else:
+        #         Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
+        # else:
+        #     Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        # if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
+        #     if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
+        #         X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
+        #     else:
+        #         X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
+        # else:
+        #     X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -354,17 +347,17 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
             else:
                 lBlockedAngles.append((abs(i-iNumOfDist))*iPerAngle+1)
    #判断
-    if len(lBlockedAngles) == 3:#被挡住三个
+    if len(lBlockedAngles) > 0.75*iNumOfDist:#被挡住三个
         iAimAngle = lAvailbeAngles[0]
         GoV(iFacingAngle,iAimAngle,iSpeed)
-    elif len(lBlockedAngles) == 2:#被挡住两个以下
+    elif len(lBlockedAngles) == 0.5*iNumOfDist:#被挡住两个以下
         if (all(lAvailbeAngles[i] - lAvailbeAngles[i - 1] == lAvailbeAngles[1] - lAvailbeAngles[0] for i in range(2, len(lAvailbeAngles)))) and (lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]):
             iAimAngle = iTargetAngle
         else:
             iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
         # print(lBlockedAngles,lAvailbeAngles)
         GoV(iFacingAngle,iAimAngle,iSpeed)
-    elif len(lBlockedAngles) < 1:
+    elif len(lBlockedAngles) < iNumOfDist:
         iAimAngle = iTargetAngle
         # if lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]:
         #     print(1)
@@ -411,14 +404,14 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     iLocY = lLocal[1]
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
-    if iDeltaX > 50:
-        iDeltaX = iDeltaX/10
-    if iDeltaY > 50:
-        iDeltaY = iDeltaY/10
-    if iDeltaX < 10:
-        iDeltaX = iDeltaX*2
-    if iDeltaY < 10:
-        iDeltaY = iDeltaY*2.5
+    if iDeltaX > 500:
+        iDeltaX = iDeltaX/7
+    if iDeltaY > 500:
+        iDeltaY = iDeltaY/5
+    if iDeltaX < 100:
+        iDeltaX = iDeltaX*3
+    if iDeltaY < 100:
+        iDeltaY = iDeltaY*3
     #TODO 得出的是0刻度与目标距离的夹角
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
@@ -439,3 +432,22 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
         else:
         # car.turn(iFacingAngle)
             Go2(iFacingAngle,iDeltaX,iDeltaY)
+
+
+
+def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:bool):
+    iErrorRange = cfg.read("Position","ErrorRange")/2
+    for i in Posistions:
+        while (1):
+            iAimX = i[0]
+            iAimY = i[1]
+            lLocal = GetPos()
+            iLocX = lLocal[0]
+            iLocY = lLocal[1]
+            iDeltaX = iAimX - iLocX
+            iDeltaY = iAimY - iLocY
+            if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
+                break
+            else:
+                Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
+        
