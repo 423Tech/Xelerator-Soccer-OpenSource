@@ -48,8 +48,8 @@ class QkJson:
         except:
             with open(CONFIG_FILE, "w") as f:
                 ujson.dump(data, f)
-        with open(CONFIG_FILE) as f:
-            self.cfg = ujson.load(f)
+        with open(CONFIG_FILE) as d:
+            self.cfg = ujson.load(d)
             bUpdate = False
             for i in data:
                 for c in data[i].keys():

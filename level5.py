@@ -2,6 +2,7 @@ import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 import binascii
 import framebuf
+from pyb import UART
 
 set_io.out(15,1)
 
@@ -29,7 +30,6 @@ class QkJson:
                 "A2AOb": {
                     "ActiveRange": 30,
                     "IgnoreRange": 30,
-                    "NumOfDist" : 4,
                     "LifeTime" : 3,
                 },
                 "Border" : {
@@ -122,7 +122,7 @@ def GoV(iFacingAngle,iAimAngle,iSpeed):
     iDeltaAngle = int(iCMP-iFacingAngle)
     if iDeltaAngle > 180:
         iDeltaAngle = iDeltaAngle - 360
-    set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK)
+    set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK)
 
 def Go2(iFacingAngle,iSpeedX,iSpeedY):
     iGlobalPIDK = 2
@@ -137,10 +137,9 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
     set_motor.RPM(
         iSpeedU - iDeltaAngle * iGlobalPIDK,
         iSpeedV - iDeltaAngle * iGlobalPIDK,
+        iSpeedU + iDeltaAngle * iGlobalPIDK,
         iSpeedV + iDeltaAngle * iGlobalPIDK,
-        iSpeedU + iDeltaAngle * iGlobalPIDK
         )
-
 
 
 #Value Mod
@@ -281,46 +280,66 @@ def AvoidOutBorder():
     except:
         car.stop()
 
-def ObtDetect() -> list[bool,bool]:
+def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     '''
-    返回一个列表，包含了每个角度是否被遮挡
+    返回一个列表，[[角度],[是否被遮挡]]
     '''
     #TODO 无法走迷宫
-    global lBlockedMemo,iMemoLife,bLife
-    lStatusOfDist = []
-    # iMaxLife = cfg.read("A2AOb","LifeTime")
-    lDists = GetDists()
-    iNumOfDist = len(lDists)
-    if len(lStatusOfDist) < iNumOfDist:
-        for d in range(iNumOfDist):
-            lStatusOfDist.append(True)
-    for i in range(iNumOfDist):
-        if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
-        # if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
-            lStatusOfDist[i] = False
-            # iMemoLife = iMaxLife
-            # lBlockedMemo.append(i)
-            # if len(lBlockedMemo) > (iNumOfDist - 1):
-            #     lStatusOfDist[lBlockedMemo[0]] = True
-            #     lBlockedMemo.pop(0)
-            # bLife = False
-        # if lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
-        # # if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
-        #     bLife = True
-        else:
-            lStatusOfDist[i] = True
-    #         bLife = True
-    # if bLife:
-    #     if len(lBlockedMemo) > 0 and iMemoLife > 0:
-    #         iMemoLife = iMemoLife - 1
-    #         if iMemoLife == 0:
-    #             lStatusOfDist[lBlockedMemo[0]] = True
-    #             lBlockedMemo.pop(0)
-    #             iMemoLife = iMaxLife
-    #     if len(lBlockedMemo) == 0:
-    #         iMemoLife = iMaxLife
-    #     bLife = False
-    return lStatusOfDist
+    if cfg.read("Tofs","On"):
+        global lBlockedMemo,iMemoLife,bLife
+        lStatusOfDist = [[],[]]
+        # iMaxLife = cfg.read("A2AOb","LifeTime")
+        lDists = GetDists()
+        iNumOfDist = len(lDists)
+        iPerAngle = int(359/iNumOfDist)
+        if len(lStatusOfDist) < iNumOfDist:
+            for d in range(iNumOfDist):
+                lStatusOfDist.append(True)
+        for i in range(iNumOfDist):
+            lStatusOfDist[0].append(iPerAngle*i)
+            if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
+            # if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
+                lStatusOfDist[1][i] = False
+                # iMemoLife = iMaxLife
+                # lBlockedMemo.append(i)
+                # if len(lBlockedMemo) > (iNumOfDist - 1):
+                #     lStatusOfDist[lBlockedMemo[0]] = True
+                #     lBlockedMemo.pop(0)
+                # bLife = False
+            # if lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
+            # # if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
+            #     bLife = True
+            else:
+                lStatusOfDist[1][i] = True
+        #         bLife = True
+        # if bLife:
+        #     if len(lBlockedMemo) > 0 and iMemoLife > 0:
+        #         iMemoLife = iMemoLife - 1
+        #         if iMemoLife == 0:
+        #             lStatusOfDist[lBlockedMemo[0]] = True
+        #             lBlockedMemo.pop(0)
+        #             iMemoLife = iMaxLife
+        #     if len(lBlockedMemo) == 0:
+        #         iMemoLife = iMaxLife
+        #     bLife = False
+        return lStatusOfDist
+    else:
+        #TODO 无法走迷宫
+        global lBlockedMemo,iMemoLife,bLife
+        lStatusOfDist = [[],[]]
+        lDists = LidarCache()
+        if len(lStatusOfDist) < len(lDists[0]):
+            for d in range(len(lDists[0])):
+                lStatusOfDist[1].append(True)
+                lStatusOfDist[0].append(abs(360-lDists[0][d]))
+        for i in range(len(lDists[0])):
+            if lDists[1][i] <= cfg.read("A2AOb","ActiveRange"):
+                lStatusOfDist[1][i] = False
+            else:
+                lStatusOfDist[1][i] = True
+        lStatusOfDist[0] = lStatusOfDist[0][::-1]
+        lStatusOfDist[1] = lStatusOfDist[1][::-1]
+        return lStatusOfDist
 
 def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int | None = 150) -> None:
     '''
@@ -329,46 +348,21 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     iSpeed 移动的速度 默认150
     '''
     iTargetAngle = -iTargetAngle
-    lAvailbeAngles = []
-    lBlockedAngles = []
     lStatusOfDist = ObtDetect()
-    iNumOfDist = len(GetDists())
-    iPerAngle = int(359/iNumOfDist)
     #获取挡住/被挡住的角度
-    for i in range(iNumOfDist):
-        if i < iNumOfDist/2:#左半部分
-            if lStatusOfDist[i]:
-                lAvailbeAngles.append(-i*iPerAngle)
-            else:
-                lBlockedAngles.append(-i*iPerAngle)
-        else:#右半部分
-            if lStatusOfDist[i]:
-                lAvailbeAngles.append((abs(i-iNumOfDist))*iPerAngle+1)
-            else:
-                lBlockedAngles.append((abs(i-iNumOfDist))*iPerAngle+1)
+
    #判断
-    if len(lBlockedAngles) > 0.75*iNumOfDist:#被挡住三个
-        iAimAngle = lAvailbeAngles[0]
+    lAvailbeAngles = []
+    for i in range(len(lStatusOfDist[0])):
+        if lStatusOfDist[1][i]:
+            lAvailbeAngles.append(lStatusOfDist[0][i])
+    print(lAvailbeAngles)
+    try:
+        iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
         GoV(iFacingAngle,iAimAngle,iSpeed)
-    elif len(lBlockedAngles) == 0.5*iNumOfDist:#被挡住两个以下
-        if (all(lAvailbeAngles[i] - lAvailbeAngles[i - 1] == lAvailbeAngles[1] - lAvailbeAngles[0] for i in range(2, len(lAvailbeAngles)))) and (lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]):
-            iAimAngle = iTargetAngle
-        else:
-            iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-        # print(lBlockedAngles,lAvailbeAngles)
-        GoV(iFacingAngle,iAimAngle,iSpeed)
-    elif len(lBlockedAngles) < iNumOfDist:
-        iAimAngle = iTargetAngle
-        # if lAvailbeAngles[0] > iTargetAngle > lAvailbeAngles[-1]:
-        #     print(1)
-        # else:
-        #     iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-        # # print(iTargetAngle,iFacingAngle,iAimAngle,iSpeed)
-        print(lAvailbeAngles,lBlockedAngles)
-        GoV(iFacingAngle,iAimAngle,iSpeed)
-    else:
+        # car.z_move(iFacingAngle,iAimAngle,200)
+    except:
         car.stop()
-    # car.z_move(iFacingAngle,iAimAngle,200)
 
 def Pos2Angle(lAimPos:list[int,int]) -> int:
     '''
@@ -405,7 +399,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
     if iDeltaX > 500:
-        iDeltaX = iDeltaX/7
+        iDeltaX = iDeltaX/5
     if iDeltaY > 500:
         iDeltaY = iDeltaY/5
     if iDeltaX < 100:
@@ -450,4 +444,93 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
                 break
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
-        
+
+def GetUART(Port):
+    UARTDevice = UART(Port,115200)
+    while(1):
+        if UARTDevice.any():
+            Data = str(UARTDevice.read())
+            return Data
+            break
+
+def GetBallPos()-> list[int,int]:
+    sData = GetUART(1)
+    iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
+    iBY = int(sData[sData.index('by')+2:sData.index('eom')])
+    return [iBX, iBY]
+
+# BLE
+
+BLE = UART(3,115200)
+Blue_Set_DelayMs = 10                   #每条指令间隔时间，必要的
+Blue_Connected_Flag = 0                 #建立连接标志，0:无连接 ； 1：已连接
+Blue_read_buf = 0
+
+# while(1): # 主循环
+def AutoConnect():
+    if cfg.read("BLE","Type") == "Domain":
+        global Blue_Connected_Flag
+        if Blue_Connected_Flag == 0:                            #建立连接标志，0:无连接 ； 1：已连接
+            BLE.write("AT+CONNECT=%s\r\n" % Blue_Set_Slave_MAC)                  #串口发送一条信息
+            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
+                print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
+                if Blue_read_buf == "CC:%s CONNECTED 0\r\n" % Blue_Set_Slave_MAC:
+                    Blue_Connected_Flag = 1
+                    print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
+                    BLE.write("AT+EXIT\r\n")              #串口发送一条信息
+                    delay.ms(Blue_Set_DelayMs)
+                    if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+                        print("AT+EXIT : %s" % BLE.read().decode())    #取出读到的字节串，并把它转换成字符串
+        elif Blue_Connected_Flag == 1:                          #建立连接标志，0:无连接 ； 1：已连接
+            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
+                print(Blue_read_buf)
+                if "DISCONNECTED" in Blue_read_buf:
+                    Blue_Connected_Flag = 0
+                    print("Slave disconnect")                   #取出读到的字节串，并把它转换成字符串
+                    BLE.write("+++")                      #进入AT指令模式
+                    delay.ms(Blue_Set_DelayMs)
+                    if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+                        print("+++ : %s" % BLE.read().decode())    #取出读到的字节串，并把它转换成字符串
+                    delay.ms(1000)
+    else:
+        global Blue_Connected_Flag
+        if Blue_Connected_Flag == 0:                            #建立连接标志，0:无连接 ； 1：已连接
+            if BLE.any():
+                Blue_read_buf=BLE.read().decode()
+                print(Blue_read_buf)
+                if Blue_read_buf == "CC:%s CONNECTED 0*\r\n" % cfg.read("BLE","REMOTE"):
+                    Blue_Connected_Flag = 1
+        elif Blue_Connected_Flag == 1:                          #建立连接标志，0:无连接 ； 1：已连接
+            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
+                print(Blue_read_buf)
+                if Blue_read_buf == "CC:%s DISCONNECTED\r\n" % cfg.read("BLE","REMOTE"):
+                    Blue_Connected_Flag = 0
+                    print("Slave disconnect")                   #取出读到的字节串，并把它转换成字符串
+                    Blue_Connected_Flag = 0
+                    delay.ms(1000)
+
+def SendData(Data):
+    global Blue_Connected_Flag
+    if Blue_Connected_Flag == 1:
+        BLE.write(Data)
+        print("Send %s to %s"% Data,cfg.read("BLE","REMOTE"))
+        delay.ms(Blue_Set_DelayMs)
+        if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
+            print("SendData : %s" % BLE.read().decode())     #取出读到的字节串，并把它转换成字符串
+    else:
+        delay.ms(Blue_Set_DelayMs)
+        AutoConnect()
+
+def ReceiveData():
+    global Blue_Connected_Flag
+    if BLE.any():
+        Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
+        print("ReceiveData : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
+        delay.ms(Blue_Set_DelayMs)
+        return Blue_read_buf
+    else:
+        delay.ms(Blue_Set_DelayMs)
+        AutoConnect()
