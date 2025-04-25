@@ -156,41 +156,43 @@ def LidarCache()->list[list[int],list[int]]:
     return lOutData
 
 def LidarDists():
-    lOutData = [[],[]]
-    lCache = [0,0,0,0]
-    lRawDists = [[],[],[],[]]
-    lOut = [[],[],[],[]]
-    lOutDists = []
-    lOutData = LidarCache()
+    # TODO 接入树莓派
 
-    for i in range(len(lOutData[0])):
-            if lOutData[1][i] < 3000:
-                # y方向 sin 270-90
-                if 90 < lOutData[0][i] < 270:
-                    lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                # x方向 sin 0-180
-                if 0 < lOutData[0][i] < 180:
-                    lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    # lOutData = [[],[]]
+    # lCache = [0,0,0,0]
+    # lRawDists = [[],[],[],[]]
+    # lOut = [[],[],[],[]]
+    # lOutDists = []
+    # lOutData = LidarCache()
 
-    for i in range(len(lRawDists)):
-        for j in range(len(lRawDists[i])):
-            if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.65):
-                lOut[i].append(lRawDists[i][j])
-            else:
-                lCache[i] = lRawDists[i][j]
-        if len(lOut[i]) == 0:
-            try:
-                lOut[i].append(max(lRawDists[i]))
-            except:
-                lOut[i].append(0)
+    # for i in range(len(lOutData[0])):
+    #         if lOutData[1][i] < 3000:
+    #             # y方向 sin 270-90
+    #             if 90 < lOutData[0][i] < 270:
+    #                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             # x方向 sin 0-180
+    #             if 0 < lOutData[0][i] < 180:
+    #                 lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
 
-    for l in lOut:
-        iDist = (((sum(l))/len(l)))
-        lOutDists.append(iDist)
+    # for i in range(len(lRawDists)):
+    #     for j in range(len(lRawDists[i])):
+    #         if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.65):
+    #             lOut[i].append(lRawDists[i][j])
+    #         else:
+    #             lCache[i] = lRawDists[i][j]
+    #     if len(lOut[i]) == 0:
+    #         try:
+    #             lOut[i].append(max(lRawDists[i]))
+    #         except:
+    #             lOut[i].append(0)
+
+    # for l in lOut:
+    #     iDist = (((sum(l))/len(l)))
+    #     lOutDists.append(iDist)
     
     return lOutDists
 
