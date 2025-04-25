@@ -41,8 +41,18 @@ MetaData = [
     [[],[]],  # 第一组数据: x1 = [1, 2, 3], y1 = [4, 5, 6]
     [[],[]],  # 第一组数据: x1 = [1, 2, 3], y1 = [4, 5, 6]
 ]
+def FindHighest(data:list[list[int]]):
+    print(len(data[0]))
+    for i in range(len(data[0])):
+        iDeltaCache1 = abs(data[1][i-1] - data[1][i])
+        iDeltaCache2 = abs(data[1][i] - data[1][i+1])
+        if iDeltaCache2 == -iDeltaCache1:
+            return data[1][i]
+        else:
+            pass
+         
 
-print(len(data[0]))
+
 # for i in range(len(lRawDists)):
 #     for j in range(len(lRawDists[i])):
 #                 MetaData[i][0].append(lAngles[i][j])
@@ -61,7 +71,7 @@ print(len(data[0]))
 
 for i in range(len(data)):
     for j in range(len(data[i])):
-        if (0.95 < abs(data[i][j]-data[i][j-1]) < 1.75):
+        if (1 < abs(data[i][j]-data[i][j-1]) < 1.75):
             # if :
                 MetaData[i][0].append(data[0][j])
                 MetaData[i][1].append(data[1][j])
