@@ -163,40 +163,51 @@ def LidarCache()->list[list[int],list[int]]:
 
 
 def LidarDists():
-    lRawDists = [[],[],[],[]]
-    lOut = [[],[],[],[]]
-    lOutDists = []
-    lOutData = LidarCache()
-    print(len(lOutData))
-    for i in range(len(lOutData[0])):
-                # y方向 sin 270-90
-                if 90 < lOutData[0][i] < 270:
-                    lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                # x方向 sin 0-180
-                if 0 < lOutData[0][i] < 180:
-                    lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-    # print(lRawDists)
-    for i in range(len(lRawDists)):
-        for j in range(len(lRawDists[i])):
-            if 0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -35:
-                lOut[i].append(lRawDists[i][j])
-        if len(lOut[i]) == 0:
-            try:
-                lOut[i].append(max(lRawDists[i]))
-            except:
-                lOut[i].append(0)
-                # pass
+    iCompass = str(compass.read())
+    sSentData = 'cmp'+str(iCompass)+'end'
+    SendUART(1,sSentData)
+    sReceivedDataFrame = GetUART(1)
+    sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
+    iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
+    iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
+    iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
+    iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
+    lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
+    # lRawDists = [[],[],[],[]]
+    # lOut = [[],[],[],[]]
+    # lOutDists = []
+    # lOutData = LidarCache()
+    # print(len(lOutData))
+    # for i in range(len(lOutData[0])):
+    #             # y方向 sin 270-90
+    #             if 90 < lOutData[0][i] < 270:
+    #                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             # x方向 sin 0-180
+    #             if 0 < lOutData[0][i] < 180:
+    #                 lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    # # print(lRawDists)
+    # for i in range(len(lRawDists)):
+    #     for j in range(len(lRawDists[i])):
+    #         if 0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -35:
+    #             lOut[i].append(lRawDists[i][j])
+    #     if len(lOut[i]) == 0:
+    #         try:
+    #             lOut[i].append(max(lRawDists[i]))
+    #         except:
+    #             lOut[i].append(0)
+    #             # pass
 
-    for l in lOut:
-        # iDist = sum(l)/len(l)
-        iDist = max(l)
-        lOutDists.append(iDist)
-        # print(len(l))
-    # print("*******")
+    # for l in lOut:
+    #     # iDist = sum(l)/len(l)
+    #     iDist = max(l)
+    #     lOutDists.append(iDist)
+    #     # print(len(l))
+    # # print("*******")
+
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
@@ -474,7 +485,7 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
 def GetUART(Port):
-    UARTDevice = UART(Port,115200)
+    UARTDevice = UART(Port,921600)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
@@ -482,7 +493,7 @@ def GetUART(Port):
             break
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,115200)
+    UARTDevice = UART(iPort,921600)
     UARTDevice.write(sData)
 
 
