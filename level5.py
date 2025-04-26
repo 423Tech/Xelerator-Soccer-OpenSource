@@ -155,8 +155,21 @@ def LidarCache()->list[list[int],list[int]]:
         delay.us(8050)
     return lOutData
 
+
+
 def LidarDists():
     # TODO 接入树莓派
+
+    lOutDists = []
+
+    iCompass = int(compass.read())
+    SendUART(1,'cmp' + str(iCompass) + 'end')
+    sData = GetUART(1)
+    print(sData,sData[sData.index('somfd')+5:sData.index('rd')],sData[sData.index('rd')+2:sData.index('bd')],sData[sData.index('bd')+2:sData.index('ld')],sData[sData.index('ld')+2:sData.index('eom')])
+    lOutDists = [int(sData[sData.index('somfd')+5:sData.index('rd')]),
+                 int(sData[sData.index('rd')+2:sData.index('bd')]),
+                 int(sData[sData.index('bd')+2:sData.index('ld')]), 
+                 int(sData[sData.index('ld')+2:sData.index('eom')])]
 
     # lOutData = [[],[]]
     # lCache = [0,0,0,0]
@@ -453,6 +466,10 @@ def GetUART(Port):
             Data = str(UARTDevice.read())
             return Data
             break
+
+def SendUART(iPort,sData):
+    UARTDevice = UART(iPort,115200)
+    UARTDevice.write(sData)
 
 def GetBallPos()-> list[int,int]:
     sData = GetUART(1)
