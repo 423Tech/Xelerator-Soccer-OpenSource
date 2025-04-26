@@ -164,7 +164,6 @@ def LidarDists():
     lOutData = LidarCache()
 
     for i in range(len(lOutData[0])):
-            if lOutData[1][i] < 3000:
                 # y方向 sin 270-90
                 if 90 < lOutData[0][i] < 270:
                     lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
@@ -211,22 +210,22 @@ def GetPos() -> list[int,int]:
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
-        # if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-        #     if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
-        #         Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
-        #     else:
-        #         Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
-        # else:
-        #     Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        # if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-        #     if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-        #         X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
-        #     else:
-        #         X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
-        # else:
-        #     X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-        Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
+                Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
+            else:
+                Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
+        else:
+            Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
+                X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
+            else:
+                X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
+        else:
+            X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        # Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        # X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
