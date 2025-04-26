@@ -475,7 +475,7 @@ def UARTTransThread():
         iCompass = int(compass.read())
         sSentDataFrame = 'cmp' + str(iCompass) + 'end'
         oUARTDevice.write(sSentDataFrame)
-#        print('Senting: %s' % sSentDataFrame)
+        print('Senting: %s' % sSentDataFrame)
         if oUARTDevice.any():
             sReceivedDataFrame = str(oUARTDevice.read())
             sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
