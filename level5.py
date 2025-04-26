@@ -166,16 +166,7 @@ def LidarCache()->list[list[int],list[int]]:
 def LidarDists():
     # TODO 接入树莓派
 
-    lOutDists = []
-
-    iCompass = int(compass.read())
-    SendUART(1,'cmp' + str(iCompass) + 'end')
-    sData = GetUART(1)
-    print(sData,sData[sData.index('somfd')+5:sData.index('rd')],sData[sData.index('rd')+2:sData.index('bd')],sData[sData.index('bd')+2:sData.index('ld')],sData[sData.index('ld')+2:sData.index('eom')])
-    lOutDists = [int(sData[sData.index('somfd')+5:sData.index('rd')]),
-                 int(sData[sData.index('rd')+2:sData.index('bd')]),
-                 int(sData[sData.index('bd')+2:sData.index('ld')]), 
-                 int(sData[sData.index('ld')+2:sData.index('eom')])]
+    global lLidarDists
 
     # lOutData = [[],[]]
     # lCache = [0,0,0,0]
@@ -213,7 +204,7 @@ def LidarDists():
     #     iDist = (((sum(l))/len(l)))
     #     lOutDists.append(iDist)
     
-    return lOutDists
+    return lLidarDists
 
 def GetDists() -> list[int,int,int]:
     if not cfg.read("Tofs","On"):
@@ -465,26 +456,26 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
-# def GetUART(Port):
-#     UARTDevice = UART(Port,115200)
-#     while(1):
-#         if UARTDevice.any():
-#             Data = str(UARTDevice.read())
-#             return Data
-#             break
+def GetUART(Port):
+    UARTDevice = UART(Port,115200)
+    while(1):
+        if UARTDevice.any():
+            Data = str(UARTDevice.read())
+            return Data
+            break
 
-# def SendUART(iPort,sData):
-#     UARTDevice = UART(iPort,115200)
-#     UARTDevice.write(sData)
+def SendUART(iPort,sData):
+    UARTDevice = UART(iPort,115200)
+    UARTDevice.write(sData)
 
 def UARTTransThread():
     global lBallPos, lLidarDists, bThreadControllerFlag, iUARTPort
     oUARTDevice = UART(iUARTPort,115200)
     while bThreadControllerFlag:
         iCompass = int(compass.read())
-        sSentDataFrame = 'cmp' + str(359) + 'end'
+        sSentDataFrame = 'cmp' + str(iCompass) + 'end'
         oUARTDevice.write(sSentDataFrame)
-        print('Senting: %s' % sSentDataFrame)
+#        print('Senting: %s' % sSentDataFrame)
         if oUARTDevice.any():
             sReceivedDataFrame = str(oUARTDevice.read())
             sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
@@ -493,6 +484,7 @@ def UARTTransThread():
             iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
             iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
             lLidarDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
+            print(lLidarDists)
         delay.ms(50)
 
 
