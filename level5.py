@@ -2,6 +2,7 @@ import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 import binascii
 import framebuf
+import _thread
 from pyb import UART
 
 set_io.out(15,1)
@@ -102,6 +103,11 @@ bLife = False
 lBlockedMemo = []
 lxCache = 32767
 lyCache = 32767
+
+lBallPos = [0,0]
+lLidarDists = [0,0,0,0]
+bThreadControllerFlag = True
+iUARTPort = 1
 
 
 #Math Mod
@@ -459,17 +465,37 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
-def GetUART(Port):
-    UARTDevice = UART(Port,115200)
-    while(1):
-        if UARTDevice.any():
-            Data = str(UARTDevice.read())
-            return Data
-            break
+# def GetUART(Port):
+#     UARTDevice = UART(Port,115200)
+#     while(1):
+#         if UARTDevice.any():
+#             Data = str(UARTDevice.read())
+#             return Data
+#             break
 
-def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,115200)
-    UARTDevice.write(sData)
+# def SendUART(iPort,sData):
+#     UARTDevice = UART(iPort,115200)
+#     UARTDevice.write(sData)
+
+def UARTTransThread():
+    global lBallPos, lLidarDists, bThreadControllerFlag, iUARTPort
+    oUARTDevice = UART(iUARTPort,115200)
+    while bThreadControllerFlag:
+        iCompass = int(compass.read())
+        sSentDataFrame = 'cmp' + str(359) + 'end'
+        oUARTDevice.write(sSentDataFrame)
+        print('Senting: %s' % sSentDataFrame)
+        if oUARTDevice.any():
+            sReceivedDataFrame = str(oUARTDevice.read())
+            sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
+            iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
+            iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
+            iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
+            iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
+            lLidarDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
+        delay.ms(50)
+
+
 
 def GetBallPos()-> list[int,int]:
     sData = GetUART(1)
@@ -550,3 +576,5 @@ def ReceiveData():
     else:
         delay.ms(Blue_Set_DelayMs)
         AutoConnect()
+
+_thread.start_new_thread(UARTTransThread,())
