@@ -3,9 +3,9 @@ import numpy as np
 import time
 import math
 
+iCam = 0
 
-
-Cam = cv2.VideoCapture(2)
+Cam = cv2.VideoCapture(iCam)
 
 time.sleep(2)
 _,Frame = Cam.read()
@@ -23,8 +23,9 @@ if Corners is not None:
     lCorners.sort(key=lambda item: item[0])
     print(lCorners)
 
-    iDistance = math.sqrt((lCorners[0][0] - lCorners[3][0])**2 + (lCorners[0][1] - lCorners[3][1])**2)
-    fPixelToCM = 
+    fDistance = math.sqrt((lCorners[0][0] - lCorners[3][0])**2 + (lCorners[0][1] - lCorners[3][1])**2)
+    fPixelToCM = 12 / fDistance
+    aPixelToCM = np.array([fPixelToCM])
 
     fHorizontalSlope = (lCorners[0][1] - lCorners[3][1]) / (lCorners[0][0] - lCorners[3][0])
     fVerticalSlope = -1 / fHorizontalSlope
@@ -32,8 +33,8 @@ if Corners is not None:
         iTheta = math.atan(fVerticalSlope)
     else:
         iTheta = math.atan(fVerticalSlope) + math.pi
-    fDeltaX = math.cos(iTheta) * iDistance
-    fDeltaY = math.sin(iTheta) * iDistance
+    fDeltaX = math.cos(iTheta) * fDistance
+    fDeltaY = math.sin(iTheta) * fDistance
     fCorrectedLFX = lCorners[0][0] + fDeltaX
     fCorrectedLFY = lCorners[0][1] - fDeltaY
     fCorrectedRFX = lCorners[3][0] + fDeltaX
@@ -46,5 +47,11 @@ if Corners is not None:
 
     aPerspectiveMatrix = cv2.getPerspectiveTransform(lSRCPoints,lDSTPoints)
     print(aPerspectiveMatrix)
+    print(fPixelToCM)
+
+    np.savez('CalibrationData' + str(iCam) + '.npz', 
+            matrix=aPerspectiveMatrix, 
+            p2c=aPixelToCM)
+
 
 
