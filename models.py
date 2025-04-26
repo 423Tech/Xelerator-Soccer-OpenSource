@@ -39,7 +39,7 @@ class set_adc:
         output = random.randint(0, 1023)
         return output
     
-class time:
+class timer:
     def start(self, ch:int) -> None:
         '''
         ch (1,10)

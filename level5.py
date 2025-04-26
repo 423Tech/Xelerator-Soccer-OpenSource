@@ -78,7 +78,6 @@ class QkJson:
                 for c in data[i].keys():
                     try:
                         vCache = self.cache[str(i)][str(c)]
-                        print(vCache)
                         self.cfg[str(i)][str(c)] = vCache
                         with open(CONFIG_FILE, "w") as d:
                             ujson.dump(self.cfg, d)
@@ -150,13 +149,13 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 #Value Mod
 def LidarCache()->list[list[int],list[int]]:
-    iJumpSample = 2
-    iSampleNumber = 10
+    iJumpSample = 1
+    iSampleNumber = 8
     lOutData = [[],[]]
     for _ in range(iSampleNumber):
         lRawData=lidar.read()
         for i in range(0,40,iJumpSample):
-            lOutData[0].append(lRawData[0][i])
+            lOutData[0].append(abs(lRawData[0][i]+compass.read()-360))
             lOutData[1].append(lRawData[1][i])
         delay.us(8050)
     return lOutData
@@ -164,47 +163,41 @@ def LidarCache()->list[list[int],list[int]]:
 
 
 def LidarDists():
-    # TODO 接入树莓派
+    lRawDists = [[],[],[],[]]
+    lOut = [[],[],[],[]]
+    lOutDists = []
+    lOutData = LidarCache()
+    print(len(lOutData))
+    for i in range(len(lOutData[0])):
+                # y方向 sin 270-90
+                if 90 < lOutData[0][i] < 270:
+                    lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+                else:
+                    lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+                # x方向 sin 0-180
+                if 0 < lOutData[0][i] < 180:
+                    lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+                else:
+                    lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    # print(lRawDists)
+    for i in range(len(lRawDists)):
+        for j in range(len(lRawDists[i])):
+            if 0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -35:
+                lOut[i].append(lRawDists[i][j])
+        if len(lOut[i]) == 0:
+            try:
+                lOut[i].append(max(lRawDists[i]))
+            except:
+                lOut[i].append(0)
+                # pass
 
-    global lLidarDists
-
-    # lOutData = [[],[]]
-    # lCache = [0,0,0,0]
-    # lRawDists = [[],[],[],[]]
-    # lOut = [[],[],[],[]]
-    # lOutDists = []
-    # lOutData = LidarCache()
-
-    # for i in range(len(lOutData[0])):
-    #         if lOutData[1][i] < 3000:
-    #             # y方向 sin 270-90
-    #             if 90 < lOutData[0][i] < 270:
-    #                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-    #             else:
-    #                 lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-    #             # x方向 sin 0-180
-    #             if 0 < lOutData[0][i] < 180:
-    #                 lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-    #             else:
-    #                 lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-
-    # for i in range(len(lRawDists)):
-    #     for j in range(len(lRawDists[i])):
-    #         if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.65):
-    #             lOut[i].append(lRawDists[i][j])
-    #         else:
-    #             lCache[i] = lRawDists[i][j]
-    #     if len(lOut[i]) == 0:
-    #         try:
-    #             lOut[i].append(max(lRawDists[i]))
-    #         except:
-    #             lOut[i].append(0)
-
-    # for l in lOut:
-    #     iDist = (((sum(l))/len(l)))
-    #     lOutDists.append(iDist)
-    
-    return lLidarDists
+    for l in lOut:
+        # iDist = sum(l)/len(l)
+        iDist = max(l)
+        lOutDists.append(iDist)
+        # print(len(l))
+    # print("*******")
+    return lOutDists
 
 def GetDists() -> list[int,int,int]:
     if not cfg.read("Tofs","On"):
@@ -219,26 +212,30 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
+    timer.start(1)
     global lxCache,lyCache
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
-        # if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-        #     if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
-        #         Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
-        #     else:
-        #         Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
-        # else:
-        #     Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        # if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-        #     if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-        #         X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
-        #     else:
-        #         X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
-        # else:
-        #     X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-        Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
+                Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
+            else:
+                Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
+        else:
+            Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
+            if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
+                X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
+            else:
+                X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
+        else:
+            X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        # Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+        # X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+        print(timer.read(1))
+        timer.clear(1)
+
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -376,7 +373,7 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     except:
         car.stop()
 
-def Pos2Angle(lAimPos:list[int,int]) -> int:
+def Local2Angle(lAimPos:list[int,int]) -> int:
     '''
     lAimPos 一个坐标 示例：[0,0]
     '''
@@ -394,6 +391,26 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
         else:
             iDeltaAngle = 90
     return int(iDeltaAngle)
+
+def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
+    '''
+    lAimPos 一个坐标 示例：[0,0]
+    '''
+    iAimX = lAimPos[0]
+    iAimY = lAimPos[1]
+    iLocX = lInputPos[0]
+    iLocY = lInputPos[1]
+    iDeltaX = iAimX - iLocX
+    iDeltaY = iAimY - iLocY
+    try:
+        iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
+    except:
+        if iDeltaX > 0:
+            iDeltaAngle = -90
+        else:
+            iDeltaAngle = 90
+    return int(iDeltaAngle)
+
 
 def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
 
@@ -425,11 +442,11 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.stop()
         else:
             if 0 > iDeltaX:
-                PA = Pos2Angle(lAimPos) + 180
+                PA = Local2Angle(lAimPos) + 180
             else:
-                PA = Pos2Angle(lAimPos)
+                PA = Local2Angle(lAimPos)
             if 0 > iDeltaY:
-                PA = Pos2Angle(lAimPos) - 180
+                PA = Local2Angle(lAimPos) - 180
             # car.turn(iFacingAngle)
             AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
@@ -468,26 +485,6 @@ def SendUART(iPort,sData):
     UARTDevice = UART(iPort,115200)
     UARTDevice.write(sData)
 
-def UARTTransThread():
-    global lBallPos, lLidarDists, bThreadControllerFlag, iUARTPort
-    oUARTDevice = UART(iUARTPort,115200)
-    while bThreadControllerFlag:
-        iCompass = int(compass.read())
-        sSentDataFrame = 'cmp' + str(iCompass) + 'end'
-        oUARTDevice.write(sSentDataFrame)
-#        print('Senting: %s' % sSentDataFrame)
-        if oUARTDevice.any():
-            sReceivedDataFrame = str(oUARTDevice.read())
-            sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
-            iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
-            iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
-            iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
-            iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
-            lLidarDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
-            print(lLidarDists)
-        delay.ms(50)
-
-
 
 def GetBallPos()-> list[int,int]:
     sData = GetUART(1)
@@ -500,6 +497,7 @@ BLE = UART(3,115200)
 Blue_Set_DelayMs = 10                   #每条指令间隔时间，必要的
 Blue_Connected_Flag = 0                 #建立连接标志，0:无连接 ； 1：已连接
 Blue_read_buf = 0
+Blue_Set_Slave_MAC = cfg.read("BLE","MAC")        #从配置文件读取蓝牙地址
 
 def AutoConnect():
     if cfg.read("BLE","Type") == "Domain":
@@ -569,4 +567,3 @@ def ReceiveData():
         delay.ms(Blue_Set_DelayMs)
         AutoConnect()
 
-_thread.start_new_thread(UARTTransThread,())
