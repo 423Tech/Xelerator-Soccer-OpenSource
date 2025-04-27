@@ -327,7 +327,6 @@ def GetPos() -> list[int,int]:
                 X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
             X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -563,14 +562,14 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
 def GetUART(Port):
-    UARTDevice = UART(Port,921600)
+    UARTDevice = UART(Port,115200)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,921600)
+    UARTDevice = UART(iPort,115200)
     UARTDevice.write(sData)
 
 def GetBallPos()-> list[int,int]:
