@@ -3,9 +3,21 @@ import numpy as np
 import time
 import math
 
-iCam = 0
+iCam = 6
 
 Cam = cv2.VideoCapture(iCam)
+Cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+Cam.set(cv2.CAP_PROP_BRIGHTNESS, -64)
+Cam.set(cv2.CAP_PROP_CONTRAST, 32)
+Cam.set(cv2.CAP_PROP_SATURATION, 64)
+Cam.set(cv2.CAP_PROP_SHARPNESS, 2)
+
+def applyPerspectiveTransform(X, Y, Matrix):
+    Point = np.array([X, Y, 1], dtype=np.float64)
+    Transformed = Matrix @ Point
+    Transformed /= Transformed[2]
+    return int(Transformed[0]), int(Transformed[1])
+
 
 time.sleep(2)
 _,Frame = Cam.read()
@@ -22,10 +34,11 @@ if Corners is not None:
     lCorners = [(Corners[72][0][0],Corners[72][0][1]),(Corners[0][0][0],Corners[0][0][1]),(Corners[80][0][0],Corners[80][0][1]),(Corners[8][0][0],Corners[8][0][1])]
     lCorners.sort(key=lambda item: item[0])
     print(lCorners)
+    fBottomY = (lCorners[0][1] + lCorners[3][1]) / 2
 
     fDistance = math.sqrt((lCorners[0][0] - lCorners[3][0])**2 + (lCorners[0][1] - lCorners[3][1])**2)
     fPixelToCM = 12 / fDistance
-    aPixelToCM = np.array([fPixelToCM])
+    
 
     fHorizontalSlope = (lCorners[0][1] - lCorners[3][1]) / (lCorners[0][0] - lCorners[3][0])
     fVerticalSlope = -1 / fHorizontalSlope
@@ -48,6 +61,14 @@ if Corners is not None:
     aPerspectiveMatrix = cv2.getPerspectiveTransform(lSRCPoints,lDSTPoints)
     print(aPerspectiveMatrix)
     print(fPixelToCM)
+    print(fBottomY)
+    iX,iY = applyPerspectiveTransform(320,fBottomY,aPerspectiveMatrix)
+    fHorizontalB = -fPixelToCM * iX
+    fVerticalB = 16.25 + fPixelToCM * iY
+
+    aPixelToCM = np.array([fPixelToCM,fHorizontalB,fVerticalB])
+    print(fVerticalB)
+    # print(applyPerspectiveTransform(320,240,aPerspectiveMatrix))
 
     np.savez('CalibrationData' + str(iCam) + '.npz', 
             matrix=aPerspectiveMatrix, 
