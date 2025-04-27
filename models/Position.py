@@ -1,5 +1,5 @@
 import set_adc,time
-from cfg import QkJson
+from localtest.cfg import QkJson
 
 Cfg = QkJson()
 

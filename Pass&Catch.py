@@ -4,7 +4,7 @@ import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_mot
 import binascii
 import framebuf
 
-from cfg import QkJson
+from localtest.cfg import QkJson
 
 cfg = QkJson()
 

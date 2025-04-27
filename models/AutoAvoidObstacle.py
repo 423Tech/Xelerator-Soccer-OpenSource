@@ -9,7 +9,7 @@ import framebuf
 
 clock = time.clock()
 
-from cfg import QkJson
+from localtest.cfg import QkJson
 Cfg = QkJson()
 
 def getadc():
