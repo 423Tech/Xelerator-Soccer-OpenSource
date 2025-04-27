@@ -594,7 +594,7 @@ def RunCircle(r:int, angle:int,a:int):
     length = r * iRad  # 弧长
     time = length / iSpeed
     delay.ms(time)
-    set_motor(0, 0, 0, 0)
+    set_motor.RPM(0, 0, 0, 0)
 
 
 #Communication
