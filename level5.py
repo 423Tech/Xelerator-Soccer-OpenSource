@@ -586,9 +586,9 @@ def RunCircle(r:int, angle:int,a:int):
     z= -int(iInsideSpeed * math.sin(iRad))
     w= -int(iOutsideSpeed* math.cos(iRad))
     if (a == 1):   #正
-        set_motor(x,y,z,w)
+        set_motor.RPM(x,y,z,w)
     elif( a == -1 ): #反
-        set_motor(z,w,x,y)
+        set_motor.RPM(z,w,x,y)
     else:
         set_motor(0,0,0,0)
     length = r * iRad  # 弧长
@@ -599,19 +599,18 @@ def RunCircle(r:int, angle:int,a:int):
 
 #Communication
 def GetUART(Port):
-    UARTDevice = UART(Port,921600)
+    UARTDevice = UART(Port,115200)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,921600)
+    UARTDevice = UART(iPort,115200)
     UARTDevice.write(sData)
 
 def ClearUART(iPort):
     UARTDevice = UART(iPort,115200)
-    print(UARTDevice.any())
     if UARTDevice.any():
         UARTDevice.read()
 
