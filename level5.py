@@ -57,7 +57,7 @@ class QkJson:
         except:
             with open(CONFIG_FILE, "w") as f:
                 ujson.dump(data, f)
-        with open(CONFIG_FILE) as f:
+        with open(CONFIG_FILE,"r") as f:
             self.cfg = ujson.load(f)
             bUpdate = False
             for i in data:
@@ -132,14 +132,14 @@ class BlueTooth:
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
 
-
-
     def connect(self):
-        if (self.BlueConnected == 0):
+        if self.BlueConnected == 0:
             if self.Bluetooth.any(): #如果字符串里有东西，则进来判断东西是什么
                 self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
-                Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
-                print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
+                delay.ms(self.BlueDelayMs)
+                if self.BlueSlaveMAC in Blue_read_buf:
+                    Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
+                    print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
                 if self.BlueSlaveMAC in Blue_read_buf:
                     self.BlueConnected = 1
                     print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
@@ -254,7 +254,8 @@ def LidarCache()->list[list[int],list[int]]:
     return 0
 
 def LidarDists():
-    iCompass = str(compass.read())
+    ClearUART(1)
+    iCompass = str(int(compass.read()))
     sSentData = 'cmp'+str(iCompass)+'end'
     SendUART(1,sSentData)
     sReceivedDataFrame = GetUART(1)
@@ -313,6 +314,7 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
+    timer.start(1)
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
@@ -506,7 +508,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
             iDeltaAngle = 90
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> None:
 
     '''
     iFacingAngle 移动时面对的方向 0~360
@@ -578,7 +580,16 @@ def SendUART(iPort,sData):
     UARTDevice = UART(iPort,921600)
     UARTDevice.write(sData)
 
+def ClearUART(iPort):
+    UARTDevice = UART(iPort,115200)
+    print(UARTDevice.any())
+    if UARTDevice.any():
+        UARTDevice.read()
+
 def GetBallPos()-> list[int,int]:
+    ClearUART(1)
+    sSentData = 'cmp'+str(999)+'end'
+    SendUART(1,sSentData)
     sData = GetUART(1)
     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
