@@ -243,27 +243,6 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
         )
 
 
-def circle_around_ball(r:int, angle:int,a:int):
-    iSpeed = 355/r
-    iRad = math.radians(angle)
-    iInsideSpeed = iSpeed * r
-    iOutsideSpeed = iSpeed * r
-    x= int(iInsideSpeed* math.sin(iRad))
-    y= int(iOutsideSpeed* math.cos(iRad))
-    z= -int(iInsideSpeed * math.sin(iRad))
-    w= -int(iOutsideSpeed* math.cos(iRad))
-    if (a == 1):   #正
-        set_motor(x,y,z,w)
-    elif( a == -1 ): #反
-        set_motor(z,w,x,y)
-    else:
-        set_motor(0,0,0,0)
-    length = r * iRad  # 弧长
-    time = length / iSpeed
-    delay.ms(time)
-    set_motor(0, 0, 0, 0)
-
-
 #Value Mod
 def LidarCache()->list[list[int],list[int]]:
     #TODO 已弃用
@@ -596,6 +575,29 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
+
+def RunCircle(r:int, angle:int,a:int):
+    iSpeed = 355/r
+    iRad = math.radians(angle)
+    iInsideSpeed = iSpeed * r
+    iOutsideSpeed = iSpeed * r
+    x= int(iInsideSpeed* math.sin(iRad))
+    y= int(iOutsideSpeed* math.cos(iRad))
+    z= -int(iInsideSpeed * math.sin(iRad))
+    w= -int(iOutsideSpeed* math.cos(iRad))
+    if (a == 1):   #正
+        set_motor(x,y,z,w)
+    elif( a == -1 ): #反
+        set_motor(z,w,x,y)
+    else:
+        set_motor(0,0,0,0)
+    length = r * iRad  # 弧长
+    time = length / iSpeed
+    delay.ms(time)
+    set_motor(0, 0, 0, 0)
+
+
+#Communication
 def GetUART(Port):
     UARTDevice = UART(Port,921600)
     while(1):
