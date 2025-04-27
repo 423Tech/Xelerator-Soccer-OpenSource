@@ -57,7 +57,7 @@ class QkJson:
         except:
             with open(CONFIG_FILE, "w") as f:
                 ujson.dump(data, f)
-        with open(CONFIG_FILE) as f:
+        with open(CONFIG_FILE,"r") as f:
             self.cfg = ujson.load(f)
             bUpdate = False
             for i in data:
@@ -106,7 +106,19 @@ class BlueTooth:
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
-        self.Bluetooth.write("AT+ROLE=1\r\n")
+        # if self.cfg.read("BLE","Type") == "Domain":
+        #     self.Bluetooth.write("AT+ROLE=1\r\n")
+        #     delay.ms(self.BlueDelayMs)
+        #     if self.Bluetooth.any():
+        #         BlueMsg=self.Bluetooth.read().decode()
+        #         print("Role=1 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+        # else:
+        #     self.Bluetooth.write("AT+ROLE=0\r\n")
+        #     delay.ms(self.BlueDelayMs)
+        #     if self.Bluetooth.any():
+        #         BlueMsg=self.Bluetooth.read().decode()
+        #         print("Role=0 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+        self.Bluetooth.write("AT+ROLE=2\r\n")
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
@@ -130,14 +142,14 @@ class BlueTooth:
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
 
-
-
     def connect(self):
-        if (self.BlueConnected == 0):
+        if self.BlueConnected == 0:
             if self.Bluetooth.any(): #如果字符串里有东西，则进来判断东西是什么
                 self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
-                Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
-                print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
+                delay.ms(self.BlueDelayMs)
+                if self.BlueSlaveMAC in Blue_read_buf:
+                    Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
+                    print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
                 if self.BlueSlaveMAC in Blue_read_buf:
                     self.BlueConnected = 1
                     print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
@@ -251,7 +263,8 @@ def LidarCache()->list[list[int],list[int]]:
     return 0
 
 def LidarDists():
-    iCompass = str(compass.read())
+    ClearUART(1)
+    iCompass = str(int(compass.read()))
     sSentData = 'cmp'+str(iCompass)+'end'
     SendUART(1,sSentData)
     sReceivedDataFrame = GetUART(1)
@@ -310,6 +323,7 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
+    timer.start(1)
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
@@ -327,7 +341,8 @@ def GetPos() -> list[int,int]:
                 X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
             X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-
+        print(timer.read(1))
+        timer.clear(1)
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -503,7 +518,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
             iDeltaAngle = 90
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> None:
 
     '''
     iFacingAngle 移动时面对的方向 0~360
@@ -563,17 +578,26 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
 def GetUART(Port):
-    UARTDevice = UART(Port,921600)
+    UARTDevice = UART(Port,115200)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,921600)
+    UARTDevice = UART(iPort,115200)
     UARTDevice.write(sData)
 
+def ClearUART(iPort):
+    UARTDevice = UART(iPort,115200)
+    print(UARTDevice.any())
+    if UARTDevice.any():
+        UARTDevice.read()
+
 def GetBallPos()-> list[int,int]:
+    ClearUART(1)
+    sSentData = 'cmp'+str(999)+'end'
+    SendUART(1,sSentData)
     sData = GetUART(1)
     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
