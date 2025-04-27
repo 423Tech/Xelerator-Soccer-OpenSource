@@ -609,7 +609,16 @@ def SendUART(iPort,sData):
     UARTDevice = UART(iPort,921600)
     UARTDevice.write(sData)
 
+def ClearUART(iPort):
+    UARTDevice = UART(iPort,115200)
+    print(UARTDevice.any())
+    if UARTDevice.any():
+        UARTDevice.read()
+
 def GetBallPos()-> list[int,int]:
+    ClearUART(1)
+    sSentData = 'cmp'+str(999)+'end'
+    SendUART(1,sSentData)
     sData = GetUART(1)
     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
