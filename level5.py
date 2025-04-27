@@ -38,7 +38,7 @@ class QkJson:
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 20,
+                    "ErrorRange": 10,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70],
@@ -185,7 +185,6 @@ class BlueTooth:
         else:
             delay.ms(self.BlueDelayMs)
             self.connect()
-
 
 cfg = QkJson()
 ble = BlueTooth()
@@ -527,7 +526,6 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
         iDeltaX = iDeltaX*3
     if iDeltaY < 100:
         iDeltaY = iDeltaY*3
-    #TODO 得出的是0刻度与目标距离的夹角
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
@@ -540,7 +538,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             if 0 > iDeltaY:
                 PA = Local2Angle(lAimPos) - 180
             # car.turn(iFacingAngle)
-            AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
+            AvoidObt(iFacingAngle,PA+compass.read(),(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
             car.stop()
@@ -570,7 +568,6 @@ def GetUART(Port):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
-            break
 
 def SendUART(iPort,sData):
     UARTDevice = UART(iPort,921600)
