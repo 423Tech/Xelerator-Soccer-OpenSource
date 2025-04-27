@@ -341,8 +341,6 @@ def GetPos() -> list[int,int]:
                 X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
             X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-        print(timer.read(1))
-        timer.clear(1)
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
