@@ -38,7 +38,7 @@ class QkJson:
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 10,
+                    "ErrorRange": 20,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70],
@@ -106,7 +106,8 @@ class BlueTooth:
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
-        self.Bluetooth.write("AT+ROLE=1\r\n")
+        ####################################################
+        self.Bluetooth.write("AT+ROLE=2\r\n")
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
@@ -122,6 +123,7 @@ class BlueTooth:
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
             print("AT+AUTO_CNT=1,CC:%s,1 : %s" % (self.BlueSlaveMAC, self.Bluetooth.read().decode()[0:BlueMsg.index("\r\n")]))
+        ####################################################
         self.Bluetooth.write("AT+RESTART\r\n")
         delay.ms(1000)
         self.Bluetooth.write("+++")
@@ -185,6 +187,7 @@ class BlueTooth:
         else:
             delay.ms(self.BlueDelayMs)
             self.connect()
+
 
 cfg = QkJson()
 ble = BlueTooth()
@@ -327,6 +330,7 @@ def GetPos() -> list[int,int]:
                 X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
             X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -525,6 +529,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
         iDeltaX = iDeltaX*3
     if iDeltaY < 100:
         iDeltaY = iDeltaY*3
+    #TODO 得出的是0刻度与目标距离的夹角
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
@@ -537,7 +542,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             if 0 > iDeltaY:
                 PA = Local2Angle(lAimPos) - 180
             # car.turn(iFacingAngle)
-            AvoidObt(iFacingAngle,PA+compass.read(),(abs(iDeltaX) - abs(iDeltaY))/1.3)
+            AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
             car.stop()
@@ -562,14 +567,15 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
 def GetUART(Port):
-    UARTDevice = UART(Port,115200)
+    UARTDevice = UART(Port,921600)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
+            break
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,115200)
+    UARTDevice = UART(iPort,921600)
     UARTDevice.write(sData)
 
 def GetBallPos()-> list[int,int]:

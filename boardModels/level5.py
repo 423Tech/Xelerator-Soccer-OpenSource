@@ -2,11 +2,12 @@ import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 import binascii
 import framebuf
+import _thread
 from pyb import UART
 
 set_io.out(15,1)
 
-# config.py | RCJ Version 1.8.0(2025042300) Developer 423
+# config.py | RCJ Version 2.0.0(2025042700) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
@@ -77,7 +78,6 @@ class QkJson:
                 for c in data[i].keys():
                     try:
                         vCache = self.cache[str(i)][str(c)]
-                        print(vCache)
                         self.cfg[str(i)][str(c)] = vCache
                         with open(CONFIG_FILE, "w") as d:
                             ujson.dump(self.cfg, d)
@@ -85,7 +85,6 @@ class QkJson:
                         pass
             os.remove(CACHE_FILE)
                 
-
     def write(self, section: str, option: str, value: int) -> int:
         self.cfg[section][option] = value
         with open(CONFIG_FILE, "w") as f:
@@ -94,20 +93,122 @@ class QkJson:
     def read(self, section: str, option: str) -> int:
         return self.cfg[section][option]
 
-cfg = QkJson()
+class BlueTooth:
+    def __init__(self):
+        self.cfg = QkJson()
+        self.Bluetooth = UART(3,115200)
+        self.BlueDelayMs = 10
+        self.BlueConnected = 0
+        self.BlueSlaveMAC = self.cfg.read("BLE","REMOTE")
+        self.Bluetooth.write("+++")
+        delay.ms(self.BlueDelayMs)
+        print(self.Bluetooth.any())
+        if self.Bluetooth.any():
+            BlueMsg=self.Bluetooth.read().decode()
+            print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+        ####################################################
+        if self.cfg.read("BLE","Type") == "Domain":
+            self.Bluetooth.write("AT+ROLE=1\r\n")
+        else:
+            self.Bluetooth.write("AT+ROLE=0\r\n")
+        delay.ms(self.BlueDelayMs)
+        if self.Bluetooth.any():
+            BlueMsg=self.Bluetooth.read().decode()
+            print("Role= : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+        self.Bluetooth.write("AT+MAC?\r\n")
+        delay.ms(self.BlueDelayMs)
+        if self.Bluetooth.any():
+            BlueMsg=self.Bluetooth.read().decode()
+            print("MAC : %s" % BlueMsg[BlueMsg.index("CC:")+3:BlueMsg.index("\r\n")])
+            self.cfg.write("BLE","MAC",BlueMsg[BlueMsg.index("CC:")+3:BlueMsg.index("\r\n")])
+        
+        self.Bluetooth.write("AT+AUTO_CNT=1,CC:%s,1\r\n" % self.BlueSlaveMAC)
+        delay.ms(self.BlueDelayMs)
+        if self.Bluetooth.any():
+            print("AT+AUTO_CNT=1,CC:%s,1 : %s" % (self.BlueSlaveMAC, self.Bluetooth.read().decode()[0:BlueMsg.index("\r\n")]))
+        ####################################################
+        self.Bluetooth.write("AT+RESTART\r\n")
+        delay.ms(1000)
+        self.Bluetooth.write("+++")
+        delay.ms(self.BlueDelayMs)
+        if self.Bluetooth.any():
+            BlueMsg=self.Bluetooth.read().decode()
+            print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
 
+
+
+    def connect(self):
+        if (self.BlueConnected == 0):
+            if self.Bluetooth.any(): #如果字符串里有东西，则进来判断东西是什么
+                self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
+                Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
+                print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
+                if self.BlueSlaveMAC in Blue_read_buf:
+                    self.BlueConnected = 1
+                    print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
+                    self.Bluetooth.write("AT+EXIT\r\n")              #串口发送一条信息
+                    delay.ms(self.BlueDelayMs)
+                    if self.Bluetooth.any(): #如果字符串里有东西，则进来判断东西是什么
+                        print("AT+EXIT : %s" % self.Bluetooth.read().decode())    #取出读到的字节串，并把它转换成字符串
+            return False
+        if self.BlueConnected == 1:
+            if self.Bluetooth.any():
+                Blue_read_buf=self.Bluetooth.read().decode()
+                print(Blue_read_buf)
+                if "DISCONNECTED" in Blue_read_buf:
+                    self.BlueConnected = 0
+                    print("Slave disconnect")
+                    self.Bluetooth.write("+++")
+                    delay.ms(self.BlueDelayMs)
+                    if self.Bluetooth.any():
+                        BlueMsg=self.Bluetooth.read().decode()
+                        print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                    delay.ms(1000)
+            return True
+
+    def send(self,Data):
+        if self.BlueConnected == 1:
+            Data = "sBle"+Data+"eBle"
+            self.Bluetooth.write(Data)
+            print("Send to %s"% Data,cfg.read("BLE","REMOTE"))
+            delay.ms(self.BlueDelayMs)
+            if self.Bluetooth.any():
+                print("SendData : %s" % self.Bluetooth.read().decode())
+        else:
+            delay.ms(self.BlueDelayMs)
+            self.connect()
+
+    def receive(self):
+        if self.BlueConnected == 1:
+            if self.Bluetooth.any():
+                BlueMsg = self.Bluetooth.read().decode()
+                while (not BlueMsg.index('eBle')):
+                    BlueMsg= BlueMsg + self.Bluetooth.read().decode()
+                    delay.ms(self.BlueDelayMs)
+                BlueMsgOut = BlueMsg[(BlueMsg.index('sBle')+4):BlueMsg.index('eBle')]
+                print("ReceiveData : %s" % BlueMsgOut)
+                return BlueMsg
+        else:
+            delay.ms(self.BlueDelayMs)
+            self.connect()
+
+
+cfg = QkJson()
+ble = BlueTooth()
 
 #Values
 bLife = False
 lBlockedMemo = []
-lxCache = 32767
-lyCache = 32767
+
+lBallPos = [0,0]
+lLidarDists = [0,0,0,0]
+bThreadControllerFlag = True
+iUARTPort = 1
 
 
 #Math Mod
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
-
 
 #Move Mod
 def GoV(iFacingAngle,iAimAngle,iSpeed):
@@ -137,60 +238,70 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
     set_motor.RPM(
         iSpeedU - iDeltaAngle * iGlobalPIDK,
         iSpeedV - iDeltaAngle * iGlobalPIDK,
-        iSpeedU + iDeltaAngle * iGlobalPIDK,
         iSpeedV + iDeltaAngle * iGlobalPIDK,
+        iSpeedU + iDeltaAngle * iGlobalPIDK,
         )
 
 
 #Value Mod
 def LidarCache()->list[list[int],list[int]]:
-    iJumpSample = 2
-    iSampleNumber = 10
+    #TODO 已弃用
+    iJumpSample = 1
+    iSampleNumber = 8
     lOutData = [[],[]]
     for _ in range(iSampleNumber):
         lRawData=lidar.read()
         for i in range(0,40,iJumpSample):
-            lOutData[0].append(lRawData[0][i])
+            lOutData[0].append(abs(lRawData[0][i]+compass.read()-360))
             lOutData[1].append(lRawData[1][i])
         delay.us(8050)
-    return lOutData
+    return 0
 
 def LidarDists():
-    lOutData = [[],[]]
-    lCache = [0,0,0,0]
-    lRawDists = [[],[],[],[]]
-    lOut = [[],[],[],[]]
-    lOutDists = []
-    lOutData = LidarCache()
-
-    for i in range(len(lOutData[0])):
-                # y方向 sin 270-90
-                if 90 < lOutData[0][i] < 270:
-                    lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-                # x方向 sin 0-180
-                if 0 < lOutData[0][i] < 180:
-                    lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-                else:
-                    lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-
-    for i in range(len(lRawDists)):
-        for j in range(len(lRawDists[i])):
-            if (0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -2.65):
-                lOut[i].append(lRawDists[i][j])
-            else:
-                lCache[i] = lRawDists[i][j]
-        if len(lOut[i]) == 0:
-            try:
-                lOut[i].append(max(lRawDists[i]))
-            except:
-                lOut[i].append(0)
-
-    for l in lOut:
-        iDist = (((sum(l))/len(l)))
-        lOutDists.append(iDist)
+    iCompass = str(compass.read())
+    sSentData = 'cmp'+str(iCompass)+'end'
+    SendUART(1,sSentData)
+    sReceivedDataFrame = GetUART(1)
+    sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
+    iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
+    iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
+    iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
+    iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
+    lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
     
+    #TODO 已弃用
+    # lRawDists = [[],[],[],[]]
+    # lOut = [[],[],[],[]]
+    # lOutDists = []
+    # lOutData = LidarCache()
+    # print(len(lOutData))
+    # for i in range(len(lOutData[0])):
+    #             # y方向 sin 270-90
+    #             if 90 < lOutData[0][i] < 270:
+    #                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
+    #             # x方向 sin 0-180
+    #             if 0 < lOutData[0][i] < 180:
+    #                 lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    #             else:
+    #                 lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
+    # # print(lRawDists)
+    # for i in range(len(lRawDists)):
+    #     for j in range(len(lRawDists[i])):
+    #         if 0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -35:
+    #             lOut[i].append(lRawDists[i][j])
+    #     if len(lOut[i]) == 0:
+    #         try:
+    #             lOut[i].append(max(lRawDists[i]))
+    #         except:
+    #             lOut[i].append(0)
+    #             # pass
+
+    # for l in lOut:
+    #     # iDist = sum(l)/len(l)
+    #     iDist = max(l)
+    #     lOutDists.append(iDist)
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
@@ -206,7 +317,6 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def GetPos() -> list[int,int]:
-    global lxCache,lyCache
     if not cfg.read("Tofs","On"):
         Distance = GetDists()
         iCfgK = 10
@@ -214,18 +324,17 @@ def GetPos() -> list[int,int]:
             if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
                 Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
             else:
-                Y = -(((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
+                Y = (((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
         else:
-            Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+            Y = (((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
         if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
             if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-                X = (cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
+                X = -(cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
             else:
-                X = (Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
+                X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
         else:
-            X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-        # Y = -(((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        # X = ((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+            X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+
         return [int(X)/10,int(Y)/10]
     else:
         Distance = GetDists()
@@ -246,7 +355,7 @@ def GetPos() -> list[int,int]:
         return [X,Y]
 
 def AvoidOutBorder():
-    return 0
+    # return 0
     lLocalPos = GetPos()
     if lLocalPos[0] <= 0:
         iKX = -1
@@ -363,7 +472,7 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     except:
         car.stop()
 
-def Pos2Angle(lAimPos:list[int,int]) -> int:
+def Local2Angle(lAimPos:list[int,int]) -> int:
     '''
     lAimPos 一个坐标 示例：[0,0]
     '''
@@ -371,6 +480,26 @@ def Pos2Angle(lAimPos:list[int,int]) -> int:
     iAimY = lAimPos[1]
     iLocX = GetPos()[0]
     iLocY = GetPos()[1]
+    iDeltaX = iAimX - iLocX
+    iDeltaY = iAimY - iLocY
+    try:
+        iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
+    except:
+        if iDeltaX > 0:
+            iDeltaAngle = -90
+        else:
+            iDeltaAngle = 90
+    return int(iDeltaAngle)
+
+def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
+    '''
+    lInputPos 输入坐标
+    lAimPos 目标坐标 示例：[0,0]
+    '''
+    iAimX = lAimPos[0]
+    iAimY = lAimPos[1]
+    iLocX = lInputPos[0]
+    iLocY = lInputPos[1]
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
     try:
@@ -412,11 +541,11 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.stop()
         else:
             if 0 > iDeltaX:
-                PA = Pos2Angle(lAimPos) + 180
+                PA = Local2Angle(lAimPos) + 180
             else:
-                PA = Pos2Angle(lAimPos)
+                PA = Local2Angle(lAimPos)
             if 0 > iDeltaY:
-                PA = Pos2Angle(lAimPos) - 180
+                PA = Local2Angle(lAimPos) - 180
             # car.turn(iFacingAngle)
             AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
@@ -426,8 +555,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
         # car.turn(iFacingAngle)
             Go2(iFacingAngle,iDeltaX,iDeltaY)
 
-
-def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:bool):
+def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool):
     iErrorRange = cfg.read("Position","ErrorRange")/2
     for i in Posistions:
         while (1):
@@ -439,17 +567,24 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],A2O:
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
             if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
-                break
+                if i == Posistions[-1]:
+                    return True
+                else:
+                    delay.ms(iWaitMs)
+                    break
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
 def GetUART(Port):
-    UARTDevice = UART(Port,115200)
+    UARTDevice = UART(Port,921600)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
-            break
+
+def SendUART(iPort,sData):
+    UARTDevice = UART(iPort,921600)
+    UARTDevice.write(sData)
 
 def GetBallPos()-> list[int,int]:
     sData = GetUART(1)
@@ -457,76 +592,3 @@ def GetBallPos()-> list[int,int]:
     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
     return [iBX, iBY]
 
-# BLE
-BLE = UART(3,115200)
-Blue_Set_DelayMs = 10                   #每条指令间隔时间，必要的
-Blue_Connected_Flag = 0                 #建立连接标志，0:无连接 ； 1：已连接
-Blue_read_buf = 0
-
-def AutoConnect():
-    if cfg.read("BLE","Type") == "Domain":
-        global Blue_Connected_Flag
-        if Blue_Connected_Flag == 0:                            #建立连接标志，0:无连接 ； 1：已连接
-            BLE.write("AT+CONNECT=%s\r\n" % Blue_Set_Slave_MAC)                  #串口发送一条信息
-            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
-                print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
-                if Blue_read_buf == "CC:%s CONNECTED 0\r\n" % Blue_Set_Slave_MAC:
-                    Blue_Connected_Flag = 1
-                    print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
-                    BLE.write("AT+EXIT\r\n")              #串口发送一条信息
-                    delay.ms(Blue_Set_DelayMs)
-                    if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-                        print("AT+EXIT : %s" % BLE.read().decode())    #取出读到的字节串，并把它转换成字符串
-        elif Blue_Connected_Flag == 1:                          #建立连接标志，0:无连接 ； 1：已连接
-            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
-                print(Blue_read_buf)
-                if "DISCONNECTED" in Blue_read_buf:
-                    Blue_Connected_Flag = 0
-                    print("Slave disconnect")                   #取出读到的字节串，并把它转换成字符串
-                    BLE.write("+++")                      #进入AT指令模式
-                    delay.ms(Blue_Set_DelayMs)
-                    if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-                        print("+++ : %s" % BLE.read().decode())    #取出读到的字节串，并把它转换成字符串
-                    delay.ms(1000)
-    else:
-        global Blue_Connected_Flag
-        if Blue_Connected_Flag == 0:                            #建立连接标志，0:无连接 ； 1：已连接
-            if BLE.any():
-                Blue_read_buf=BLE.read().decode()
-                print(Blue_read_buf)
-                if Blue_read_buf == "CC:%s CONNECTED 0*\r\n" % cfg.read("BLE","REMOTE"):
-                    Blue_Connected_Flag = 1
-        elif Blue_Connected_Flag == 1:                          #建立连接标志，0:无连接 ； 1：已连接
-            if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-                Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
-                print(Blue_read_buf)
-                if Blue_read_buf == "CC:%s DISCONNECTED\r\n" % cfg.read("BLE","REMOTE"):
-                    Blue_Connected_Flag = 0
-                    print("Slave disconnect")                   #取出读到的字节串，并把它转换成字符串
-                    Blue_Connected_Flag = 0
-                    delay.ms(1000)
-
-def SendData(Data):
-    global Blue_Connected_Flag
-    if Blue_Connected_Flag == 1:
-        BLE.write(Data)
-        print("Send %s to %s"% Data,cfg.read("BLE","REMOTE"))
-        delay.ms(Blue_Set_DelayMs)
-        if BLE.any(): #如果字符串里有东西，则进来判断东西是什么
-            print("SendData : %s" % BLE.read().decode())     #取出读到的字节串，并把它转换成字符串
-    else:
-        delay.ms(Blue_Set_DelayMs)
-        AutoConnect()
-
-def ReceiveData():
-    global Blue_Connected_Flag
-    if BLE.any():
-        Blue_read_buf=BLE.read().decode()         #取出读到的字节串，并把它转换成字符串
-        print("ReceiveData : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
-        delay.ms(Blue_Set_DelayMs)
-        return Blue_read_buf
-    else:
-        delay.ms(Blue_Set_DelayMs)
-        AutoConnect()
