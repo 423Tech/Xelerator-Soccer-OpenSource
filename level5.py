@@ -258,6 +258,7 @@ def LidarCache()->list[list[int],list[int]]:
     return 0
 
 def LidarDists():
+    ClearUART(1)
     iCompass = str(int(compass.read()))
     sSentData = 'cmp'+str(iCompass)+'end'
     SendUART(1,sSentData)
