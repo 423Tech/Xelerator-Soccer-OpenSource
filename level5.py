@@ -258,6 +258,7 @@ def LidarCache()->list[list[int],list[int]]:
     return 0
 
 def LidarDists():
+    ClearUART(1)
     iCompass = str(int(compass.read()))
     sSentData = 'cmp'+str(iCompass)+'end'
     SendUART(1,sSentData)
@@ -521,6 +522,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     # AvoidOutBorder()
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
+    delay.ms(100)
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
