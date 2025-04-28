@@ -7,7 +7,7 @@ from pyb import UART
 
 set_io.out(15,1)
 
-# config.py | RCJ Version 2.0.0(2025042700) Developer 423
+# config.py | RCJ Version 2.1.0(2025042700) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
@@ -258,7 +258,8 @@ def LidarCache()->list[list[int],list[int]]:
     return 0
 
 def LidarDists():
-    iCompass = str(compass.read())
+    ClearUART(1)
+    iCompass = str(int(compass.read()))
     sSentData = 'cmp'+str(iCompass)+'end'
     SendUART(1,sSentData)
     sReceivedDataFrame = GetUART(1)
@@ -521,6 +522,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     # AvoidOutBorder()
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
+    delay.ms(100)
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
@@ -575,20 +577,70 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
+
+def RunCircle(r:int, angle:int,a:int):
+    iSpeed = 355/r
+    iRad = math.radians(angle)
+    iInsideSpeed = iSpeed * r
+    iOutsideSpeed = iSpeed * r
+    x= int(iInsideSpeed* math.sin(iRad))
+    y= int(iOutsideSpeed* math.cos(iRad))
+    z= -int(iInsideSpeed * math.sin(iRad))
+    w= -int(iOutsideSpeed* math.cos(iRad))
+    if (a == 1):   #正
+        set_motor.RPM(x,y,z,w)
+    elif( a == -1 ): #反
+        set_motor.RPM(z,w,x,y)
+    else:
+        set_motor(0,0,0,0)
+    length = r * iRad  # 弧长
+    time = length / iSpeed
+    delay.ms(time)
+    set_motor.RPM(0, 0, 0, 0)
+
+
+#Communication
 def GetUART(Port):
-    UARTDevice = UART(Port,921600)
+    UARTDevice = UART(Port,115200)
     while(1):
         if UARTDevice.any():
             Data = str(UARTDevice.read())
             return Data
 
 def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,921600)
+    UARTDevice = UART(iPort,115200)
     UARTDevice.write(sData)
 
+def ClearUART(iPort):
+    UARTDevice = UART(iPort,115200)
+    if UARTDevice.any():
+        UARTDevice.read()
+
 def GetBallPos()-> list[int,int]:
+    ClearUART(1)
+    sSentData = 'cmp'+str(999)+'end'
+    SendUART(1,sSentData)
     sData = GetUART(1)
     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
     return [iBX, iBY]
+
+#Offense & Defense
+def AimBall() -> int:
+    Pos = GetPos()
+    Ball = GetBallPos()
+    Ball[0] = Pos[0] + Ball[0]
+    Ball[1] = Pos[1] + Ball[1]
+    return Pos2Angle(Pos,Ball)
+
+def Circle(origin:list[int,int],angle:int,r:int):
+    Pos2Pos(angle,[origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5],False)
+
+def offense()->None:
+    lPos = GetPos()
+    if lPos[1] > -50:
+        Pos2Pos(0,cfg.read("Position","Home"),False)
+    else:
+        Circle(cfg.read("Position","Home"),AimBall(),35)
+
 
