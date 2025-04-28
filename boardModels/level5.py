@@ -1,11 +1,6 @@
 import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
-import binascii
-import framebuf
-import _thread
 from pyb import UART
-
-set_io.out(15,1)
 
 # config.py | RCJ Version 2.1.0(2025042700) Developer 423
 import ujson
@@ -139,7 +134,7 @@ class BlueTooth:
 
     def connect(self):
         if (self.BlueConnected == 0):
-            if self.Bluetooth.any(): #如果字符串里有东西，则进来判断东西是什么
+            if self.Bluetooth.any():
                 self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
                 Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
                 print("AT+CNT_LIST : %s" % Blue_read_buf)       #取出读到的字节串，并把它转换成字符串
@@ -269,40 +264,6 @@ def LidarDists():
     iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
     iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
     lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
-    
-    #TODO 已弃用
-    # lRawDists = [[],[],[],[]]
-    # lOut = [[],[],[],[]]
-    # lOutDists = []
-    # lOutData = LidarCache()
-    # print(len(lOutData))
-    # for i in range(len(lOutData[0])):
-    #             # y方向 sin 270-90
-    #             if 90 < lOutData[0][i] < 270:
-    #                 lRawDists[2].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-    #             else:
-    #                 lRawDists[0].append(lOutData[1][i]*abs(math.cos((math.radians(lOutData[0][i])))))
-    #             # x方向 sin 0-180
-    #             if 0 < lOutData[0][i] < 180:
-    #                 lRawDists[3].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-    #             else:
-    #                 lRawDists[1].append(lOutData[1][i]*abs(math.sin((math.radians(lOutData[0][i])))))
-    # # print(lRawDists)
-    # for i in range(len(lRawDists)):
-    #     for j in range(len(lRawDists[i])):
-    #         if 0 > (lRawDists[i][j]-lRawDists[i][j-1]) > -35:
-    #             lOut[i].append(lRawDists[i][j])
-    #     if len(lOut[i]) == 0:
-    #         try:
-    #             lOut[i].append(max(lRawDists[i]))
-    #         except:
-    #             lOut[i].append(0)
-    #             # pass
-
-    # for l in lOut:
-    #     # iDist = sum(l)/len(l)
-    #     iDist = max(l)
-    #     lOutDists.append(iDist)
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
@@ -393,7 +354,6 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     '''
     返回一个列表，[[角度],[是否被遮挡]]
     '''
-    #TODO 无法走迷宫
     if cfg.read("Tofs","On"):
         global lBlockedMemo,iMemoLife,bLife
         lStatusOfDist = [[],[]]
@@ -407,33 +367,11 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
         for i in range(iNumOfDist):
             lStatusOfDist[0].append(iPerAngle*i)
             if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
-            # if lStatusOfDist[i] and lDists[i] <= cfg.read("A2AOb","ActiveRange"):
                 lStatusOfDist[1][i] = False
-                # iMemoLife = iMaxLife
-                # lBlockedMemo.append(i)
-                # if len(lBlockedMemo) > (iNumOfDist - 1):
-                #     lStatusOfDist[lBlockedMemo[0]] = True
-                #     lBlockedMemo.pop(0)
-                # bLife = False
-            # if lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
-            # # if not lStatusOfDist[i] and lDists[i] >= cfg.read("A2AOb","IgnoreRange"):
-            #     bLife = True
             else:
                 lStatusOfDist[1][i] = True
-        #         bLife = True
-        # if bLife:
-        #     if len(lBlockedMemo) > 0 and iMemoLife > 0:
-        #         iMemoLife = iMemoLife - 1
-        #         if iMemoLife == 0:
-        #             lStatusOfDist[lBlockedMemo[0]] = True
-        #             lBlockedMemo.pop(0)
-        #             iMemoLife = iMaxLife
-        #     if len(lBlockedMemo) == 0:
-        #         iMemoLife = iMaxLife
-        #     bLife = False
         return lStatusOfDist
     else:
-        #TODO 无法走迷宫
         global lBlockedMemo,iMemoLife,bLife
         lStatusOfDist = [[],[]]
         lDists = LidarCache()
@@ -536,7 +474,6 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
         iDeltaX = iDeltaX*3
     if iDeltaY < 100:
         iDeltaY = iDeltaY*3
-    #TODO 得出的是0刻度与目标距离的夹角
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
@@ -548,7 +485,6 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
                 PA = Local2Angle(lAimPos)
             if 0 > iDeltaY:
                 PA = Local2Angle(lAimPos) - 180
-            # car.turn(iFacingAngle)
             AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
