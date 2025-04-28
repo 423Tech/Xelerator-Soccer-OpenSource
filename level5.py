@@ -207,6 +207,17 @@ lLidarDists = [0,0,0,0]
 bThreadControllerFlag = True
 iUARTPort = 1
 
+def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
+    iValue = iValue % iRound
+    
+    iLowerThreshold = (iMiddleValue - iOffset) % iRound
+    iUpperThreshold = (iMiddleValue + iOffset) % iRound
+
+    if iLowerThreshold <= iUpperThreshold:
+        return iLowerThreshold <= iValue <= iUpperThreshold
+
+    else:
+        return iValue >= iLowerThreshold or iValue <= iUpperThreshold
 
 #Math Mod
 def FindNearstAngle(arr, target):
@@ -520,6 +531,28 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
 
+def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
+    iValue = iValue % iRound
+    iLowerThreshold = (iMiddleValue - iOffset) % iRound
+    iUpperThreshold = (iMiddleValue + iOffset) % iRound
+    
+    if iLowerThreshold <= iUpperThreshold:
+        return iLowerThreshold <= iValue <= iUpperThreshold
+    else:
+        return iValue >= iLowerThreshold or iValue <= iUpperThreshold
+
+def CircleAround(iAimAngle):
+    while(1):
+        lBallPos = GetBallPos()
+        iX, iY = lBallPos[0], lBallPos[1]
+        if iY > 0:
+            iDeltaAngle = -int(math.degrees(math.atan2(iY, iX)) - 90)     
+        print(iX,iY,iDeltaAngle,compass.read())
+        if roundThresholdJudger(compass.read(), 360, iAimAngle, 5):
+            break
+        else:
+            set_motor.RPM(50 - iDeltaAngle,-(150 + iDeltaAngle),-(50 + iDeltaAngle),150 + iDeltaAngle)
+    car.stop()
 
 def RunCircle(r:int, angle:int,a:int):
     iSpeed = 355/r
