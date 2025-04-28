@@ -542,6 +542,10 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
         return iValue >= iLowerThreshold or iValue <= iUpperThreshold
 
 def CircleAround(iAimAngle):
+    if abs(compass.read() - iAimAngle) >= 180:
+        iDirectionFactor = 1
+    else:
+        iDirectionFactor = -1
     while(1):
         lBallPos = GetBallPos()
         iX, iY = lBallPos[0], lBallPos[1]
@@ -551,7 +555,7 @@ def CircleAround(iAimAngle):
         if roundThresholdJudger(compass.read(), 360, iAimAngle, 5):
             break
         else:
-            set_motor.RPM(50 - iDeltaAngle,-(150 + iDeltaAngle),-(50 + iDeltaAngle),150 + iDeltaAngle)
+            set_motor.RPM(iDirectionFactor * (30 - iDeltaAngle),-iDirectionFactor * (130 + iDeltaAngle),-iDirectionFactor * (30 - iDeltaAngle),iDirectionFactor * (130 + iDeltaAngle))
     car.stop()
 
 def RunCircle(r:int, angle:int,a:int):
