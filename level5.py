@@ -2,6 +2,13 @@ import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 from pyb import UART
 
+if (set_adc.read(14)*11*3.3/1024) <= 11:
+    beep.frequency(0,100000)
+    raise Exception("电池电压过低，请充电")
+
+set_io.out(6,1)
+set_io.out(6,0)
+
 # config.py | RCJ Version 2.1.0(2025042700) Developer 423
 import ujson
 import os

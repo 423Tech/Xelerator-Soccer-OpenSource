@@ -1,5 +1,4 @@
 # RoboCAT - By: 423T - 2025/3/26
-
 import sensor,image,lcd,math,time,pyb
 from pyb import UART
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led
@@ -7,27 +6,16 @@ import binascii
 import framebuf
 delay.ms(2000)
 
+from level5 import *
 
 #TODO
-sensor.reset()
-sensor.set_pixformat(sensor.RGB565)
-sensor.set_framesize(sensor.QVGA)
-sensor.set_auto_exposure(1)
-sensor.set_auto_gain(0)
-sensor.set_auto_whitebal(0)
-sensor.set_saturation(3)
-sensor.set_contrast(3)
-sensor.set_hmirror(1)
-sensor.set_vflip(1)
-#ball_threshold = (68, 90, 15, 42, 21, 55)#抗干扰,近视眼
-ball_threshold  = (56, 81, 20, 66, 21, 58)
-ball_ROI=(0,16,320,224)
+
 
 
 lcd.init()
 lcd.set_backlight(60)
-clock = time.clock()
-set_motor.PID(2.5,0.3,1.3)          #设置电机PID参数
+# clock = time.clock()
+# set_motor.PID(2.5,0.3,1.3)          #设置电机PID参数
 fborder=2
 bborder=4
 lborder=2
@@ -42,61 +30,17 @@ by=0
 
 
 # From config.py | RCJ2025032600PROD
-import ujson
-import os
-CONFIG_FILE = "./config1.json"
-class QkJson:
-    def __init__(self):
-        try:
-            os.stat(CONFIG_FILE)
-        except:
-            data = {
-                "model": {
-                    "number" : 1,
-                },
-                "adcs": {
-                    "tof0": 9,
-                    "tof1": 8,
-                    "tof2": 7,
-                    "tof3": 10,
-                    "gs1": 3,
-                    "gs2": 4,
-                    "gs3": 5,
-                    },
-                "cams": {
-                    "cam0": 1,
-                    "cam1": 2,
-                    "cam2": 3,
-                    "cam3": 4,
-                },
-                "AdvancedConfig": {
-                    "Luna": "False",
-                },
-            }
-            with open(CONFIG_FILE, "w") as f:
-                ujson.dump(data, f)
-        with open(CONFIG_FILE, 'r') as f:
-            self.cfg = ujson.load(f)
-    def write(self, section: str, option: str, value: int) -> int:
-        self.cfg[section][option] = value
-        with open(CONFIG_FILE, "w") as f:
-            ujson.dump(self.cfg, f)
-    def read(self, section: str, option: str) -> int:
-        return self.cfg[section][option]
-Cfg = QkJson()
-
 
 def getadc():
     global irl,irf,irr,irb,dhl,dhb,dhr,bx,by
-    bx = set_adc.read(11)
-    by = set_adc.read(12)
-    irf = int(set_adc.read(Cfg.read("adcs","tof0"))/3.5)
-    irl = int(set_adc.read(Cfg.read("adcs","tof1"))/3.5)
-    irb = int(set_adc.read(Cfg.read("adcs","tof2"))/3.5)
-    irr = int(set_adc.read(Cfg.read("adcs","tof3"))/3.5)
-    dhl = set_adc.read(Cfg.read("adcs","gs1"))
-    dhb = set_adc.read(Cfg.read("adcs","gs2"))
-    dhr = set_adc.read(Cfg.read("adcs","gs3"))
+    b = GetBallPos()
+    bx = b[0]
+    by = b[1]
+    d = GetDists()
+    irf = d[0]/100
+    irl = d[1]/100
+    irb = d[2]/100
+    irr = d[3]/100
 
 
 def dribble_ball(status):      #盘球
@@ -151,16 +95,6 @@ def move(x,y):    #xy方向移动
     go_v(int(spd*math.sin(math.atan2(y,x)-math.radians(45))),int(spd*math.cos(math.atan2(y,x)-math.radians(45))))
 #    print("spdx=%d,spdy=%d"%(int(spd*math.cos(math.atan2(y,x)-math.radians(45))),int(spd*math.sin(math.atan2(y,x)-math.radians(45)))))
 
-def AutoObstacle():
-    if irf <= 8:
-        go_x(-150)
-    if irb <= 8:
-        go_x(150)
-    if irl <= 8:
-        go_y(-50)
-    if irr <= 8:
-        go_y(50)
-
 def wait(s):
     delay.ms(int(s*1000))
 
@@ -175,7 +109,6 @@ def turn_to(degree):
     set_led.out(3,0)
 
 def go_back():
-    AutoObstacle()
     set_led.out(2,1)
     turn_to(0)
     if(irb<30):
@@ -192,7 +125,6 @@ def go_back():
     set_led.out(2,0)
 
 def offense():
-    AutoObstacle()
     if(fy>160):
         if(fx>150 and fx<170):
             dribble_ball(1)
@@ -223,7 +155,6 @@ def offense():
         move((fx-160)*6,(240-fy)*4)
 
 def defense():
-    AutoObstacle()
     if(by>80):
         if(bx>75 and bx<150):
             go_y(0)
@@ -235,7 +166,6 @@ def defense():
         move((160-bx)*7,(by-240)*4)
 
 def follow():
-    AutoObstacle()
     turn_to(0)
     if(fx>0 or fy>0):
         if(irf<=44):
@@ -274,33 +204,8 @@ def follow():
         else:
             defense()
 
-
-def omniview():
-    global fx,fy,bx,by
-    img=sensor.snapshot()
-    ball_blobs = img.find_blobs([ball_threshold],pix_threshold=3)
-    if ball_blobs:
-        for blob in ball_blobs:
-            max_size=0
-            img.draw_cross(blob.cx(),blob.cy(),color = (0, 255, 0))
-            if blob.pixels()>max_size:
-                max_blob=blob
-                max_size=blob.pixels()
-        img.draw_rectangle(max_blob.rect(),color = (0, 255, 255))
-        set_led.out(1,1)
-        fx=max_blob.cx()
-        fy=max_blob.cy()
-        print("%d,%d,%d,%d"%(max_blob.cx(),max_blob.cy(),max_blob.pixels(),max_blob.area()))
-    else:
-        fx=0
-        fy=0
-        set_led.out(1,0)
-    img.draw_rectangle(ball_ROI,color = (255, 255, 255))
-    getadc()
-    return img
-
 def screen():
-    img=omniview()
+    img = image.Image(160,120,sensor.RGB565,copy_to_fb=True)
 #    for i in range(6):
 #        img.draw_string(i*50,192,"%4d"% (set_adc.read(i+1)),color=(255,0,255),scale=2)
 #    for i in range(6):
@@ -314,7 +219,7 @@ def screen():
 
 
 while(key.read()==0):
-    clock.tick()
+    # clock.tick()
 #    omniview()
     screen()
 #lcd.clear()
@@ -339,13 +244,13 @@ lcd.set_backlight(0)
 #    wait(1)
 #主程序
 while(True):
-    clock.tick()
-    omniview()
-    # if fx==0 and fy==0 and bx<13 and by<13:
-    #     go_back()
-    # else:
-    #     follow()
-    AutoObstacle()
+    # clock.tick()
+    # omniview()
+    if fx==0 and fy==0 and bx<13 and by<13:
+        go_back()
+    else:
+        follow()
+    # AutoObstacle()
 
 
 

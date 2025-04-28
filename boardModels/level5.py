@@ -209,7 +209,7 @@ def FindNearstAngle(arr, target):
 def GoV(iFacingAngle,iAimAngle,iSpeed):
     iFacingAngle = int(iFacingAngle)
     iAimAngle = int(iAimAngle)
-    iGlobalPIDK = 2
+    iGlobalPIDK = 0.05
     iCMP = compass.read()
     iSpeedX = int(math.sin(math.radians(iAimAngle)) * iSpeed)
     iSpeedY = int(math.cos(math.radians(iAimAngle)) * iSpeed)
@@ -218,10 +218,15 @@ def GoV(iFacingAngle,iAimAngle,iSpeed):
     iDeltaAngle = int(iCMP-iFacingAngle)
     if iDeltaAngle > 180:
         iDeltaAngle = iDeltaAngle - 360
-    set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK)
+    set_motor.RPM(
+        iSpeedU - iDeltaAngle * iGlobalPIDK,
+        iSpeedV - iDeltaAngle * iGlobalPIDK,
+        iSpeedV + iDeltaAngle * iGlobalPIDK,
+        iSpeedU + iDeltaAngle * iGlobalPIDK,
+        )
 
 def Go2(iFacingAngle,iSpeedX,iSpeedY):
-    iGlobalPIDK = 2
+    iGlobalPIDK = 0.05
     iCMP = compass.read()
     iSpeedU = int(iSpeedX + iSpeedY)
     iSpeedV = int(iSpeedY - iSpeedX)
@@ -506,6 +511,7 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
             iDeltaY = iAimY - iLocY
             if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
                 if i == Posistions[-1]:
+                    car.stop()
                     return True
                 else:
                     delay.ms(iWaitMs)
@@ -562,14 +568,21 @@ def GetBallPos()-> list[int,int]:
     return [iBX, iBY]
 
 #Offense & Defense
-def AimBall(Pos) -> int:
+def AimBall() -> int:
     Ball = GetBallPos()
-    Ball[0] = Pos[0] + Ball[0]
-    Ball[1] = Pos[1] + Ball[1]
-    return Pos2Angle(Pos,Ball)
+    BallDist = (Ball[0]**2 + Ball[1]**2)**0.5
+    if BallDist == 0:
+        if Ball[1] >= 0:
+            return 0
+        else:
+            return 179
+    return -int(math.acos(Ball[1]/BallDist) * 180 / math.pi)
 
 def Circle(origin:list[int,int],angle:int,r:int):
-    Pos2Pos(angle,[origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5],False)
+    Pos2Pos(angle,
+            [origin*r*math.cos(math.radians(angle)),
+            origin*r*math.sin(math.radians(angle))
+            ],False)
 
 def offense()->None:
     lPos = GetPos()
