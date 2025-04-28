@@ -562,8 +562,7 @@ def GetBallPos()-> list[int,int]:
     return [iBX, iBY]
 
 #Offense & Defense
-def AimBall() -> int:
-    Pos = GetPos()
+def AimBall(Pos) -> int:
     Ball = GetBallPos()
     Ball[0] = Pos[0] + Ball[0]
     Ball[1] = Pos[1] + Ball[1]
@@ -577,6 +576,6 @@ def offense()->None:
     if lPos[1] > -50:
         Pos2Pos(0,cfg.read("Position","Home"),False)
     else:
-        Circle(cfg.read("Position","Home"),AimBall(),35)
+        Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
 
 
