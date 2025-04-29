@@ -3,8 +3,8 @@ import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_mot
 from pyb import UART
 
 if (set_adc.read(14)*11*3.3/1024) <= 11:
-    beep.frequency(0,100000)
-    raise Exception("电池电压过低，请充电")
+   beep.frequency(0,100000)
+   raise Exception("电池电压过低，请充电")
 
 set_io.out(6,1)
 set_io.out(6,0)
@@ -108,6 +108,7 @@ class BlueTooth:
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+
         ####################################################
         if self.cfg.read("BLE","Type") == "Domain":
             self.Bluetooth.write("AT+ROLE=1\r\n")
@@ -131,16 +132,17 @@ class BlueTooth:
         ####################################################
         self.Bluetooth.write("AT+RESTART\r\n")
         delay.ms(1000)
-        self.Bluetooth.write("+++")
-        delay.ms(self.BlueDelayMs)
-        if self.Bluetooth.any():
-            BlueMsg=self.Bluetooth.read().decode()
-            print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+
 
 
 
     def connect(self):
         if (self.BlueConnected == 0):
+            self.Bluetooth.write("+++")
+            delay.ms(self.BlueDelayMs)
+            if self.Bluetooth.any():
+                BlueMsg=self.Bluetooth.read().decode()
+                print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
             if self.Bluetooth.any():
                 self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
                 Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串
@@ -193,6 +195,7 @@ class BlueTooth:
         else:
             delay.ms(self.BlueDelayMs)
             self.connect()
+
 
 
 cfg = QkJson()
@@ -617,10 +620,18 @@ def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(angle,[origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5],False)
 
 def offense()->None:
+    angle = AimBall()
     lPos = GetPos()
-    if lPos[1] > -50:
+    if lPos[1] > -50 or GetBallPos()[0] == 0:
         Pos2Pos(0,cfg.read("Position","Home"),False)
     else:
-        Circle(cfg.read("Position","Home"),AimBall(),35)
+        if abs(compass.read() - angle) <= 20:
+            car.stop()
+        else:
+            if angle >= 0:
+                car.z_move(0,-90,100)
+            else:
+                car.z_move(0,90,100)
+            print(cfg.read("Position","Home"),angle,35)
 
 
