@@ -111,9 +111,9 @@ class BlueTooth:
 
         ####################################################
         if self.cfg.read("BLE","Type") == "Domain":
-            self.Bluetooth.write("AT+ROLE=1\r\n")
+            self.Bluetooth.write("AT+ROLE=2\r\n")
         else:
-            self.Bluetooth.write("AT+ROLE=0\r\n")
+            self.Bluetooth.write("AT+ROLE=2\r\n")
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
@@ -133,9 +133,6 @@ class BlueTooth:
         self.Bluetooth.write("AT+RESTART\r\n")
         delay.ms(1000)
 
-
-
-
     def connect(self):
         if (self.BlueConnected == 0):
             self.Bluetooth.write("+++")
@@ -143,6 +140,7 @@ class BlueTooth:
             if self.Bluetooth.any():
                 BlueMsg=self.Bluetooth.read().decode()
                 print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                if "ERROR" in 
             if self.Bluetooth.any():
                 self.Bluetooth.write("AT+CNT_LIST\r\n")                  #串口发送一条信息
                 Blue_read_buf=self.Bluetooth.read().decode()         #取出读到的字节串，并把它转换成字符串

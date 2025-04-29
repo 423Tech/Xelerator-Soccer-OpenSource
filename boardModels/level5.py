@@ -102,14 +102,20 @@ class BlueTooth:
             BlueMsg=self.Bluetooth.read().decode()
             print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
         ####################################################
-        if self.cfg.read("BLE","Type") == "Domain":
-            self.Bluetooth.write("AT+ROLE=1\r\n")
-        else:
-            self.Bluetooth.write("AT+ROLE=0\r\n")
+        # if self.cfg.read("BLE","Type") == "Domain":
+        #     self.Bluetooth.write("AT+ROLE=1\r\n")
+        # else:
+        self.Bluetooth.write("AT+ROLE=2\r\n")
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
             BlueMsg=self.Bluetooth.read().decode()
             print("Role= : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+            if "ERROR" in BlueMsg:
+                self.Bluetooth.write("AT+ROLE=2\r\n")
+                delay.ms(self.BlueDelayMs)
+                if self.Bluetooth.any():
+                    BlueMsg=self.Bluetooth.read().decode()
+                    print("Role= : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
         self.Bluetooth.write("AT+MAC?\r\n")
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
