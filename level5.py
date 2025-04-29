@@ -282,8 +282,6 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
-
-
 def LidarCache()->list[list[int],list[int]]:
     #TODO 已弃用
     iJumpSample = 1
