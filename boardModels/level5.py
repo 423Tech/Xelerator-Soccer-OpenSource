@@ -597,4 +597,3 @@ def offense()->None:
     else:
         Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
 
-
