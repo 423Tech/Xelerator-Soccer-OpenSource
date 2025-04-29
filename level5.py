@@ -227,6 +227,7 @@ ble = BlueTooth()
 
 #Values
 bLife = False
+bC2S = False
 lBlockedMemo = []
 
 lBallPos = [0,0]
@@ -326,13 +327,15 @@ def GetDists() -> list[int,int,int]:
         return lDists
 
 def Cover2Start():
+    global bC2S
     if cfg.read("Advanced","Cover2Start"):
         if GetDists()[5] < 500:
-            return True
+            bC2S = True
         else:
-            return False
+            pass
     else:
-        return True
+        bC2S = True
+    return bC2S
 
 def GetPos() -> list[int,int]:
     if not cfg.read("Tofs","On"):
