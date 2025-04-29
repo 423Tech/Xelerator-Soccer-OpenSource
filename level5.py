@@ -653,13 +653,18 @@ def AimBall() -> int:
     else:
         iAngle = 0
     try:
-        return math.degrees(math.acos(Ball[0]/int((Ball[0]**2 + Ball[1]**2)**0.5)))+iAngle
+        if -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) < 0:
+            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) + 360
+        else:
+            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90)
     except:
         return 0
 
 def ChasingBall():
     a = AimBall()
-    car.z_move(a,compass.read()-a,100)
+    car.z_move(a,a,100)
+    car.straight
+    # car.straight(a,100)
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
