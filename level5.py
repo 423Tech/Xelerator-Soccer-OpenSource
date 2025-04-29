@@ -112,13 +112,13 @@ class BlueTooth:
             delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
                 BlueMsg=self.Bluetooth.read().decode()
-                print("Role= : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                print("Role=2 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
                 if "ERROR" in BlueMsg:
                     self.Bluetooth.write("AT+ROLE=2\r\n")
                     delay.ms(self.BlueDelayMs)
                     if self.Bluetooth.any():
                         BlueMsg=self.Bluetooth.read().decode()
-                        print("Role= : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                        print("Role=2 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
             self.Bluetooth.write("AT+MAC?\r\n")
             delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
@@ -135,10 +135,6 @@ class BlueTooth:
             cfg.write("BLE","Setup",True)
         else:
             pass
-
-    def __exit__(self):
-        self.Bluetooth.write("AT+RESTART\r\n")
-        delay.ms(10)
 
     def errorHandler(self):
         self.Bluetooth.write("AT+EXIT\r\n")
@@ -288,6 +284,8 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
 
 
 #Value Mod
+
+
 def LidarCache()->list[list[int],list[int]]:
     #TODO 已弃用
     iJumpSample = 1
@@ -326,6 +324,15 @@ def GetDists() -> list[int,int,int]:
                 int(set_adc.read(cfg.read("Tofs",str(i)))*cfg.read("Tofs","K")+cfg.read("Tofs","B"))
                 )
         return lDists
+
+def Cover2Start():
+    if cfg.read("Advanced","Cover2Start"):
+        if GetDists()[5] < 500:
+            return True
+        else:
+            return False
+    else:
+        return True
 
 def GetPos() -> list[int,int]:
     if not cfg.read("Tofs","On"):
@@ -658,4 +665,3 @@ def offense()->None:
         else:
             car.z_move(0,-90,5*lBallPos[0])
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
-
