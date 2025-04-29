@@ -2,13 +2,14 @@ import sensor,image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 from pyb import UART
 
-# if (set_adc.read(14)*11*3.3/1024) <= 11:
-#    raise Exception("电池电压过低，请充电")
+if (set_adc.read(14)*11*3.3/1024) <= 11:
+   raise Exception("电池电压过低，请充电")
 
 set_io.out(6,1)
 set_io.out(6,0)
+# car.set_speed_PID(3,2,1)
 
-# config.py | RCJ Version 2.1.0(2025042700) Developer 423
+# config.py | RCJ Version 2.2.0(2025042700) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
@@ -495,13 +496,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
     iLocY = lInputPos[1]
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
-    try:
-        iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
-    except:
-        if iDeltaX > 0:
-            iDeltaAngle = -90
-        else:
-            iDeltaAngle = 90
+    iDeltaAngle = math.degrees(math.atan2(iDeltaY,iDeltaX))
     return int(iDeltaAngle)
 
 def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
@@ -545,7 +540,16 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.stop()
         else:
         # car.turn(iFacingAngle)
-            Go2(iFacingAngle,iDeltaX,iDeltaY)
+            # Go2(iFacingAngle,iDeltaX,iDeltaY)
+            if iDeltaY > 0:
+                iAngle = 180
+            else:
+                iAngle = 0
+            
+            iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
+            print(90-iMovedAngle)
+            car.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+
 
 def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool):
     iErrorRange = cfg.read("Position","ErrorRange")/2
@@ -648,7 +652,14 @@ def AimBall() -> int:
         iAngle = 180
     else:
         iAngle = 0
-    return math.radians(math.acos(Ball[0]/int((Ball[1]**2 + Ball[1]**2)**0.5)))+iAngle
+    try:
+        return math.degrees(math.acos(Ball[0]/int((Ball[0]**2 + Ball[1]**2)**0.5)))+iAngle
+    except:
+        return 0
+
+def ChasingBall():
+    a = AimBall()
+    car.z_move(a,compass.read()-a,100)
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -660,12 +671,14 @@ def Circle(origin:list[int,int],angle:int,r:int):
 def offense()->None:
     lPos = GetPos()
     lBallPos = GetBallPos()
-    if lPos[1] > -50 or (lBallPos[0] == 0 and lBallPos[1] == 0):
-        Pos2Pos(0,cfg.read("Position","Home"),False)
-    else:
-        iAngle = AimBall()
-        if 180 > (iAngle-90) > 0:
-            car.z_move(iAngle,iAngle+90,5*lBallPos[0])
-        else:
-            car.z_move(iAngle,iAngle-90,5*lBallPos[0])
-        # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
+    lBallFixedPos = [lPos[0]+lBallPos[0],lPos[1]+lBallPos[1]]
+    print(lBallFixedPos)
+    # if lPos[1] > -50 or (lBallPos[0] == 0 and lBallPos[1] == 0):
+    #     Pos2Pos(0,cfg.read("Position","Home"),False)
+    # else:
+    #     iAngle = Pos2Angle(cfg.read("Position","Home"),lBallFixedPos)
+    #     iRad = math.radians(iAngle)
+    #     iX = 35*math.cos(iRad)
+    #     iY = 35*math.sin(iRad)-70
+    #     print([int(iX),int(iY)])
+    #     Pos2Pos(iAngle,[int(iX),int(iY)],False)
