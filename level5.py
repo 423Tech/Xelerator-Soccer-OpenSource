@@ -21,7 +21,7 @@ class QkJson:
                     "type": "Off",
                 },
                 "Tofs": {
-                    "On": True,
+                    "On": False,
                     0: 1,
                     1: 2,
                     2: 3,
@@ -45,6 +45,7 @@ class QkJson:
                     "Home": [0,-70],
                 },
                 "BLE" : {
+                    "Type": "Slave",
                     "MAC" : "NONE",
                     "REMOTE" : "NONE",
                     "Setup" : False,
@@ -108,17 +109,20 @@ class BlueTooth:
                 BlueMsg=self.Bluetooth.read().decode()
                 print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
             ####################################################
-            self.Bluetooth.write("AT+ROLE=2\r\n")
+            if self.cfg.read("BLE","Type") == "Domain":
+                self.Bluetooth.write("AT+ROLE=1\r\n")
+            else:
+                self.Bluetooth.write("AT+ROLE=0\r\n")
             delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
                 BlueMsg=self.Bluetooth.read().decode()
-                print("Role=2 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                print("Role : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
                 if "ERROR" in BlueMsg:
                     self.Bluetooth.write("AT+ROLE=2\r\n")
                     delay.ms(self.BlueDelayMs)
                     if self.Bluetooth.any():
                         BlueMsg=self.Bluetooth.read().decode()
-                        print("Role=2 : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
+                        print("Role : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
             self.Bluetooth.write("AT+MAC?\r\n")
             delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
@@ -148,7 +152,11 @@ class BlueTooth:
                 if self.Bluetooth.any():
                     BlueMsg=self.Bluetooth.read().decode()
                     print("AT+EXIT : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
-                print(1)
+        self.Bluetooth.write("+++")
+        delay.ms(self.BlueDelayMs)
+        if self.Bluetooth.any():
+            BlueMsg=self.Bluetooth.read().decode()
+            print("+++ : %s" % BlueMsg[0:BlueMsg.index("\r\n")])
 
     def connect(self):
         if (self.BlueConnected == 0):
@@ -191,10 +199,9 @@ class BlueTooth:
 
     def send(self,Data):
         if self.BlueConnected == 1:
-            Data = "sBle"+Data+"eBle"
             self.Bluetooth.write(Data)
             print("Send to %s"% Data,cfg.read("BLE","REMOTE"))
-            delay.ms(self.BlueDelayMs*10)
+            delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
                 print("SendData : %s" % self.Bluetooth.read().decode())
         else:
@@ -202,25 +209,15 @@ class BlueTooth:
             self.connect()
 
     def receive(self):
-        # if self.BlueConnected == 1:
-            if self.Bluetooth.any():
-                try:
-                    BlueMsg = self.Bluetooth.read().decode()
-                    delay.ms(self.BlueDelayMs)
-                    print(BlueMsg)
-                    try:
-                        BlueMsgOut = BlueMsg[(BlueMsg.index('sBle')+4):BlueMsg.index('eBle')]
-                    except:
-                        return False
-                    if BlueMsgOut == None:
-                        return False
-                    print("ReceiveData : %s" % BlueMsgOut)
-                    return BlueMsgOut
-                except:
-                    return False
-        # else:
-        #     delay.ms(self.BlueDelayMs)
-        #     self.connect()
+        if self.Bluetooth.any():
+            BlueMsg = self.Bluetooth.read().decode()
+            delay.ms(self.BlueDelayMs)
+            if BlueMsg == None:
+                return False
+            print("ReceiveData : %s" % BlueMsg)
+            return BlueMsg
+        else:
+            pass
 
 cfg = QkJson()
 ble = BlueTooth()
@@ -648,23 +645,29 @@ def GetBallPos()-> list[int,int]:
 
 #Offense & Defense
 def AimBall() -> int:
-    Pos = GetPos()
     Ball = GetBallPos()
-    Ball[0] = Pos[0] + Ball[0]
-    Ball[1] = Pos[1] + Ball[1]
-    return Pos2Angle(Pos,Ball)
+    if Ball[1] < 0:
+        iAngle = 180
+    else:
+        iAngle = 0
+    return math.radians(math.acos(Ball[0]/int((Ball[1]**2 + Ball[1]**2)**0.5)))+iAngle
 
 def Circle(origin:list[int,int],angle:int,r:int):
-    Pos2Pos(angle,[origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5],False)
+    Pos2Pos(
+        angle,
+        [origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,
+        origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5]
+        ,False)
 
 def offense()->None:
     lPos = GetPos()
-    if lPos[1] > -50:
+    lBallPos = GetBallPos()
+    if lPos[1] > -50 or (lBallPos[0] == 0 and lBallPos[1] == 0):
         Pos2Pos(0,cfg.read("Position","Home"),False)
     else:
-        lBallPos = GetBallPos()
-        if lBallPos[0] > 0:
-            car.z_move(0,90,5*lBallPos[0])
+        iAngle = AimBall()
+        if 180 > (iAngle-90) > 0:
+            car.z_move(iAngle,iAngle+90,5*lBallPos[0])
         else:
-            car.z_move(0,-90,5*lBallPos[0])
+            car.z_move(iAngle,iAngle-90,5*lBallPos[0])
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
