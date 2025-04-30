@@ -526,6 +526,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
             car.stop()
+            return True
         else:
         # car.turn(iFacingAngle)
             # Go2(iFacingAngle,iDeltaX,iDeltaY)
@@ -537,6 +538,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
             print(90-iMovedAngle)
             car.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            return False
 
 
 def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool):
@@ -607,7 +609,9 @@ def AutoFetch():
             car.stop()
             break
 
-
+def MoveToPos(lPos):
+    while(Pos2Pos(0,lPos,False)):
+        pass
 
 
 def RunCircle(r:int, angle:int,a:int):
