@@ -714,16 +714,16 @@ def Offence():
             GoX(-50)
         elif iBX > 2:
             GoX(50)
-    elif iBY > 0:
+    elif iBY > 10:
         iAimAngle = AimBall([iBX,iBY - 10])
         car.z_move(0,iAimAngle,200)
-    elif iBY < 0:
+    elif iBY <= -7:
         if iAbsBX < -30:
-            iAimAngle = AimBall([iBX + 10,iBY - 10])
+            iAimAngle = AimBall([iBX + 15,iBY - 10])
         elif iAbsBX > 30:
-            iAimAngle = AimBall([iBX - 10,iBY - 10])
+            iAimAngle = AimBall([iBX - 15,iBY - 10])
         else:
-            iAimAngle = AimBall([iBX - 10,iBY - 10])
+            iAimAngle = AimBall([iBX - 15,iBY - 10])
         
         car.z_move(0,iAimAngle,200)
     
