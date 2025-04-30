@@ -613,7 +613,6 @@ def MoveToPos(lPos):
     while(Pos2Pos(0,lPos,False)):
         pass
 
-
 def RunCircle(r:int, angle:int,a:int):
     iSpeed = 355/r
     iRad = math.radians(angle)
@@ -662,25 +661,66 @@ def GetBallPos()-> list[int,int]:
     return [iBX, iBY]
 
 #Offense & Defense
-def AimBall() -> int:
-    Ball = GetBallPos()
+def AimBall(Ball) -> int:
     if Ball[1] < 0:
         iAngle = 180
     else:
         iAngle = 0
     try:
         if -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) < 0:
-            return -(math.degrees(math.atan2(Ball[1] - 10,Ball[0])) - 90) + 360
+            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) + 360
         else:
-            return -(math.degrees(math.atan2(Ball[1] - 10,Ball[0])) - 90)
+            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90)
     except:
         return 0
 
-def ChasingBall():
-    a = AimBall()
-    car.z_move(a,a,100)
-    car.straight
-    # car.straight(a,100)
+# def ChasingBall():
+#     a = AimBall()
+#     car.z_move(a,a,100)
+#     car.straight
+#     # car.straight(a,100)
+
+def GoBack():
+    Pos2Pos(0,cfg.read("Position","Home"),False)
+
+def GoX(iSpeed):
+    set_motor.RPM(iSpeed,-iSpeed,-iSpeed,iSpeed)
+
+def GoY(iSpeed):
+    set_motor.RPM(iSpeed,iSpeed,iSpeed,iSpeed)
+
+def Offence():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    lPos = GetPos()
+    iX,iY = lPos[0],lPos[1]
+
+    set_io.out(13,1)
+    set_io.out(14,0)
+
+    if (iBX == 0 and iBY == 0) or (iX < -50 or iX > 50) or (iY < -100 or iY > 100):
+        GoBack()
+    elif 7 <= iBY <= 9:
+        if -2 <= iBX <= 2:
+            GoY(100)
+            set_io.out(13,1)
+            set_io.out(14,0)
+            for _ in range(3):
+                RailGun(1)
+        elif iBX < -2:
+            GoX(-50)
+        elif iBX > 2:
+            GoX(50)
+    elif iBY > 0:
+        iAimAngle = AimBall([iBX,iBY - 10])
+        car.z_move(0,iAimAngle,200)
+    elif iBY < 0:
+        iAimAngle = AimBall([iBX - 10,iBY - 10])
+        car.z_move(0,iAimAngle,200)
+
+    
+# def Defence():
+
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -689,7 +729,7 @@ def Circle(origin:list[int,int],angle:int,r:int):
         origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5]
         ,False)
 
-def offense()->None:
+def Defence()->None:
     angle = AimBall()
     lPos = GetPos()
     if lPos[1] > -50:
