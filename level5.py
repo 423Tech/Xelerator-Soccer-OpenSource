@@ -666,9 +666,9 @@ def AimBall() -> int:
         iAngle = 0
     try:
         if -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) < 0:
-            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90) + 360
+            return -(math.degrees(math.atan2(Ball[1] - 10,Ball[0])) - 90) + 360
         else:
-            return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90)
+            return -(math.degrees(math.atan2(Ball[1] - 10,Ball[0])) - 90)
     except:
         return 0
 
