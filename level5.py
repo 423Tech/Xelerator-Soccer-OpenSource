@@ -695,6 +695,9 @@ def Offence():
     lPos = GetPos()
     iX,iY = lPos[0],lPos[1]
 
+    iAbsBX = iX + iBX
+    iAbsBY = iY + iBY
+
     set_io.out(13,1)
     set_io.out(14,0)
 
@@ -715,8 +718,16 @@ def Offence():
         iAimAngle = AimBall([iBX,iBY - 10])
         car.z_move(0,iAimAngle,200)
     elif iBY < 0:
-        iAimAngle = AimBall([iBX - 10,iBY - 10])
+        if iAbsBX < -30:
+            iAimAngle = AimBall([iBX + 10,iBY - 10])
+        elif iAbsBX > 30:
+            iAimAngle = AimBall([iBX - 10,iBY - 10])
+        else:
+            iAimAngle = AimBall([iBX - 10,iBY - 10])
+        
         car.z_move(0,iAimAngle,200)
+    
+    print(iX,iY,iBX,iBY,iAbsBX,iAbsBY)
 
     
 # def Defence():
