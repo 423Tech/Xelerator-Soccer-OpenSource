@@ -305,8 +305,7 @@ def LidarDists():
     iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
     iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
     iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
-    iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('zd')])
-    iZeroDist = int(sParsedDataFrame[sParsedDataFrame.index('zd')+2:sParsedDataFrame.index('eom')])
+    iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
     lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist,iZeroDist]
     return lOutDists
 
