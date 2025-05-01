@@ -11,7 +11,7 @@ set_io.out(6,0)
 
 #car.set_speed_PID(1,2,1)
 
-# config.py | RCJ Version 2.2.0(2025042700) Developer 423
+# config.py | RCJ Version 2.3.0(2025042700) Developer 423
 import ujson
 import os
 CONFIG_FILE = "./cfg.json"
