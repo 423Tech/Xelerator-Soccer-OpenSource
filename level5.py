@@ -586,6 +586,7 @@ def TurnToTheBall():
             set_motor.RPM(50,50,-50,-50)
 
 def AutoFetch(bStop = True):
+    TurnToTheBall()
     while(1):
         lBallPos = GetBallPos()
         iBX, iBY = lBallPos[0], lBallPos[1]
@@ -623,29 +624,26 @@ def RunCircle(r:int, angle:int,a:int):
 
 def GoDistance(iDistance):
     iCompass = int(compass.read())
+    iMovingAngle = iCompass
     if roundThresholdJudger(iCompass, 360, 0, 45):
         iFacingDistIndex = 0
-        iMovingAngle = 0
     elif roundThresholdJudger(iCompass, 360, 90, 45):
-        iFacingDistIndex = 1
-        iMovingAngle = 90
+        iFacingDistIndex = 3
     elif roundThresholdJudger(iCompass, 360, 180, 45):
         iFacingDistIndex = 2
-        iMovingAngle = 180
-
     elif roundThresholdJudger(iCompass, 360, 270, 45):
-        iFacingDistIndex = 3
-        iMovingAngle = 270
+        iFacingDistIndex = 1
     else:
         return False
     
     iAimDist = GetDists()[iFacingDistIndex] - iDistance
-    car.straight(iMovingAngle, 50)
-
+    
     while(1):
+        car.straight(iMovingAngle, 50)
         iCurrentDist = GetDists()[iFacingDistIndex]
-        if abs(iAimDist - iCurrentDist) < 5:
-            car.stop()
+        print(iCurrentDist,iAimDist)
+        if abs(iAimDist - iCurrentDist) < 20:
+            set_motor.RPM(0,0,0,0)
             break
 
 
