@@ -1,13 +1,10 @@
-import sensor,image,lcd,math,time,pyb
+import image,lcd,math,time,pyb
 import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
 from pyb import UART
 
 # if (set_adc.read(14)*11*3.3/1024) <= 11:
 #    raise Exception("电池电压过低，请充电")
 
-set_io.out(6,1)
-set_io.out(6,0)
-# car.set_speed_PID(3,2,1)
 
 # config.py | RCJ Version 2.2.0(2025042700) Developer 423
 import ujson
@@ -21,12 +18,15 @@ class QkJson:
                     "number" : 1,
                     "type": "Off",
                 },
-                "Tofs": {
-                    "On": False,
+                "Ports": {
                     0: 1,
                     1: 2,
                     2: 3,
                     3: 4,
+                    "RailGun" : 6,
+                },
+                "Distance": {
+                    "On": False,
                     "K": 0.67,
                     "B": 4,
                     },
@@ -219,6 +219,7 @@ lLidarDists = [0,0,0,0]
 bThreadControllerFlag = True
 iUARTPort = 1
 
+#Math Mod
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
     iValue = iValue % iRound
     
@@ -231,7 +232,6 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
     else:
         return iValue >= iLowerThreshold or iValue <= iUpperThreshold
 
-#Math Mod
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
 
@@ -267,7 +267,6 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
         iSpeedU + iDeltaAngle * iGlobalPIDK,
         )
 
-
 #Value Mod
 def LidarCache()->list[list[int],list[int]]:
     #TODO 已弃用
@@ -297,19 +296,19 @@ def LidarDists():
     return lOutDists
 
 def GetDists() -> list[int,int,int]:
-    if not cfg.read("Tofs","On"):
+    if not cfg.read("Distance","On"):
         return LidarDists()
     else:
         lDists = []
         Num = cfg.read("A2AOb","NumOfDist")
         for i in range(Num):
             lDists.append(
-                int(set_adc.read(cfg.read("Tofs",str(i)))*cfg.read("Tofs","K")+cfg.read("Tofs","B"))
+                int(set_adc.read(cfg.read("Ports",str(i)))*cfg.read("Distance","K")+cfg.read("Distance","B"))
                 )
         return lDists
 
 def GetPos() -> list[int,int]:
-    if not cfg.read("Tofs","On"):
+    if not cfg.read("Distance","On"):
         Distance = GetDists()
         iCfgK = 10
         if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
@@ -345,6 +344,46 @@ def GetPos() -> list[int,int]:
         else:
             X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
         return [X,Y]
+
+#Communication
+def GetUART(Port):
+    UARTDevice = UART(Port,115200)
+    while(1):
+        if UARTDevice.any():
+            Data = str(UARTDevice.read())
+            return Data
+
+def SendUART(iPort,sData):
+    UARTDevice = UART(iPort,115200)
+    UARTDevice.write(sData)
+
+def ClearUART(iPort):
+    UARTDevice = UART(iPort,115200)
+    if UARTDevice.any():
+        UARTDevice.read()
+
+def GetBallPos()-> list[int,int]:
+    ClearUART(1)
+    sSentData = 'cmp'+str(999)+'end'
+    SendUART(1,sSentData)
+    sData = GetUART(1)
+    iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
+    iBY = int(sData[sData.index('by')+2:sData.index('eom')])
+    return [iBX, iBY]
+
+#Operate models
+def RailGun():
+    set_io.out(cfg.read("Ports","RailGun"),1)
+    set_io.out(cfg.read("Ports","RailGun"),0)
+
+def Cover2Start():
+    global bCovered
+    if LidarDists()[0] < 10 or bCovered:
+        bCovered = True
+        return True
+    else:
+        bCovered = False
+        return False
 
 def AvoidOutBorder():
     # return 0
@@ -384,7 +423,7 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     '''
     返回一个列表，[[角度],[是否被遮挡]]
     '''
-    if cfg.read("Tofs","On"):
+    if cfg.read("Distance","On"):
         global lBlockedMemo,iMemoLife,bLife
         lStatusOfDist = [[],[]]
         # iMaxLife = cfg.read("A2AOb","LifeTime")
@@ -474,7 +513,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
     iDeltaAngle = math.degrees(math.atan2(iDeltaY,iDeltaX))
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
+def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
 
     '''
     iFacingAngle 移动时面对的方向 0~360
@@ -527,8 +566,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = True) -> int:
             car.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
-
-def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool):
+def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool | None = False):
     iErrorRange = cfg.read("Position","ErrorRange")/2
     for i in Posistions:
         while (1):
@@ -646,33 +684,6 @@ def GoDistance(iDistance):
             set_motor.RPM(0,0,0,0)
             break
 
-
-#Communication
-def GetUART(Port):
-    UARTDevice = UART(Port,115200)
-    while(1):
-        if UARTDevice.any():
-            Data = str(UARTDevice.read())
-            return Data
-
-def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,115200)
-    UARTDevice.write(sData)
-
-def ClearUART(iPort):
-    UARTDevice = UART(iPort,115200)
-    if UARTDevice.any():
-        UARTDevice.read()
-
-def GetBallPos()-> list[int,int]:
-    ClearUART(1)
-    sSentData = 'cmp'+str(999)+'end'
-    SendUART(1,sSentData)
-    sData = GetUART(1)
-    iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
-    iBY = int(sData[sData.index('by')+2:sData.index('eom')])
-    return [iBX, iBY]
-
 #Offense & Defense
 def AimBall(Ball) -> int:
     if Ball[1] < 0:
@@ -686,12 +697,6 @@ def AimBall(Ball) -> int:
             return -(math.degrees(math.atan2(Ball[1],Ball[0])) - 90)
     except:
         return 0
-
-# def ChasingBall():
-#     a = AimBall()
-#     car.z_move(a,a,100)
-#     car.straight
-#     # car.straight(a,100)
 
 def GoBack():
     Pos2Pos(0,cfg.read("Position","Home"),False)
@@ -741,10 +746,6 @@ def Offence():
     
     print(iX,iY,iBX,iBY,iAbsBX,iAbsBY)
 
-    
-# def Defence():
-
-
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
         angle,
@@ -753,12 +754,11 @@ def Circle(origin:list[int,int],angle:int,r:int):
         ,False)
 
 def Defence()->None:
-    # angle = AimBall()
+    lBallPos = GetBallPos()
     lPos = GetPos()
-    if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 :
+    if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
         Pos2Pos(0,cfg.read("Position","Home"),False)
     else:
-        lBallPos = GetBallPos()
         if lBallPos[0] > 0:
             car.z_move(0,90,5*lBallPos[0])
         else:
