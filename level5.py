@@ -7,7 +7,9 @@ from pyb import UART
 
 set_io.out(6,1)
 set_io.out(6,0)
-# car.set_speed_PID(3,2,1)
+
+
+#car.set_speed_PID(1,2,1)
 
 # config.py | RCJ Version 2.2.0(2025042700) Developer 423
 import ujson
@@ -559,9 +561,18 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
         return iValue >= iLowerThreshold or iValue <= iUpperThreshold
 
 def CircleAround(iAimAngle):
-#    if abs(compass.read() - iAimAngle) >= 180:
-    iDirectionFactor = 1
-#    else:
+    iCompass = int(compass.read())
+
+
+    if roundThresholdJudger(iCompass,360,iAimAngle+90,90):
+        iDirectionFactor = 1
+    else:
+        iDirectionFactor = -1
+    
+    
+#    if 0 <= abs(iCompass - iAimAngle) < 180:
+#        iDirectionFactor = 1
+#    elif 180 <= abs(iCompass - iAimAngle) < 360:
 #        iDirectionFactor = -1
     while(1):
         lBallPos = GetBallPos()
@@ -573,7 +584,23 @@ def CircleAround(iAimAngle):
             break
         else:
             set_motor.RPM(iDirectionFactor * 30,-iDirectionFactor * (130 - iDeltaAngle),-iDirectionFactor * 30,iDirectionFactor * (130 - iDeltaAngle))
-    car.stop()
+    car.turn(iAimAngle)
+    while(1):
+        iBX = GetBallPos()[0]
+        if iBX <= -2:
+            print('atleft')
+            car.z_move(iAimAngle,iAimAngle + 90,-20)
+#            set_motor.RPM(-30,30,30,-30)
+        elif iBX >= 2:
+            print('atright')
+            car.z_move(iAimAngle,iAimAngle + 90,20)
+#            set_motor.RPM(30,-30,-30,30)
+        else:
+            for _ in range(3):
+                set_motor.RPM(0,0,0,0)
+            break
+    print('stopped')
+    
 
 def TurnToTheBall():
     while(1):
@@ -583,24 +610,26 @@ def TurnToTheBall():
             car.stop()
             break
         else:
-            set_motor.RPM(50,50,-50,-50)
+            set_motor.RPM(20,20,-20,-20)
 
 def AutoFetch(bStop = True):
     TurnToTheBall()
     while(1):
         lBallPos = GetBallPos()
         iBX, iBY = lBallPos[0], lBallPos[1]
-        SpeedL = 50 + 3 * iBX
-        SpeedR = 50 - 3 * iBX
+        SpeedL = 30 + 3 * iBX
+        SpeedR = 30 - 3 * iBX
         set_motor.RPM(SpeedL, SpeedL, SpeedR, SpeedR)
-        if iBX > -2 and iBX < 2 and iBY >= 7 and iBY <= 9:
+        if iBX > -2 and iBX < 2 and iBY >= 8 and iBY <= 10:
             if bStop:
                 car.stop()
             break
 
-def Move2Pos(lPos):
-    while(Pos2Pos(0,lPos,False)):
+def Move2Pos(iFacingAngle,lPos):
+    while not Pos2Pos(0,lPos,False):
         pass
+    for _ in range(3):
+        set_motor.RPM(0,0,0,0)
 
 def RunCircle(r:int, angle:int,a:int):
     iSpeed = 355/r
@@ -623,26 +652,31 @@ def RunCircle(r:int, angle:int,a:int):
     set_motor.RPM(0, 0, 0, 0)
 
 def GoDistance(iDistance):
+    iDistance = iDistance * 10
     iCompass = int(compass.read())
-    iMovingAngle = iCompass
+    
     if roundThresholdJudger(iCompass, 360, 0, 45):
         iFacingDistIndex = 0
+        iMovingAngle = 0
     elif roundThresholdJudger(iCompass, 360, 90, 45):
         iFacingDistIndex = 3
+        iMovingAngle = 90
     elif roundThresholdJudger(iCompass, 360, 180, 45):
         iFacingDistIndex = 2
+        iMovingAngle = 180
     elif roundThresholdJudger(iCompass, 360, 270, 45):
         iFacingDistIndex = 1
+        iMovingAngle = 270
     else:
         return False
     
     iAimDist = GetDists()[iFacingDistIndex] - iDistance
     
     while(1):
-        car.straight(iMovingAngle, 50)
+        car.straight(iMovingAngle, 20)
         iCurrentDist = GetDists()[iFacingDistIndex]
         print(iCurrentDist,iAimDist)
-        if abs(iAimDist - iCurrentDist) < 20:
+        if iCurrentDist < iAimDist + 10:
             set_motor.RPM(0,0,0,0)
             break
 
@@ -714,13 +748,13 @@ def Offence():
     set_io.out(13,1)
     set_io.out(14,0)
 
-    if (iBX == 0 and iBY == 0) or (iX < -50 or iX > 50) or (iY < -80 or iY > 80):
+    if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
         GoBack()
     elif 7 <= iBY <= 30:
         if -2 <= iBX <= 2:
-            GoY(300)
-            set_io.out(13,1)
-            set_io.out(14,0)
+            GoY(500)
+            delay.ms(50)
+            GoBack()
         elif iBX < -2:
             GoX(-50)
         elif iBX > 2:
