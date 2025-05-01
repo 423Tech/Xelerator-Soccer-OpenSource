@@ -107,7 +107,6 @@ class QkJson:
 
 class BlueTooth:
     def sendCommand(self, command: str) -> str:
-        self.Setup()
         self.Bluetooth.write(command)
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
@@ -115,9 +114,9 @@ class BlueTooth:
             if "ERROR" in BlueMsg:
                 if "+++" in command:
                     BlueMsg = self.sendCommand("AT+EXIT\r\n")
-                BlueMsg = self.sendCommand(command)
-            print("%s : %s" %(command, BlueMsg[0:BlueMsg.index("\r\n")]))
-            return BlueMsg[0:BlueMsg.index("\r\n")]
+                    BlueMsg = self.sendCommand(command)
+            print("%s : %s" %(command, BlueMsg))
+            return BlueMsg
         else:
             self.Bluetooth.write("AT+EXIT\r\n")
             delay.ms(self.BlueDelayMs)
@@ -157,8 +156,9 @@ class BlueTooth:
             self.sendCommand("AT+RESTART\r\n")
             cfg.write("BLE","Setup",True)
             delay.ms(1000)
+            return "Complete"
         else:
-            pass
+            return "Already"
 
     def connect(self):
         self.Setup()
@@ -569,9 +569,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
                 iAngle = 180
             else:
                 iAngle = 0
-            
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            print(90-iMovedAngle)
             car.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
