@@ -596,7 +596,7 @@ def AutoFetch():
             car.stop()
             break
 
-def MoveToPos(lPos):
+def Move2Pos(lPos):
     while(Pos2Pos(0,lPos,False)):
         pass
 
@@ -688,31 +688,30 @@ def Offence():
     set_io.out(13,1)
     set_io.out(14,0)
 
-    if (iBX == 0 and iBY == 0) or (iX < -50 or iX > 50) or (iY < -100 or iY > 100):
+    if (iBX == 0 and iBY == 0) or (iX < -50 or iX > 50) or (iY < -80 or iY > 80):
         GoBack()
-    elif 7 <= iBY <= 9:
+    elif 7 <= iBY <= 30:
         if -2 <= iBX <= 2:
-            GoY(100)
+            GoY(300)
             set_io.out(13,1)
             set_io.out(14,0)
-            for _ in range(3):
-                RailGun(1)
         elif iBX < -2:
             GoX(-50)
         elif iBX > 2:
             GoX(50)
-    elif iBY > 10:
-        iAimAngle = AimBall([iBX,iBY - 10])
-        car.z_move(0,iAimAngle,200)
+    elif iBY > 30:
+        if iBX < 0:
+            iAimAngle = AimBall([iBX - 2,iBY - 10])
+        elif iBX >= 0:
+            iAimAngle = AimBall([iBX + 2,iBY - 10])
+        car.z_move(0,iAimAngle,150)
     elif iBY <= -7:
-        if iAbsBX < -30:
-            iAimAngle = AimBall([iBX + 15,iBY - 10])
-        elif iAbsBX > 30:
-            iAimAngle = AimBall([iBX - 15,iBY - 10])
-        else:
-            iAimAngle = AimBall([iBX - 15,iBY - 10])
+        if iAbsBX < 0:
+            iAimAngle = AimBall([iBX + 20,iBY - 10])
+        elif iAbsBX >= 0:
+            iAimAngle = AimBall([iBX - 20,iBY - 10])
         
-        car.z_move(0,iAimAngle,200)
+        car.z_move(0,iAimAngle,150)
     
     print(iX,iY,iBX,iBY,iAbsBX,iAbsBY)
 
