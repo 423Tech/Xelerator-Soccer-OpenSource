@@ -107,6 +107,7 @@ class QkJson:
 
 class BlueTooth:
     def sendCommand(self, command: str) -> str:
+        self.Setup()
         self.Bluetooth.write(command)
         delay.ms(self.BlueDelayMs)
         if self.Bluetooth.any():
@@ -160,6 +161,7 @@ class BlueTooth:
             pass
 
     def connect(self):
+        self.Setup()
         if (self.BlueConnected == 0):
             msg = self.sendCommand("+++")
             print(msg)
@@ -183,6 +185,7 @@ class BlueTooth:
             return True
 
     def send(self,Data):
+        self.Setup()
         if self.BlueConnected == 1:
             self.Bluetooth.write(Data)
             delay.ms(self.BlueDelayMs)
@@ -193,6 +196,7 @@ class BlueTooth:
             self.connect()
 
     def receive(self):
+        self.Setup()
         if self.BlueConnected == 1:
             if self.Bluetooth.any():
                 try:
