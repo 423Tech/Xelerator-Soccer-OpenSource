@@ -213,7 +213,7 @@ ble = BlueTooth()
 #Values
 bLife = False
 lBlockedMemo = []
-
+bCovered = False
 lBallPos = [0,0]
 lLidarDists = [0,0,0,0]
 bThreadControllerFlag = True
