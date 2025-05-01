@@ -5,9 +5,6 @@ from pyb import UART
 # if (set_adc.read(14)*11*3.3/1024) <= 11:
 #    raise Exception("电池电压过低，请充电")
 
-set_io.out(6,1)
-set_io.out(6,0)
-
 
 #car.set_speed_PID(1,2,1)
 
@@ -106,6 +103,22 @@ class QkJson:
             self.__init__()
 
 class BlueTooth:
+    def __init__(self):
+        self.cfg = QkJson()
+        self.Bluetooth = UART(3,115200)
+        self.BlueDelayMs = 10
+        self.BlueConnected = 0
+        self.BlueSlaveMAC = self.cfg.read("BLE","REMOTE")
+        while True:
+            self.Bluetooth.write("AT+EXIT\r\n")
+            try:
+                if "OK" in self.Bluetooth.read().decode():
+                    break
+                else:
+                    print("trying Again")
+            except:
+                break
+
     def sendCommand(self, command: str) -> str:
         self.Bluetooth.write(command)
         delay.ms(self.BlueDelayMs)
@@ -115,9 +128,13 @@ class BlueTooth:
                 if "+++" in command:
                     BlueMsg = self.sendCommand("AT+EXIT\r\n")
                     BlueMsg = self.sendCommand(command)
-            print("%s : %s" %(command, BlueMsg))
+            # if "+++" in command:
+            #     print("%s : %s" %(command, BlueMsg[0:BlueMsg.index("\r\n")]))
+            # else:
+            #     print("%s : %s" %(command[0:command.index("\r\n")], BlueMsg[0:BlueMsg.index("\r\n")]))
             return BlueMsg
         else:
+            self.Bluetooth.write("+++")
             self.Bluetooth.write("AT+EXIT\r\n")
             delay.ms(self.BlueDelayMs)
             if self.Bluetooth.any():
@@ -130,25 +147,33 @@ class BlueTooth:
                     else:
                         raise Exception("Check Ble")
             else:
-                raise Exception("Check Ble")
-
-    def __init__(self):
-        self.cfg = QkJson()
-        self.Bluetooth = UART(3,115200)
-        self.BlueDelayMs = 10
-        self.BlueConnected = 0
-        self.BlueSlaveMAC = self.cfg.read("BLE","REMOTE")
+                self.Bluetooth.write("AT+EXIT\r\n")
+                if self.Bluetooth.any():
+                    BlueMsg=self.Bluetooth.read().decode()
+                    print(BlueMsg)
+                    if "ERROR" in BlueMsg:
+                        self.Bluetooth.write("AT+EXIT\r\n")
+                        delay.ms(self.BlueDelayMs)
+                        if self.Bluetooth.any():
+                            BlueMsg=self.Bluetooth.read().decode()
+                        else:
+                            raise Exception("Check Ble for Error")
+                    else:
+                        pass
 
     def Setup(self):
         if self.cfg.read("BLE","Setup") == False:
             self.sendCommand("+++")
             ####################################################
-            if self.cfg.read("BLE","Type") == "Domain":
-                self.sendCommand("AT+ROLE=1\r\n")
-            else:
-                self.sendCommand("AT+ROLE=0\r\n")
+            # if self.cfg.read("BLE","Type") == "Domain":
+            #     self.sendCommand("AT+ROLE=1\r\n")
+            # else:
+            #     self.sendCommand("AT+ROLE=0\r\n")
+            self.sendCommand("AT+ROLE=2\r\n")
             BlueMsg = self.sendCommand("AT+MAC?\r\n")
-            self.cfg.write("BLE","MAC",BlueMsg[BlueMsg.index("CC:")+3:BlueMsg.index("\r\n")])
+            b = BlueMsg[BlueMsg.index("CC:")+3:BlueMsg.index("\r\n")]
+            self.cfg.write("BLE","MAC",b)
+            print("Bluetooth MAC:",cfg.read("BLE","MAC"))
             self.sendCommand("AT+DEV_DEL=ALL\r\n")
             self.sendCommand("AT+AUTO_CNT=1,CC:%s,1\r\n" % self.BlueSlaveMAC)
             delay.ms(self.BlueDelayMs)
@@ -156,65 +181,62 @@ class BlueTooth:
             self.sendCommand("AT+RESTART\r\n")
             cfg.write("BLE","Setup",True)
             delay.ms(1000)
-            return "Complete"
+            return False
         else:
-            return "Already"
-
-    def connect(self):
-        self.Setup()
-        if (self.BlueConnected == 0):
-            msg = self.sendCommand("+++")
-            print(msg)
-            if msg:
-                if self.BlueSlaveMAC in self.sendCommand("AT+CNT_LIST\r\n"):
-                    self.BlueConnected = 1
-                    print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
-                    self.sendCommand("AT+EXIT\r\n")
-                    return True
-                else:
-                    self.sendCommand("AT+EXIT\r\n")
-                    return False
-        if self.BlueConnected == 1:
-            if self.Bluetooth.any():
-                Blue_read_buf=self.Bluetooth.read().decode()
-                print(Blue_read_buf)
-                if "DISCONNECTED" in Blue_read_buf:
-                    self.BlueConnected = 0
-                    print("Slave disconnect")
-                    delay.ms(1000)
             return True
 
+    def connect(self):
+        if self.Setup() == True:
+            if self.BlueConnected == 0:
+                if self.sendCommand("+++"):
+                    msg = self.sendCommand("AT+CNT_LIST\r\n")
+                    if self.BlueSlaveMAC in msg or "*" in msg:
+                        self.BlueConnected = 1
+                        print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
+                        self.sendCommand("AT+EXIT\r\n")
+                        return True
+                    else:
+                        self.sendCommand("AT+EXIT\r\n")
+                        return False
+                else:
+                    return False
+            if self.BlueConnected == 1:
+            #     if self.Bluetooth.any():
+            #         Blue_read_buf=self.Bluetooth.read().decode()
+            #         print(Blue_read_buf)
+            #         if "DISCONNECTED" in Blue_read_buf:
+            #             self.BlueConnected = 0
+            #             print("Slave disconnect")
+            #             delay.ms(1000)
+                return True
+
     def send(self,Data):
-        self.Setup()
-        if self.BlueConnected == 1:
-            self.Bluetooth.write(Data)
-            delay.ms(self.BlueDelayMs)
-            if self.Bluetooth.any():
-                print("SendData : %s" % self.Bluetooth.read().decode())
-        else:
-            delay.ms(self.BlueDelayMs)
-            self.connect()
+        if self.Setup():
+            if self.BlueConnected == 1:
+                self.Bluetooth.write(Data)
+                delay.ms(self.BlueDelayMs)
+            else:
+                delay.ms(self.BlueDelayMs)
+                self.connect()
 
     def receive(self):
-        self.Setup()
-        if self.BlueConnected == 1:
-            if self.Bluetooth.any():
-                try:
-                    BlueMsg = self.Bluetooth.read().decode()
-                    delay.ms(self.BlueDelayMs)
+        if self.Setup():
+            if self.BlueConnected == 1:
+                if self.Bluetooth.any():
                     try:
-                        BlueMsgOut = BlueMsg[(BlueMsg.index('sBle')+4):BlueMsg.index('eBle')]
+                        BlueMsg = self.Bluetooth.read().decode()
+                        delay.ms(self.BlueDelayMs)
+                        if BlueMsg == None:
+                            pass
+                        print("ReceiveData : %s" % BlueMsg)
+                        return BlueMsg
                     except:
-                        return False
-                    if BlueMsgOut == None:
-                        return False
-                    print("ReceiveData : %s" % BlueMsgOut)
-                    return BlueMsgOut
-                except:
-                    return False
-        else:
-            delay.ms(self.BlueDelayMs)
-            self.connect()
+                        pass
+                else:
+                    pass
+            else:
+                delay.ms(self.BlueDelayMs)
+                self.connect()
 
 cfg = QkJson()
 ble = BlueTooth()
