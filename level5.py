@@ -250,6 +250,7 @@ lLidarDists = [0,0,0,0]
 bThreadControllerFlag = True
 iUARTPort = 1
 
+
 #Math Mod
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
     iValue = iValue % iRound
@@ -404,8 +405,9 @@ def GetBallPos()-> list[int,int]:
 
 #Operate models
 def RailGun():
-    set_io.out(cfg.read("Ports","RailGun"),1)
     set_io.out(cfg.read("Ports","RailGun"),0)
+    delay.ms(500)
+    set_io.out(cfg.read("Ports","RailGun"),1)
 
 def Cover2Start():
     global bCovered
@@ -685,7 +687,7 @@ def AutoFetch(bStop = True):
         SpeedL = 30 + 3 * iBX
         SpeedR = 30 - 3 * iBX
         set_motor.RPM(SpeedL, SpeedL, SpeedR, SpeedR)
-        if iBX > -2 and iBX < 2 and iBY >= 8 and iBY <= 10:
+        if iBX > -2 and iBX < 2 and iBY >= 7 and iBY <= 9:
             if bStop:
                 car.stop()
             break
