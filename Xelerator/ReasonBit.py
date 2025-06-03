@@ -1,0 +1,3 @@
+class motor:
+    def RPM(w1,w2,w3,w4):
+        return 0
