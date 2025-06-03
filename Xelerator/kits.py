@@ -1,245 +1,23 @@
-import image,lcd,math,time,pyb
-import delay,beep,timer,car,compass,key,set_adc,set_servo,set_pwm,set_io,set_motor,set_led,lidar
-from pyb import UART
+import math
 
-# if (set_adc.read(14)*11*3.3/1024) <= 11:
-#    raise Exception("电池电压过低，请充电")
-
-
-#car.set_speed_PID(1,2,1)
-
-# config.py | RCJ Version 2.3.0(2025042700) Developer 423
-import ujson
-import os
-CONFIG_FILE = "./cfg.json"
-CACHE_FILE = "./cfg.cache.json"
-class QkJson:
-    def __init__(self):
-        data = {
-                "model": {
-                    "number" : 1,
-                    "type": "Off",
-                },
-                "Ports": {
-                    0: 1,
-                    1: 2,
-                    2: 3,
-                    3: 4,
-                    "RailGun" : 6,
-                },
-                "Distance": {
-                    "On": False,
-                    "K": 0.67,
-                    "B": 4,
-                    },
-                "A2AOb": {
-                    "NumOfDist": 4,
-                    "ActiveRange": 30,
-                    "IgnoreRange": 30,
-                    "LifeTime" : 3,
-                },
-                "Border" : {
-                    "0": [60,95],
-                    "1": [40,85],
-                },
-                "Position" : {
-                    "ErrorRange": 20,
-                    "Width": 180,
-                    "Height": 240,
-                    "Home": [0,-70],
-                },
-                "BLE" : {
-                    "Setup": False,
-                    "Type": "Slave",
-                    "MAC" : "NONE",
-                    "REMOTE" : "NONE",
-                },
-                "Advanced": {
-                    "Cover2Start": False,
-                }
-            }
-        try:
-            os.stat(CONFIG_FILE)
-        except:
-            with open(CONFIG_FILE, "w") as f:
-                ujson.dump(data, f)
-        with open(CONFIG_FILE) as f:
-            self.cfg = ujson.load(f)
-            bUpdate = False
-            for i in data:
-                for c in data[i].keys():
-                    try:
-                        self.cfg[str(i)][str(c)]
-                    except:
-                        bUpdate = True
-        if bUpdate:
-            os.rename(CONFIG_FILE,CACHE_FILE)
-            with open(CACHE_FILE, "r") as ca:
-                self.cache = ujson.load(ca)
-            with open(CONFIG_FILE, "w") as d:
-                ujson.dump(data, d)
-            with open(CONFIG_FILE, "r") as d:
-                self.cfg = ujson.load(d)
-            for i in data:
-                for c in data[i].keys():
-                    try:
-                        vCache = self.cache[str(i)][str(c)]
-                        self.cfg[str(i)][str(c)] = vCache
-                        with open(CONFIG_FILE, "w") as d:
-                            ujson.dump(self.cfg, d)
-                    except:
-                        pass
-            os.remove(CACHE_FILE)
-
-    def write(self, section: str, option: str, value: int) -> int:
-        self.cfg[section][option] = value
-        with open(CONFIG_FILE, "w") as f:
-            ujson.dump(self.cfg, f)
-
-    def read(self, section: str, option: str) -> int:
-        try:
-            return self.cfg[section][option]
-        except KeyError:
-            self.__init__()
-
-class BlueTooth:
-    def __init__(self):
-        self.cfg = QkJson()
-        self.Bluetooth = UART(3,115200)
-        self.BlueDelayMs = 10
-        self.BlueConnected = 0
-        self.BlueSlaveMAC = self.cfg.read("BLE","REMOTE")
-        while True:
-            self.Bluetooth.write("AT+EXIT\r\n")
-            try:
-                if "OK" in self.Bluetooth.read().decode():
-                    break
-                else:
-                    print("trying Again")
-            except:
-                break
-
-    def sendCommand(self, command: str) -> str:
-        self.Bluetooth.write(command)
-        delay.ms(self.BlueDelayMs)
-        if self.Bluetooth.any():
-            BlueMsg=self.Bluetooth.read().decode()
-            if "ERROR" in BlueMsg:
-                if "+++" in command:
-                    BlueMsg = self.sendCommand("AT+EXIT\r\n")
-                    BlueMsg = self.sendCommand(command)
-            # if "+++" in command:
-            #     print("%s : %s" %(command, BlueMsg[0:BlueMsg.index("\r\n")]))
-            # else:
-            #     print("%s : %s" %(command[0:command.index("\r\n")], BlueMsg[0:BlueMsg.index("\r\n")]))
-            return BlueMsg
-        else:
-            self.Bluetooth.write("+++")
-            self.Bluetooth.write("AT+EXIT\r\n")
-            delay.ms(self.BlueDelayMs)
-            if self.Bluetooth.any():
-                BlueMsg=self.Bluetooth.read().decode()
-                if "ERROR" in BlueMsg:
-                    self.Bluetooth.write("AT+EXIT\r\n")
-                    delay.ms(self.BlueDelayMs)
-                    if self.Bluetooth.any():
-                        BlueMsg=self.Bluetooth.read().decode()
-                    else:
-                        raise Exception("Check Ble")
-            else:
-                self.Bluetooth.write("AT+EXIT\r\n")
-                if self.Bluetooth.any():
-                    BlueMsg=self.Bluetooth.read().decode()
-                    print(BlueMsg)
-                    if "ERROR" in BlueMsg:
-                        self.Bluetooth.write("AT+EXIT\r\n")
-                        delay.ms(self.BlueDelayMs)
-                        if self.Bluetooth.any():
-                            BlueMsg=self.Bluetooth.read().decode()
-                        else:
-                            raise Exception("Check Ble for Error")
-                    else:
-                        pass
-
-    def Setup(self):
-        if self.cfg.read("BLE","Setup") == False:
-            self.sendCommand("+++")
-            ####################################################
-            # if self.cfg.read("BLE","Type") == "Domain":
-            #     self.sendCommand("AT+ROLE=1\r\n")
-            # else:
-            #     self.sendCommand("AT+ROLE=0\r\n")
-            self.sendCommand("AT+ROLE=2\r\n")
-            BlueMsg = self.sendCommand("AT+MAC?\r\n")
-            b = BlueMsg[BlueMsg.index("CC:")+3:BlueMsg.index("\r\n")]
-            self.cfg.write("BLE","MAC",b)
-            print("Bluetooth MAC:",cfg.read("BLE","MAC"))
-            self.sendCommand("AT+DEV_DEL=ALL\r\n")
-            self.sendCommand("AT+AUTO_CNT=1,CC:%s,1\r\n" % self.BlueSlaveMAC)
-            delay.ms(self.BlueDelayMs)
-            ####################################################
-            self.sendCommand("AT+RESTART\r\n")
-            cfg.write("BLE","Setup",True)
-            delay.ms(1000)
-            return False
-        else:
-            return True
-
-    def connect(self):
-        if self.Setup() == True:
-            if self.BlueConnected == 0:
-                if self.sendCommand("+++"):
-                    msg = self.sendCommand("AT+CNT_LIST\r\n")
-                    if self.BlueSlaveMAC in msg or "*" in msg:
-                        self.BlueConnected = 1
-                        print("Slave connect ok ")                  #取出读到的字节串，并把它转换成字符串
-                        self.sendCommand("AT+EXIT\r\n")
-                        return True
-                    else:
-                        self.sendCommand("AT+EXIT\r\n")
-                        return False
-                else:
-                    return False
-            if self.BlueConnected == 1:
-            #     if self.Bluetooth.any():
-            #         Blue_read_buf=self.Bluetooth.read().decode()
-            #         print(Blue_read_buf)
-            #         if "DISCONNECTED" in Blue_read_buf:
-            #             self.BlueConnected = 0
-            #             print("Slave disconnect")
-            #             delay.ms(1000)
-                return True
-
-    def send(self,Data):
-        if self.Setup():
-            if self.BlueConnected == 1:
-                self.Bluetooth.write(Data)
-                delay.ms(self.BlueDelayMs)
-            else:
-                delay.ms(self.BlueDelayMs)
-                self.connect()
-
-    def receive(self):
-        if self.Setup():
-            if self.BlueConnected == 1:
-                if self.Bluetooth.any():
-                    try:
-                        BlueMsg = self.Bluetooth.read().decode()
-                        delay.ms(self.BlueDelayMs)
-                        if BlueMsg == None:
-                            pass
-                        print("ReceiveData : %s" % BlueMsg)
-                        return BlueMsg
-                    except:
-                        pass
-                else:
-                    pass
-            else:
-                delay.ms(self.BlueDelayMs)
-                self.connect()
+from config import QkJson
 
 cfg = QkJson()
-ble = BlueTooth()
+
+if cfg.read("model","bit") == "AB":
+    from .ArisBit import motor as set_motor
+    # from .ArisBit import compass
+    # from .ArisBit import batt
+elif cfg.read("model","bit") == "RB":
+    from ReasonBit import motor as set_motor
+    from ReasonBit import compass
+    from ReasonBit import batt
+else:
+    raise ImportError("None Bit Model found.")
+
+
+if (batt.get()) <= cfg.read("advanced","BattVot"):
+   raise Exception("电池电量不足，请充电")
 
 #Values
 bLife = False
@@ -300,18 +78,6 @@ def Go2(iFacingAngle,iSpeedX,iSpeedY):
         )
 
 #Value Mod
-def LidarCache()->list[list[int],list[int]]:
-    #TODO 已弃用
-    iJumpSample = 1
-    iSampleNumber = 8
-    lOutData = [[],[]]
-    for _ in range(iSampleNumber):
-        lRawData=lidar.read()
-        for i in range(0,40,iJumpSample):
-            lOutData[0].append(abs(lRawData[0][i]+compass.read()-360))
-            lOutData[1].append(lRawData[1][i])
-        delay.us(8050)
-    return 0
 
 def LidarDists():
     ClearUART(1)
@@ -327,6 +93,7 @@ def LidarDists():
     lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
     return lOutDists
 
+#TODO Need update
 def GetDists() -> list[int,int,int]:
     if not cfg.read("Distance","On"):
         return LidarDists()
@@ -378,30 +145,30 @@ def GetPos() -> list[int,int]:
         return [X,Y]
 
 #Communication
-def GetUART(Port):
-    UARTDevice = UART(Port,115200)
-    while(1):
-        if UARTDevice.any():
-            Data = str(UARTDevice.read())
-            return Data
+# def GetUART(Port):
+#     UARTDevice = UART(Port,115200)
+#     while(1):
+#         if UARTDevice.any():
+#             Data = str(UARTDevice.read())
+#             return Data
 
-def SendUART(iPort,sData):
-    UARTDevice = UART(iPort,115200)
-    UARTDevice.write(sData)
+# def SendUART(iPort,sData):
+#     UARTDevice = UART(iPort,115200)
+#     UARTDevice.write(sData)
 
-def ClearUART(iPort):
-    UARTDevice = UART(iPort,115200)
-    if UARTDevice.any():
-        UARTDevice.read()
+# def ClearUART(iPort):
+#     UARTDevice = UART(iPort,115200)
+#     if UARTDevice.any():
+#         UARTDevice.read()
 
-def GetBallPos()-> list[int,int]:
-    ClearUART(1)
-    sSentData = 'cmp'+str(999)+'end'
-    SendUART(1,sSentData)
-    sData = GetUART(1)
-    iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
-    iBY = int(sData[sData.index('by')+2:sData.index('eom')])
-    return [iBX, iBY]
+# def GetBallPos()-> list[int,int]:
+#     ClearUART(1)
+#     sSentData = 'cmp'+str(999)+'end'
+#     SendUART(1,sSentData)
+#     sData = GetUART(1)
+#     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
+#     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
+#     return [iBX, iBY]
 
 #Operate models
 def RailGun():
@@ -456,39 +223,22 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     '''
     返回一个列表，[[角度],[是否被遮挡]]
     '''
-    if cfg.read("Distance","On"):
-        global lBlockedMemo,iMemoLife,bLife
-        lStatusOfDist = [[],[]]
-        # iMaxLife = cfg.read("A2AOb","LifeTime")
-        lDists = GetDists()
-        iNumOfDist = len(lDists)
-        iPerAngle = int(359/iNumOfDist)
-        if len(lStatusOfDist) < iNumOfDist:
-            for d in range(iNumOfDist):
-                lStatusOfDist.append(True)
-        for i in range(iNumOfDist):
-            lStatusOfDist[0].append(iPerAngle*i)
-            if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
-                lStatusOfDist[1][i] = False
-            else:
-                lStatusOfDist[1][i] = True
-        return lStatusOfDist
-    else:
-        global lBlockedMemo,iMemoLife,bLife
-        lStatusOfDist = [[],[]]
-        lDists = LidarCache()
-        if len(lStatusOfDist) < len(lDists[0]):
-            for d in range(len(lDists[0])):
-                lStatusOfDist[1].append(True)
-                lStatusOfDist[0].append(abs(360-lDists[0][d]))
-        for i in range(len(lDists[0])):
-            if lDists[1][i] <= cfg.read("A2AOb","ActiveRange"):
-                lStatusOfDist[1][i] = False
-            else:
-                lStatusOfDist[1][i] = True
-        lStatusOfDist[0] = lStatusOfDist[0][::-1]
-        lStatusOfDist[1] = lStatusOfDist[1][::-1]
-        return lStatusOfDist
+    global lBlockedMemo,iMemoLife,bLife
+    lStatusOfDist = [[],[]]
+    # iMaxLife = cfg.read("A2AOb","LifeTime")
+    lDists = GetDists()
+    iNumOfDist = len(lDists)
+    iPerAngle = int(359/iNumOfDist)
+    if len(lStatusOfDist) < iNumOfDist:
+        for d in range(iNumOfDist):
+            lStatusOfDist.append(True)
+    for i in range(iNumOfDist):
+        lStatusOfDist[0].append(iPerAngle*i)
+        if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
+            lStatusOfDist[1][i] = False
+        else:
+            lStatusOfDist[1][i] = True
+    return lStatusOfDist
 
 def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int | None = 150) -> None:
     '''
@@ -667,7 +417,6 @@ def CircleAround(iAimAngle):
                 set_motor.RPM(0,0,0,0)
             break
     print('stopped')
-    
 
 def TurnToTheBall():
     while(1):
