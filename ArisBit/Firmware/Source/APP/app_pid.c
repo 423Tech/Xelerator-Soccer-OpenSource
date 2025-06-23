@@ -103,16 +103,21 @@ float PID_Incre_Calc(pid_t *pid, float actual_val)
     pid->err = pid->target_val - actual_val;
     
     /*积分分离 - 你的设计思路正确*/
-    if (pid->err > -100 && pid->err < 100)  // 保持你的范围
-    {
-        pid->integral += pid->err;    // 不要乘Ki，只累积误差
+    // if (pid->err > -100 && pid->err < 100)  // 保持你的范围
+    // {
+    //     pid->integral += pid->err;    // 不要乘Ki，只累积误差
         
-        /*修正限幅Bug*/
-        if (pid->integral > 50)
-            pid->integral = 50;
-        else if (pid->integral < -50)
-            pid->integral = -50;
-    }
+    //     /*修正限幅Bug*/
+    //     if (pid->integral > 50)
+    //         pid->integral = 50;
+    //     else if (pid->integral < -50)
+    //         pid->integral = -50;
+    // }
+    pid->integral += pid->err;
+    if (pid->integral > 100)
+        pid->integral = 100; // 限制积分最大值
+    else if (pid->integral < -100)
+        pid->integral = -100; // 限制积分最小值
     // 堵转时（误差>50）积分项不工作 ← 符合你的设计
     
     /*PID算法 - 修正积分项*/
