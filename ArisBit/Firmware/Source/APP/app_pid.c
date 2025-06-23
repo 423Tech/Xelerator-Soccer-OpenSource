@@ -113,13 +113,25 @@ float PID_Incre_Calc(pid_t *pid, float actual_val)
     //     else if (pid->integral < -50)
     //         pid->integral = -50;
     // }
+    
     pid->integral += pid->err;
-    if (pid->integral > 100)
-        pid->integral = 100; // 限制积分最大值
-    else if (pid->integral < -100)
-        pid->integral = -100; // 限制积分最小值
+
+    if(pid->err > 1000)
+    {
+        pid->integral = 0; // 当误差大于1000时，清除积分项
+    }
+    else if(pid->err < -1000)
+    {
+        pid->integral = 0; // 当误差小于-1000时，清除积分项
+    }
+
+    if (pid->integral > 200)
+        pid->integral = 200; // 限制积分最大值
+    else if (pid->integral < -200)
+        pid->integral = -200; // 限制积分最小值
     // 堵转时（误差>50）积分项不工作 ← 符合你的设计
     
+    if(pid->err)
     /*PID算法 - 修正积分项*/
     pid->pwm_output += pid->Kp * (pid->err - pid->err_next) 
                     + pid->Ki * pid->integral  // 使用积分累积值，不是当前误差
