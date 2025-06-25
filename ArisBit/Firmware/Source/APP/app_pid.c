@@ -98,50 +98,124 @@ float PID_Get_Target(pid_t *pid)
 //     return pid->pwm_output;
 // }
 
+// float PID_Incre_Calc(pid_t *pid, float actual_val)
+// {
+//     pid->err = pid->target_val - actual_val;
+
+    
+//     /*积分分离 - 你的设计思路正确*/
+//     // if (pid->err > -100 && pid->err < 100)  // 保持你的范围
+//     // {
+//     //     pid->integral += pid->err;    // 不要乘Ki，只累积误差
+        
+//     //     /*修正限幅Bug*/
+//     //     if (pid->integral > 50)
+//     //         pid->integral = 50;
+//     //     else if (pid->integral < -50)
+//     //         pid->integral = -50;
+//     // }
+    
+//     if (pid->err > -400 && pid->err < 400)  // 小误差时才进行积分
+//     {
+//         pid->integral += pid->err;    // 累积误差
+//     }
+
+//     if ((actual_val < 100 && actual_val > -100) && (pid->err > 1000 || pid->err < -1000))
+//     {
+//         pid->integral = 0; // 误差过大时清零
+//     }
+
+//     if (pid->integral > 200)
+//         pid->integral = 200; // 限制积分最大值
+//     else if (pid->integral < -200)
+//         pid->integral = -200; // 限制积分最小值
+//     // 堵转时（误差>50）积分项不工作 ← 符合你的设计
+    
+//     /*PID算法 - 修正积分项*/
+//     pid->pwm_output += pid->Kp * (pid->err - pid->err_next) 
+//                     + pid->Ki * pid->integral  // 使用积分累积值，不是当前误差
+//                     + pid->Kd * (pid->err - 2 * pid->err_next + pid->err_last);
+    
+//     /*传递误差*/
+//     pid->err_last = pid->err_next;
+//     pid->err_next = pid->err;
+    
+//     /*返回PWM输出值*/
+//     if (Motion_Get_Car_Type() == CAR_SUNRISE)
+//     {
+//         if (pid->pwm_output > (MOTOR_MAX_PULSE-MOTOR_SUNRISE_IGNORE_PULSE))
+//             pid->pwm_output = (MOTOR_MAX_PULSE-MOTOR_SUNRISE_IGNORE_PULSE);
+//         if (pid->pwm_output < (MOTOR_SUNRISE_IGNORE_PULSE-MOTOR_MAX_PULSE))
+//             pid->pwm_output = (MOTOR_SUNRISE_IGNORE_PULSE-MOTOR_MAX_PULSE);
+//     }
+//     else
+//     {
+//         if (pid->pwm_output > (MOTOR_MAX_PULSE-MOTOR_IGNORE_PULSE))
+//             pid->pwm_output = (MOTOR_MAX_PULSE-MOTOR_IGNORE_PULSE);
+//         if (pid->pwm_output < (MOTOR_IGNORE_PULSE-MOTOR_MAX_PULSE))
+//             pid->pwm_output = (MOTOR_IGNORE_PULSE-MOTOR_MAX_PULSE);
+//     }
+//     return pid->pwm_output;
+// }
 float PID_Incre_Calc(pid_t *pid, float actual_val)
 {
+    // static float last_target = 0;  // 记录上次目标值
+    
     pid->err = pid->target_val - actual_val;
     
-    /*积分分离 - 你的设计思路正确*/
-    // if (pid->err > -100 && pid->err < 100)  // 保持你的范围
+    // 检测目标值突变，清零积分使能
+    int integral_enable = 1;  // 积分使能标志
+    
+    // if((pid->target_val - last_target) > 500 || (pid->target_val - last_target) < -500)
     // {
-    //     pid->integral += pid->err;    // 不要乘Ki，只累积误差
+    //     integral_enable = 0;  // 目标值突变时禁止积分
+    // }
+    // last_target = pid->target_val;
+    // if (pid->err < -6000 || pid->err > 6000)  // 小误差时才允许积分
+    // {
+    //     integral_enable = 0;  // 大误差时禁止积分
+    // }
         
-    //     /*修正限幅Bug*/
-    //     if (pid->integral > 50)
-    //         pid->integral = 50;
-    //     else if (pid->integral < -50)
-    //         pid->integral = -50;
+    
+    /*积分分离*/
+    // if (pid->err > -400 && pid->err < 400)  // 小误差时才允许积分
+    // {
+    //     integral_enable = integral_enable && 1;  // 保持积分使能
+    // }
+    // else
+    // {
+    //     integral_enable = 0;  // 大误差时禁止积分
+    // }
+
+    /*堵转检测*/
+    // if ((actual_val < 200 && actual_val > -200) && (pid->err > 1000 || pid->err < -1000))
+    // {
+    //     integral_enable = 0;  // 堵转时禁止积分
     // }
     
-    pid->integral += pid->err;
-
-    if(pid->err > 1000)
-    {
-        pid->integral = 0; // 当误差大于1000时，清除积分项
-    }
-    else if(pid->err < -1000)
-    {
-        pid->integral = 0; // 当误差小于-1000时，清除积分项
-    }
-
-    if (pid->integral > 200)
-        pid->integral = 200; // 限制积分最大值
-    else if (pid->integral < -200)
-        pid->integral = -200; // 限制积分最小值
-    // 堵转时（误差>50）积分项不工作 ← 符合你的设计
+    /*增量式PID算法*/
+    float pid_increment = pid->Kp * (pid->err - pid->err_next) 
+                        + (integral_enable ? pid->Ki * pid->err : 0)  // 根据条件决定是否使用积分项
+                        + pid->Kd * (pid->err - 2 * pid->err_next + pid->err_last);
     
-    if(pid->err)
-    /*PID算法 - 修正积分项*/
-    pid->pwm_output += pid->Kp * (pid->err - pid->err_next) 
-                    + pid->Ki * pid->integral  // 使用积分累积值，不是当前误差
-                    + pid->Kd * (pid->err - 2 * pid->err_next + pid->err_last);
+    
+    // 累加到输出
+    pid->pwm_output += pid_increment;
+
+    // if (pid->pwm_output > 3000)
+    // {
+    //     pid->pwm_output = 3000;
+    // }
+    // else if (pid->pwm_output < -3000)
+    // {
+    //     pid->pwm_output = -3000;
+    // }
     
     /*传递误差*/
     pid->err_last = pid->err_next;
     pid->err_next = pid->err;
     
-    /*返回PWM输出值*/
+    /*PWM输出限幅*/
     if (Motion_Get_Car_Type() == CAR_SUNRISE)
     {
         if (pid->pwm_output > (MOTOR_MAX_PULSE-MOTOR_SUNRISE_IGNORE_PULSE))
