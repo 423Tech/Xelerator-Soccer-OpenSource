@@ -1,12 +1,12 @@
 class Car:
-    def __init__(self,SetMotorFunc,GetYawFunc=None):
-        self.SetMotorFunc = SetMotorFunc
-        self.GetYawFunc = GetYawFunc
+    def __init__(self,SetMotor,GetYaw=None):
+        self.SetMotor = SetMotor
+        self.GetYaw = GetYaw
 
         self.Kp = 2
     
-    def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
-        self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
+    # def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
+    #     self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
         self.Kp = Kp
@@ -22,27 +22,27 @@ class Car:
         self.SetMotor(Speed1, Speed2, Speed3, Speed4)
 
     def GoV(self,SpeedX,SpeedY,FacingAngle):
-        if self.GetYawFunc is None:
+        if self.GetYaw is None:
             return False
-        Yaw = self.GetYawFunc()
+        Yaw = self.GetYaw()
         Error = FacingAngle - Yaw
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
         SpeedZ = Error * self.Kp
         self.Go(SpeedX, SpeedY, SpeedZ)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
-        if self.GetYawFunc is None:
+        if self.GetYaw is None:
             return False
     
     def GoX(self,Angle,Speed):
-        if self.GetYawFunc is None:
+        if self.GetYaw is None:
             return False
    
     def GoY(self,Angle,Speed):
-        if self.GetYawFunc is None:
+        if self.GetYaw is None:
             return False
     
     def GoZ(self,Angle):
-        if self.GetYawFunc is None:
+        if self.GetYaw is None:
             return False
     
