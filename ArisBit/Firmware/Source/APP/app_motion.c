@@ -492,6 +492,23 @@ void Motion_Handle(void)
 
     if (g_start_ctrl)
     {
+        // if((motor_data.speed_mm_s[0] > -400 && motor_data.speed_mm_s[0] < 400) && (motor_data.speed_pwm[0] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[0] < -MOTOR_IGNORE_PULSE))
+        // {
+        //     Motor_Set_Pwm(MOTOR_ID_M1, 0);
+        // }
+        // if((motor_data.speed_mm_s[1] > -400 && motor_data.speed_mm_s[1] < 400) && (motor_data.speed_pwm[1] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[1] < -MOTOR_IGNORE_PULSE))
+        // {
+        //     Motor_Set_Pwm(MOTOR_ID_M2, 0);
+        // }
+        // if((motor_data.speed_mm_s[2] > -400 && motor_data.speed_mm_s[2] < 400) && (motor_data.speed_pwm[2] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[2] < -MOTOR_IGNORE_PULSE))
+        // {
+        //     Motor_Set_Pwm(MOTOR_ID_M3, 0);
+        // }
+        // if((motor_data.speed_mm_s[3] > -400 && motor_data.speed_mm_s[3] < 400) && (motor_data.speed_pwm[3] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[3] < -MOTOR_IGNORE_PULSE))
+        // {
+        //     Motor_Set_Pwm(MOTOR_ID_M4, 0);
+        // }
+
         Motion_Set_Pwm(motor_data.speed_pwm[0], motor_data.speed_pwm[1], motor_data.speed_pwm[2], motor_data.speed_pwm[3]);
     }
 }
