@@ -17,15 +17,16 @@ logger.add(
     catch=True)
 logger.info("Xelerator kits loaded.")
 
+from chassis import Car
 if cfg.read("model","bit") == "AB":
-    # from .ArisBit import motor as Setotor
-    # # from .ArisBit import compass
-    # from .ArisBit import car
+    from .ArisBit import ArisBit
+    chassis = Car(ArisBit().SetMotor,ArisBit().GetYaw)
     logger.info("Arisu Bit loaded.")
 elif cfg.read("model","bit") == "RB":
-    from ReasonBit import motor as set_motor
+    from ReasonBit import motor
     from ReasonBit import compass
     from ReasonBit import batt
+    chassis = Car(motor.RPM,compass.get)
     logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model found.")
@@ -61,8 +62,6 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
 
-# TODO archieved
-# #Move Mod
 
 
 
@@ -132,31 +131,6 @@ def GetPos() -> list[int,int]:
             X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
         return [X,Y]
 
-#Communication
-# def GetUART(Port):
-#     UARTDevice = UART(Port,115200)
-#     while(1):
-#         if UARTDevice.any():
-#             Data = str(UARTDevice.read())
-#             return Data
-
-# def SendUART(iPort,sData):
-#     UARTDevice = UART(iPort,115200)
-#     UARTDevice.write(sData)
-
-# def ClearUART(iPort):
-#     UARTDevice = UART(iPort,115200)
-#     if UARTDevice.any():
-#         UARTDevice.read()
-
-# def GetBallPos()-> list[int,int]:
-#     ClearUART(1)
-#     sSentData = 'cmp'+str(999)+'end'
-#     SendUART(1,sSentData)
-#     sData = GetUART(1)
-#     iBX = int(sData[sData.index('sombx')+5:sData.index('by')])
-#     iBY = int(sData[sData.index('by')+2:sData.index('eom')])
-#     return [iBX, iBY]
 
 #Operate models
 def RailGun():
