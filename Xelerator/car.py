@@ -3,7 +3,7 @@ class Car:
         self.SetMotor = SetMotor
         self.GetYaw = GetYaw
 
-        self.Kp = 2
+        self.Kp = 0.5
     
     # def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
     #     self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
@@ -25,9 +25,9 @@ class Car:
         if self.GetYaw is None:
             return False
         Yaw = self.GetYaw()
-        Error = FacingAngle - Yaw
+        Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
-        SpeedZ = Error * self.Kp
+        SpeedZ = - Error * self.Kp
         self.Go(SpeedX, SpeedY, SpeedZ)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
