@@ -1,12 +1,48 @@
 import ujson
 import os
-CONFIG_FILE = "./cfg.json"
-CACHE_FILE = "./cfg.cache.json"
+from pathlib import Path
+
+APP_DIR = Path(__file__).parent
+DATA_DIR = APP_DIR / "data"
+CONFIG_FILE = DATA_DIR / "config.json"
+CACHE_FILE = DATA_DIR /  "cfg.cache.json"
+
 class QkJson:
     def __init__(self):
         data = {
-                {
-                "BASE": "/tty.usb/xxxx"
+                "model": {
+                    "number" : 1,
+                    "type": "Offense",
+                    "Bit" : "AB",
+                },
+                "Ports": {
+                    "RailGun" : 6,
+                },
+                "Border" : {
+                    "0": [60,95],
+                    "1": [40,85],
+                },
+                "Position" : {
+                    "ErrorRange": 20,
+                    "Width": 180,
+                    "Height": 240,
+                    "Home": [0,-70],
+                },
+                "BLE" : {
+                    "Setup": False,
+                    "Type": "Slave",
+                    "MAC" : "NONE",
+                    "REMOTE" : "NONE",
+                },
+                "WIFI" : {
+                    "SSID" : "None",
+                    "PWD" : "",
+                },
+                "Advanced": {
+                    "Cover2Start": False,
+                    "BattVot" : 11,
+                    "logger": True,
+                    "Database": True,
                 }
             }
         try:
