@@ -1,18 +1,34 @@
 import math
 
-from config import QkJson
-
+from ReasonData import QkJson
 cfg = QkJson()
 
+#logger
+from loguru import logger
+LOG_FILE = "./data/XelKit.log"
+logger.add(
+    LOG_FILE,
+    rotation="1 MB",
+    retention="10 days",
+    encoding="utf-8",
+    backtrace=True,
+    diagnose=True,
+    enqueue=True,
+    catch=True)
+logger.info("Xelerator kits loaded.")
+
 if cfg.read("model","bit") == "AB":
-    from .ArisBit import motor as set_motor
-    # from .ArisBit import compass
-    # from .ArisBit import batt
+    # from .ArisBit import motor as Setotor
+    # # from .ArisBit import compass
+    # from .ArisBit import car
+    logger.info("Arisu Bit loaded.")
 elif cfg.read("model","bit") == "RB":
     from ReasonBit import motor as set_motor
     from ReasonBit import compass
     from ReasonBit import batt
+    logger.info("Arisu Bit loaded.")
 else:
+    logger.error("None Bit Model found.")
     raise ImportError("None Bit Model found.")
 
 
@@ -45,40 +61,45 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
 
-#Move Mod
-def GoV(iFacingAngle,iAimAngle,iSpeed):
-    iFacingAngle = int(iFacingAngle)
-    iAimAngle = int(iAimAngle)
-    iGlobalPIDK = 2
-    iCMP = compass.read()
-    iSpeedX = int(math.sin(math.radians(iAimAngle)) * iSpeed)
-    iSpeedY = int(math.cos(math.radians(iAimAngle)) * iSpeed)
-    iSpeedU = iSpeedX + iSpeedY
-    iSpeedV = iSpeedY - iSpeedX
-    iDeltaAngle = int(iCMP-iFacingAngle)
-    if iDeltaAngle > 180:
-        iDeltaAngle = iDeltaAngle - 360
-    set_motor.RPM(iSpeedU - iDeltaAngle * iGlobalPIDK,iSpeedV - iDeltaAngle * iGlobalPIDK,iSpeedU + iDeltaAngle * iGlobalPIDK,iSpeedV + iDeltaAngle * iGlobalPIDK)
+# TODO archieved
+# #Move Mod
+def Go(SpeedX,SpeedY,SpeedZ):
+    # 计算四个轮子的速度
+    Speed1 = SpeedX + SpeedY + SpeedZ
+    Speed2 = SpeedY - SpeedX + SpeedZ
+    Speed3 = SpeedY - SpeedX - SpeedZ
+    Speed4 = SpeedX + SpeedY - SpeedZ
+    # 设置四个轮子的速度
+    self.SetMotor(Speed1, Speed2, Speed3, Speed4)
 
-def Go2(iFacingAngle,iSpeedX,iSpeedY):
-    iGlobalPIDK = 2
-    iCMP = compass.read()
-    iSpeedU = int(iSpeedX + iSpeedY)
-    iSpeedV = int(iSpeedY - iSpeedX)
-    iDeltaAngle = iCMP-iFacingAngle
-    if iDeltaAngle > 180:
-        iDeltaAngle = int(iDeltaAngle - 360)
-    else:
-        iDeltaAngle = int(iDeltaAngle)
-    set_motor.RPM(
-        iSpeedU - iDeltaAngle * iGlobalPIDK,
-        iSpeedV - iDeltaAngle * iGlobalPIDK,
-        iSpeedV + iDeltaAngle * iGlobalPIDK,
-        iSpeedU + iDeltaAngle * iGlobalPIDK,
-        )
+def GoV(,SpeedX,SpeedY,FacingAngle):
+    if self.GetYaw is None:
+        return False
+    Yaw = self.GetYaw()
+    Error = FacingAngle - Yaw
+    Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
+    SpeedZ = Error * self.Kp
+    self.Go(SpeedX, SpeedY, SpeedZ)
+
+def GoA(self,FacingAngle,MovingAngle,Speed):
+    if self.GetYaw is None:
+        return False
+
+def GoX(self,Angle,Speed):
+    if self.GetYaw is None:
+        return False
+
+def GoY(self,Angle,Speed):
+    if self.GetYaw is None:
+        return False
+
+def GoZ(self,Angle):
+    if self.GetYaw is None:
+        return False
+
+
 
 #Value Mod
-
 def LidarDists():
     ClearUART(1)
     iCompass = str(int(compass.read()))
@@ -512,12 +533,6 @@ def AimBall(Ball) -> int:
 
 def GoBack():
     Pos2Pos(0,cfg.read("Position","Home"),False)
-
-def GoX(iSpeed):
-    set_motor.RPM(iSpeed,-iSpeed,-iSpeed,iSpeed)
-
-def GoY(iSpeed):
-    set_motor.RPM(iSpeed,iSpeed,iSpeed,iSpeed)
 
 def Offence():
     lBallPos = GetBallPos()
