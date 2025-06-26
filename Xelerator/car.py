@@ -1,12 +1,12 @@
 class Car:
-    def __init__(self,SetMotor,GetYaw=None):
-        self.SetMotor = SetMotor
+    def __init__(self,SetMotorFunc,GetYaw=None):
+        self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
 
         self.Kp = 0.5
     
-    # def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
-    #     self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
+    def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
+        self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
         self.Kp = Kp

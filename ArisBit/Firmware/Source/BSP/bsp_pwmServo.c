@@ -12,22 +12,22 @@ void PwmServo_Handle(void)
 	g_pwm_pulse++;
 
 	#ifdef USE_SERVO_J1
-	if (g_pwm_pulse <= g_angle_num[0]) SERVO_1_HIGH();
+	if (g_angle_num[0] == 1) SERVO_1_HIGH();
 	else SERVO_1_LOW();
 	#endif
 
 	#ifdef USE_SERVO_J2
-	if (g_pwm_pulse <= g_angle_num[1]) SERVO_2_HIGH();
+	if (g_angle_num[1] == 1) SERVO_2_HIGH();
 	else SERVO_2_LOW();
 	#endif
 
 	#ifdef USE_SERVO_J3
-	if (g_pwm_pulse <= g_angle_num[2]) SERVO_3_HIGH();
+	if (g_angle_num[2] == 1) SERVO_3_HIGH();
 	else SERVO_3_LOW();
 	#endif
 
 	#ifdef USE_SERVO_J4
-	if (g_pwm_pulse <= g_angle_num[3]) SERVO_4_HIGH();
+	if (g_angle_num[3] == 1) SERVO_4_HIGH();
 	else SERVO_4_LOW();
 	#endif
 
@@ -135,8 +135,8 @@ void PwmServo_Init(void)
 
 	for (int i = 0; i < MAX_PWM_SERVO; i++)
 	{
-		g_pwm_angle[i] = 90;
-		g_angle_num[i] = (g_pwm_angle[i] * 11 + 500) / 10;
+		g_pwm_angle[i] = 0;
+		g_angle_num[i] = 0;
 	}
 }
 
@@ -152,7 +152,7 @@ void PwmServo_Set_Angle(uint8_t index, uint8_t angle)
 	if (index >= MAX_PWM_SERVO) return;
 	if (angle > 180) return;
 	g_pwm_angle[index] = angle;
-	g_angle_num[index] = (angle * 11 + 500) / 10;
+	g_angle_num[index] = angle; // 改成了IO
 }
 
 // 设置全部pwm舵机的角度
@@ -161,25 +161,25 @@ void PwmServo_Set_Angle_All(uint8_t angle_s1, uint8_t angle_s2, uint8_t angle_s3
 	if (angle_s1 <= 180)
 	{
 		g_pwm_angle[0] = angle_s1;
-		g_angle_num[0] = (angle_s1 * 11 + 500) / 10;
+		g_angle_num[0] = angle_s1;
 	}
 
 	if (angle_s2 <= 180) 
 	{
 		g_pwm_angle[1] = angle_s2;
-		g_angle_num[1] = (angle_s2 * 11 + 500) / 10;
+		g_angle_num[1] = angle_s2;
 	}
 
 	if (angle_s3 <= 180)
 	{
 		g_pwm_angle[2] = angle_s3;
-		g_angle_num[2] = (angle_s3 * 11 + 500) / 10;
+		g_angle_num[2] = angle_s3;
 	}
 
 	if (angle_s4 <= 180)
 	{
 		g_pwm_angle[3] = angle_s4;
-		g_angle_num[3] = (angle_s4 * 11 + 500) / 10;
+		g_angle_num[3] = angle_s4;
 	}
 }
 
