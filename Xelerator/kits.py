@@ -26,7 +26,7 @@ elif cfg.read("model","bit") == "RB":
     from ReasonBit import motor as set_motor
     from ReasonBit import compass
     from ReasonBit import batt
-    logger.info("Arisu Bit loaded.")
+    logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model found.")
     raise ImportError("None Bit Model found.")
@@ -63,39 +63,6 @@ def FindNearstAngle(arr, target):
 
 # TODO archieved
 # #Move Mod
-def Go(SpeedX,SpeedY,SpeedZ):
-    # 计算四个轮子的速度
-    Speed1 = SpeedX + SpeedY + SpeedZ
-    Speed2 = SpeedY - SpeedX + SpeedZ
-    Speed3 = SpeedY - SpeedX - SpeedZ
-    Speed4 = SpeedX + SpeedY - SpeedZ
-    # 设置四个轮子的速度
-    self.SetMotor(Speed1, Speed2, Speed3, Speed4)
-
-def GoV(,SpeedX,SpeedY,FacingAngle):
-    if self.GetYaw is None:
-        return False
-    Yaw = self.GetYaw()
-    Error = FacingAngle - Yaw
-    Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
-    SpeedZ = Error * self.Kp
-    self.Go(SpeedX, SpeedY, SpeedZ)
-
-def GoA(self,FacingAngle,MovingAngle,Speed):
-    if self.GetYaw is None:
-        return False
-
-def GoX(self,Angle,Speed):
-    if self.GetYaw is None:
-        return False
-
-def GoY(self,Angle,Speed):
-    if self.GetYaw is None:
-        return False
-
-def GoZ(self,Angle):
-    if self.GetYaw is None:
-        return False
 
 
 
