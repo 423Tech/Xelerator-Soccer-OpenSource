@@ -4,7 +4,7 @@
 uint16_t g_key1_long_press = 0;
 
 // 判断按键是否被按下，按下返回KEY_PRESS，松开返回KEY_RELEASE
-static uint8_t Key1_is_Press(void)
+uint8_t Key1_is_Press(void)
 {
 	if (!GPIO_ReadInputDataBit(KEY1_GPIO_PORT, KEY1_GPIO_PIN))
 	{

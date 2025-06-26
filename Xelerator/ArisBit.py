@@ -40,6 +40,7 @@ class ArisBit(object):
         self.FUNC_REPORT_IMU_ATT = 0x0C
         self.FUNC_REPORT_ENCODER = 0x0D
         self.FUNC_REPORT_ICM_RAW = 0x0E
+        self.FUNC_REPORT_KEY = 0x91
         
         self.FUNC_RESET_STATE = 0x0F
 
@@ -119,6 +120,8 @@ class ArisBit(object):
 
         self.MotorRatio = 14
 
+        self.__key_status = 0
+
         self.__read_car_type = 0
 
         if self.__debug:
@@ -148,6 +151,14 @@ class ArisBit(object):
             self.__vy = int(struct.unpack('h', bytearray(ext_data[2:4]))[0]) / 1000.0
             self.__vz = int(struct.unpack('h', bytearray(ext_data[4:6]))[0]) / 1000.0
             self.__battery_voltage = struct.unpack('B', bytearray(ext_data[6:7]))[0]
+        
+        elif ext_type == self.FUNC_REPORT_KEY:
+            if len(ext_data) >= 2:  # 确保有足够的数据
+                self.__key_status = struct.unpack('B', bytearray(ext_data[0:1]))[0]  # 取第一个字节作为按键状态
+                # ext_data[1] 是标识字节 0xFF，可以忽略或用于验证
+                identifier = struct.unpack('B', bytearray(ext_data[1:2]))[0]
+
+
         # 解析MPU9250原始陀螺仪、加速度计、磁力计数据
         # (MPU9250)the original gyroscope, accelerometer, magnetometer data
         elif ext_type == self.FUNC_REPORT_MPU_RAW:
@@ -410,7 +421,7 @@ class ArisBit(object):
     # 舵机控制，servo_id：对应ID编号，angle：对应舵机角度值
     # servo_id=[1, 4], angle=[0, 180]
     # Servo control, servo_id: corresponding, Angle: corresponding servo Angle value
-    def set_pwm_servo(self, servo_id, angle):
+    def SetIO(self, servo_id, angle):
         try:
             if servo_id < 1 or servo_id > 4:
                 if self.__debug:
@@ -431,6 +442,9 @@ class ArisBit(object):
         except:
             print('---set_pwm_servo error!---')
             pass
+    
+    def GetKeyStatus(self):
+        return self.__key_status
 
     # 同时控制四路PWM的角度，angle_sX=[0, 180]
     # At the same time control four PWM Angle, angle_sX=[0, 180]

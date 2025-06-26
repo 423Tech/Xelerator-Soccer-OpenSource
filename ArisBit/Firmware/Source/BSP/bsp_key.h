@@ -3,13 +3,13 @@
 
 #include "stm32f10x.h"
 
-//  Òý½Å¶¨Òå
+//  ï¿½ï¿½ï¿½Å¶ï¿½ï¿½ï¿½
 #define KEY1_GPIO_PORT GPIOD
 #define KEY1_GPIO_PIN  GPIO_Pin_2
 #define KEY1_GPIO_CLK  RCC_APB2Periph_GPIOD
 
 
-// °´¼ü×´Ì¬£¬ÓëÊµ¼ÊµçÆ½Ïà·´¡£
+// ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½Êµï¿½Êµï¿½Æ½ï¿½à·´ï¿½ï¿½
 #define KEY_PRESS      1
 #define KEY_RELEASE    0
 
@@ -20,6 +20,7 @@
 uint8_t Key_Scan(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 
 void Key_GPIO_Init(void);
+uint8_t Key1_is_Press(void);
 uint8_t Key1_State(uint8_t mode);
 uint8_t Key1_Long_Press(uint16_t timeout);
 

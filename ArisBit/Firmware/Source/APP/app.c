@@ -231,7 +231,11 @@ void vTask_Auto_Report(void *pvParameters)
 	{
 		if (g_Auto_Report)
 		{
-			if (report_count == 2)
+			if (report_count == 0)
+			{
+				SendKeyStatus();
+			}
+			else if (report_count == 2)
 			{
 				Motion_Send_Data();
 			}
@@ -390,6 +394,34 @@ void vTask_OLED(void *pvParameters)
 	}
 }
 
+void SendKeyStatus(void)
+{
+    #define LEN        6  // 参考Motion_Send_Data的格式
+    uint8_t data_buffer[LEN] = {0};
+    uint8_t i, checknum = 0;
+    uint8_t KeyStatus = 0;
+
+    if(Key1_is_Press() == KEY_PRESS)
+    {
+        KeyStatus = 1;
+    }
+    
+    data_buffer[0] = PTO_HEAD;
+    data_buffer[1] = PTO_DEVICE_ID-1;
+    data_buffer[2] = LEN-2;                     // 4字节数据
+    data_buffer[3] = FUNC_REPORT_KEY;
+    data_buffer[4] = KeyStatus;
+    data_buffer[5] = 0xFF;                      // 添加一个标识字节
+
+    for (i = 2; i < LEN-1; i++)
+    {
+        checknum += data_buffer[i];
+    }
+    data_buffer[LEN-1] = checknum;
+    
+    USART1_Send_ArrayU8(data_buffer, sizeof(data_buffer));
+}
+
 // 按键处理事件
 void vTask_Key(void *pvParameters)
 {
@@ -517,8 +549,8 @@ void App_Start_FreeRTOS(void)
 	printf("start vTask_Speed\n");
 	xTaskCreate(vTask_Control, "Task Control", 128, NULL, 9, NULL);
 	printf("start vTask_Control\n");
-	xTaskCreate(vTask_Key, "Task KEY", 128, NULL, 8, NULL);
-	printf("start vTask_Key\n");
+	// xTaskCreate(vTask_Key, "Task KEY", 128, NULL, 8, NULL);
+	// printf("start vTask_Key\n");
 	xTaskCreate(vTask_Auto_Report, "Task Report", 512, NULL, 7, NULL);
 	printf("start vTask_Auto_Report\n");
 	xTaskCreate(vTask_App_Handle, "Task App_Handle", 128, NULL, 4, NULL);
