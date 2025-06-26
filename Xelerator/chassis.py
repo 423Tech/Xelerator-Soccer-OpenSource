@@ -46,3 +46,12 @@ class Car:
         if self.GetYaw is None:
             return False
     
+
+class ElecMagnet:
+    def __init__(self,GetYaw=None):
+        from ReasonData import QkJson
+        self.cfg = QkJson()
+        self.ElecMagnetIO = self.cfg.read()
+        self.GetYaw = GetYaw
+
+        self.Kp = 0.5
