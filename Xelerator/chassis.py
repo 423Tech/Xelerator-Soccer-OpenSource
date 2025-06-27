@@ -69,10 +69,17 @@ class Car:
             return False
     
 
-class ElecMagnet:
-    def __init__(self,Shoot,DribbleIO):
+class Peripherals:
+    def __init__(self,IOFunc):
         from ReasonData import QkJson
         self.cfg = QkJson()
+        from ReasonData import logger
+        self.TriggerMethod = self.cfg.read("Ports","Trigger")
         self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
         self.DribbleIO = self.cfg.read("Ports","DribbleIO")
-        
+        self.SetIO = IOFunc
+
+    def ShootBall(self):
+        self.SetIO(self.ElecMagnetIO,0)
+        self.SetIO(self.ElecMagnetIO,1)
+        self.SetIO(self.ElecMagnetIO,0)

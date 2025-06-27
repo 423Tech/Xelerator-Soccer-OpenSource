@@ -54,31 +54,23 @@ def FindNearstAngle(arr, target):
 
 #Value Mod
 def LidarDists():
-    ClearUART(1)
-    iCompass = str(int(compass.read()))
-    sSentData = 'cmp'+str(iCompass)+'end'
-    SendUART(1,sSentData)
-    sReceivedDataFrame = GetUART(1)
-    sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
-    iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
-    iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
-    iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
-    iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
-    lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
-    return lOutDists
+    # ClearUART(1)
+    # iCompass = str(int(compass.read()))
+    # sSentData = 'cmp'+str(iCompass)+'end'
+    # SendUART(1,sSentData)
+    # sReceivedDataFrame = GetUART(1)
+    # sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
+    # iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
+    # iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
+    # iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
+    # iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
+    # lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
+    # return lOutDists
+    pass
 
 #TODO Need update
 def GetDists() -> list[int,int,int]:
-    if not cfg.read("Distance","On"):
-        return LidarDists()
-    else:
-        lDists = []
-        Num = cfg.read("A2AOb","NumOfDist")
-        for i in range(Num):
-            lDists.append(
-                int(set_adc.read(cfg.read("Ports",str(i)))*cfg.read("Distance","K")+cfg.read("Distance","B"))
-                )
-        return lDists
+    return LidarDists()
 
 def GetPos() -> list[int,int]:
     if not cfg.read("Distance","On"):
@@ -121,9 +113,7 @@ def GetPos() -> list[int,int]:
 
 #Operate models
 def RailGun():
-    set_io.out(cfg.read("Ports","RailGun"),0)
-    delay.ms(500)
-    set_io.out(cfg.read("Ports","RailGun"),1)
+    
 
 def Cover2Start():
     global bCovered
