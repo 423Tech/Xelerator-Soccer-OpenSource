@@ -3,3 +3,4 @@ uvicorn
 opencv-python
 peewee
 loguru
+ujson

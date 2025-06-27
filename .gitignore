@@ -173,9 +173,10 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-main.py
+# main.py
 cfg.json
 config.json
+test.py
 .vscode
 
 .DS_Store
