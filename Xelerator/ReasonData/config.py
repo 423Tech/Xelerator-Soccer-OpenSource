@@ -16,6 +16,7 @@ class QkJson:
                     "Bit" : "AB",
                 },
                 "Ports": {
+                    "Trigger" : 0,
                     "ElecMagnet" : 4,
                     "Dribble" : 3,
                 },
