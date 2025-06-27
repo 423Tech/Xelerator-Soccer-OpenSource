@@ -1,4 +1,7 @@
 import math
+from ReasonData.config import QkJson
+
+
 
 class Car:
     def __init__(self,SetMotorFunc,GetYaw=None):
@@ -6,6 +9,16 @@ class Car:
         self.GetYaw = GetYaw
 
         self.Kp = 1
+        
+        self.cfg = QkJson()
+        self.SaveData = self.cfg.read("Advanced","Database")
+        if self.SaveData:
+            from ReasonData.data import Outputs
+            self.DataBase = Outputs()
+        self.SaveLog = self.cfg.read("Advanced","logger")
+        if self.SaveLog:
+            from ReasonData import logger
+            self.logger = logger
     
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
         self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
@@ -14,10 +27,15 @@ class Car:
         self.Kp = Kp
     
     def Go(self,SpeedX,SpeedY,SpeedZ):
+        '''
+        stand for a vector movement (SpeedX,SpeedY,SpeedZ)
+        '''
         Speed1 = SpeedX + SpeedY + SpeedZ
         Speed2 = SpeedY - SpeedX + SpeedZ
         Speed3 = SpeedY - SpeedX - SpeedZ
         Speed4 = SpeedX + SpeedY - SpeedZ
+        if self.SaveData:
+            self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         self.SetMotor(Speed1, Speed2, Speed3, Speed4)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
@@ -30,6 +48,9 @@ class Car:
         self.GoV(SpeedX,SpeedY,FacingAngle)
 
     def GoV(self,SpeedX,SpeedY,FacingAngle):
+        '''
+        stand for a vector movement (SpeedX,SpeedY,SpeedZ)
+        '''
         if self.GetYaw is None:
             return False
         Yaw = self.GetYaw()
@@ -50,3 +71,11 @@ class Car:
         if self.GetYaw is None:
             return False
     
+
+class ElecMagnet:
+    def __init__(self,Shoot,DribbleIO):
+        from ReasonData import QkJson
+        self.cfg = QkJson()
+        self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
+        self.DribbleIO = self.cfg.read("Ports","DribbleIO")
+        

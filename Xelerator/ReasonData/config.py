@@ -16,7 +16,9 @@ class QkJson:
                     "Bit" : "AB",
                 },
                 "Ports": {
-                    "RailGun" : 6,
+                    "Trigger" : 0,
+                    "ElecMagnet" : 4,
+                    "Dribble" : 3,
                 },
                 "Border" : {
                     "0": [60,95],

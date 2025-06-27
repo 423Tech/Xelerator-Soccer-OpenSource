@@ -1,21 +1,10 @@
 import math
 
-from ReasonData import QkJson
+from ReasonData import QkJson, logger
 cfg = QkJson()
 
-#logger
-from loguru import logger
-LOG_FILE = "./data/XelKit.log"
-logger.add(
-    LOG_FILE,
-    rotation="1 MB",
-    retention="10 days",
-    encoding="utf-8",
-    backtrace=True,
-    diagnose=True,
-    enqueue=True,
-    catch=True)
-logger.info("Xelerator kits loaded.")
+
+
 
 from chassis import Car
 if cfg.read("model","bit") == "AB":
@@ -61,8 +50,6 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
 
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
-
-
 
 
 #Value Mod
