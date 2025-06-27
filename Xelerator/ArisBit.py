@@ -361,6 +361,7 @@ class ArisBit(object):
             if self.__uart_state == 0:
                 name1 = "task_serial_receive"
                 task_receive = threading.Thread(target=self.__receive_data, name=name1)
+                task_receive.daemon = True
                 task_receive.setDaemon(True)
                 task_receive.start()
                 print("----------------create receive threading--------------")
@@ -556,29 +557,26 @@ class ArisBit(object):
         speed_2 = int(speed_2 * self.MotorRatio)
         speed_3 = int(speed_3 * self.MotorRatio)
         speed_4 = int(speed_4 * self.MotorRatio)
-        try:
-            # 限制输入范围并打包成16位有符号整数
-            speed_1_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_1)))
-            speed_2_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_2)))
-            speed_3_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_3)))
-            speed_4_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_4)))
-            
-            cmd = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_MOTOR,
-                speed_1_bytes[0], speed_1_bytes[1],  # 电机1速度的低字节、高字节
-                speed_2_bytes[0], speed_2_bytes[1],  # 电机2速度的低字节、高字节
-                speed_3_bytes[0], speed_3_bytes[1],  # 电机3速度的低字节、高字节
-                speed_4_bytes[0], speed_4_bytes[1]]  # 电机4速度的低字节、高字节
-            
-            cmd[2] = len(cmd) - 1
-            checksum = sum(cmd, self.__COMPLEMENT) & 0xff
-            cmd.append(checksum)
-            self.ser.write(cmd)
-            if self.__debug:
-                print("motor:", cmd)
-            time.sleep(self.__delay_time)
-        except:
-            print('---set_motor error!---')
-            pass
+        # 限制输入范围并打包成16位有符号整数
+        speed_1_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_1)))
+        speed_2_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_2)))
+        speed_3_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_3)))
+        speed_4_bytes = bytearray(struct.pack('h', self.__limit_motor_value_30000(speed_4)))
+        
+        cmd = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_MOTOR,
+            speed_1_bytes[0], speed_1_bytes[1],  # 电机1速度的低字节、高字节
+            speed_2_bytes[0], speed_2_bytes[1],  # 电机2速度的低字节、高字节
+            speed_3_bytes[0], speed_3_bytes[1],  # 电机3速度的低字节、高字节
+            speed_4_bytes[0], speed_4_bytes[1]]  # 电机4速度的低字节、高字节
+        
+        cmd[2] = len(cmd) - 1
+        checksum = sum(cmd, self.__COMPLEMENT) & 0xff
+        cmd.append(checksum)
+        self.ser.write(cmd)
+        if self.__debug:
+            print("motor:", cmd)
+        time.sleep(self.__delay_time)
+
 
     def __limit_motor_value_30000(self, value):
         # 限制范围到[-1000, 1000]
