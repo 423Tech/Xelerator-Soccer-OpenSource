@@ -7,9 +7,9 @@
 #define PID_SUNRISE_KI  (0.08f)
 #define PID_SUNRISE_KD  (0.5f)
 
-#define PID_DEF_KP      (0.1f)
-#define PID_DEF_KI      (0.01f)
-#define PID_DEF_KD      (0.005f)
+#define PID_DEF_KP      (0.3f)
+#define PID_DEF_KI      (0.1f)
+#define PID_DEF_KD      (0.01f)
 
 #define PID_YAW_DEF_KP  (0.4)
 #define PID_YAW_DEF_KI  (0.0)

@@ -16,7 +16,7 @@
 #define ENABLE_CHECKSUM              1
 #define ENABLE_IWDG                  0
 #define ENABLE_KEY_RELEASE           1
-#define ENABLE_OLED                  1
+#define ENABLE_OLED                  0
 #define ENABLE_CAR_SUNRISE_ONLY      0
 
 

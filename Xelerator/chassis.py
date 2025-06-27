@@ -1,12 +1,15 @@
-class Car:
-    def __init__(self,MotorFunc,GetYaw=None):
+import math
+from ReasonData.config import QkJson
 
-        self.MotorFunc = MotorFunc
+
+
+class Car:
+    def __init__(self,SetMotorFunc,GetYaw=None):
+        self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
 
-        self.Kp = 0.5
-    
-        from ReasonData.config import QkJson
+        self.Kp = 1
+        
         self.cfg = QkJson()
         self.SaveData = self.cfg.read("Advanced","Database")
         if self.SaveData:
@@ -16,17 +19,12 @@ class Car:
         if self.SaveLog:
             from ReasonData import logger
             self.logger = logger
-
-
+    
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
-        self.MotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
-        
-
+        self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
+    
     def SetKp(self,Kp):
         self.Kp = Kp
-    
-    # def GetYaw(self):
-    #     return self.GetYawFunc()
     
     def Go(self,SpeedX,SpeedY,SpeedZ):
         '''
@@ -39,6 +37,15 @@ class Car:
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         self.SetMotor(Speed1, Speed2, Speed3, Speed4)
+    
+    def GoA(self,FacingAngle,MovingAngle,Speed):
+        if self.GetYaw is None:
+            return False
+        Yaw = self.GetYaw()
+        rad = math.radians(MovingAngle+360-Yaw)
+        SpeedX = int(math.sin(rad) * Speed)
+        SpeedY = int(math.cos(rad) * Speed)
+        self.GoV(SpeedX,SpeedY,FacingAngle)
 
     def GoV(self,SpeedX,SpeedY,FacingAngle):
         '''
@@ -51,10 +58,6 @@ class Car:
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
         SpeedZ = - Error * self.Kp
         self.Go(SpeedX, SpeedY, SpeedZ)
-    
-    def GoA(self,FacingAngle,MovingAngle,Speed):
-        if self.GetYaw is None:
-            return False
     
     def GoX(self,Angle,Speed):
         if self.GetYaw is None:
