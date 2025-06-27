@@ -20,6 +20,6 @@ logger.add(
     diagnose=True,
     enqueue=True,
     catch=True)
-logger.info("ReasonData kits loaded.")
+logger.info("ReasonData loaded.")
 
 __all__ = ['config', 'Positions', 'setup']
