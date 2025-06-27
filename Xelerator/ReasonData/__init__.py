@@ -1,6 +1,6 @@
+from . import setup
 from .config import QkJson
 from .data import Positions, Date
-from . import setup
 
 __version__ = '0.0.1'
 

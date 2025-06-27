@@ -15,6 +15,7 @@ LOG_FILE = DATA_DIR / f"{Date}.log"
 def AutoSetup():
     if not DATA_DIR.exists():
         DATA_DIR.mkdir()
+        print(111)
     if not LOG_FILE.exists():
         logger.add(LOG_FILE)
         logger.info('models.log is created successfully')
