@@ -285,7 +285,7 @@ void PID_Calc_Motor(motor_data_t* motor)
     
     for (i = 0; i < MAX_MOTOR; i++)
     {
-        motor->speed_pwm[i] = PID_Incre_Calc(&pid_motor[i], motor->speed_mm_s[i]);
+        motor->speed_pwm[i] = PID_Incre_Calc(&pid_motor[i], motor->SpeedPPS[i]);
     }
 }
 

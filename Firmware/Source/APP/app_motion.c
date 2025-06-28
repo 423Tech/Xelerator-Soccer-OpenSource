@@ -91,7 +91,7 @@ void Motion_Get_Motor_Speed(float* speed)
 {
     for (int i = 0; i < 4; i++)
     {
-        speed[i] = motor_data.speed_mm_s[i];
+        speed[i] = motor_data.SpeedPPS[i];
         
     }
 }
@@ -202,7 +202,7 @@ void Motion_Yaw_Calc(float yaw)
 void Motion_Get_Speed(car_data_t* car)
 {
     int i = 0;
-    float speed_mm[MAX_MOTOR] = {0};
+    float SpeedPulse[MAX_MOTOR] = {0};
     float circle_mm = Motion_Get_Circle_MM();
     float circle_pulse = Motion_Get_Circle_Pulse();
     float robot_APB = Motion_Get_APB();
@@ -212,43 +212,43 @@ void Motion_Get_Speed(car_data_t* car)
     // 计算轮子速度，单位mm/s。
     for (i = 0; i < 4; i++)
     {
-        speed_mm[i] = (g_Encoder_All_Offset[i]) * 100;
+        SpeedPulse[i] = (g_Encoder_All_Offset[i]) * 100;
     }
     switch (g_car_type)
     {
     case CAR_MECANUM:
     {
-        car->Vx = (speed_mm[0] + speed_mm[1] + speed_mm[2] + speed_mm[3]) / 4;
-        car->Vy = -(speed_mm[0] - speed_mm[1] - speed_mm[2] + speed_mm[3]) / 4;
-        car->Vz = -(speed_mm[0] + speed_mm[1] - speed_mm[2] - speed_mm[3]) / 4.0f / robot_APB * 1000;
+        car->Vx = (SpeedPulse[0] + SpeedPulse[1] + SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vy = -(SpeedPulse[0] - SpeedPulse[1] - SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vz = -(SpeedPulse[0] + SpeedPulse[1] - SpeedPulse[2] - SpeedPulse[3]) / 4.0f / robot_APB * 1000;
         break;
     }
     case CAR_MECANUM_MAX:
     {
-        car->Vx = (speed_mm[0] + speed_mm[1] + speed_mm[2] + speed_mm[3]) / 4;
-        car->Vy = -(speed_mm[0] - speed_mm[1] - speed_mm[2] + speed_mm[3]) / 4;
-        car->Vz = -(speed_mm[0] + speed_mm[1] - speed_mm[2] - speed_mm[3]) / 4.0f / robot_APB * 1000;
+        car->Vx = (SpeedPulse[0] + SpeedPulse[1] + SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vy = -(SpeedPulse[0] - SpeedPulse[1] - SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vz = -(SpeedPulse[0] + SpeedPulse[1] - SpeedPulse[2] - SpeedPulse[3]) / 4.0f / robot_APB * 1000;
         break;
     }
     case CAR_FOURWHEEL:
     {
-        car->Vx = (speed_mm[0] + speed_mm[1] + speed_mm[2] + speed_mm[3]) / 4;
+        car->Vx = (SpeedPulse[0] + SpeedPulse[1] + SpeedPulse[2] + SpeedPulse[3]) / 4;
         car->Vy = 0;
-        car->Vz = -(speed_mm[0] + speed_mm[1] - speed_mm[2] - speed_mm[3]) / 4.0f / robot_APB * 1000;
+        car->Vz = -(SpeedPulse[0] + SpeedPulse[1] - SpeedPulse[2] - SpeedPulse[3]) / 4.0f / robot_APB * 1000;
         break;
     }
     case CAR_ACKERMAN:
     {
-        car->Vx = (speed_mm[1] + speed_mm[3]) / 2;
+        car->Vx = (SpeedPulse[1] + SpeedPulse[3]) / 2;
         car->Vy = Ackerman_Get_Steer_Angle();
-        car->Vz = -(speed_mm[1] - speed_mm[3]) * 1000 / robot_APB;
+        car->Vz = -(SpeedPulse[1] - SpeedPulse[3]) * 1000 / robot_APB;
         break;
     }    
     case CAR_SUNRISE:
     {
-        car->Vx = (speed_mm[0] + speed_mm[1] + speed_mm[2] + speed_mm[3]) / 4;
-        car->Vy = -(speed_mm[0] - speed_mm[1] - speed_mm[2] + speed_mm[3]) / 4;
-        car->Vz = -(speed_mm[0] + speed_mm[1] - speed_mm[2] - speed_mm[3]) / 4.0f / robot_APB * 1000;
+        car->Vx = (SpeedPulse[0] + SpeedPulse[1] + SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vy = -(SpeedPulse[0] - SpeedPulse[1] - SpeedPulse[2] + SpeedPulse[3]) / 4;
+        car->Vz = -(SpeedPulse[0] + SpeedPulse[1] - SpeedPulse[2] - SpeedPulse[3]) / 4.0f / robot_APB * 1000;
         break;
     }
     default:
@@ -259,7 +259,7 @@ void Motion_Get_Speed(car_data_t* car)
     {
         for (i = 0; i < MAX_MOTOR; i++)
         {
-            motor_data.speed_mm_s[i] = speed_mm[i];
+            motor_data.SpeedPPS[i] = SpeedPulse[i];
         }
         
         #if ENABLE_YAW_ADJUST
@@ -492,19 +492,19 @@ void Motion_Handle(void)
 
     if (g_start_ctrl)
     {
-        // if((motor_data.speed_mm_s[0] > -400 && motor_data.speed_mm_s[0] < 400) && (motor_data.speed_pwm[0] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[0] < -MOTOR_IGNORE_PULSE))
+        // if((motor_data.SpeedPPS[0] > -400 && motor_data.SpeedPPS[0] < 400) && (motor_data.speed_pwm[0] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[0] < -MOTOR_IGNORE_PULSE))
         // {
         //     Motor_Set_Pwm(MOTOR_ID_M1, 0);
         // }
-        // if((motor_data.speed_mm_s[1] > -400 && motor_data.speed_mm_s[1] < 400) && (motor_data.speed_pwm[1] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[1] < -MOTOR_IGNORE_PULSE))
+        // if((motor_data.SpeedPPS[1] > -400 && motor_data.SpeedPPS[1] < 400) && (motor_data.speed_pwm[1] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[1] < -MOTOR_IGNORE_PULSE))
         // {
         //     Motor_Set_Pwm(MOTOR_ID_M2, 0);
         // }
-        // if((motor_data.speed_mm_s[2] > -400 && motor_data.speed_mm_s[2] < 400) && (motor_data.speed_pwm[2] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[2] < -MOTOR_IGNORE_PULSE))
+        // if((motor_data.SpeedPPS[2] > -400 && motor_data.SpeedPPS[2] < 400) && (motor_data.speed_pwm[2] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[2] < -MOTOR_IGNORE_PULSE))
         // {
         //     Motor_Set_Pwm(MOTOR_ID_M3, 0);
         // }
-        // if((motor_data.speed_mm_s[3] > -400 && motor_data.speed_mm_s[3] < 400) && (motor_data.speed_pwm[3] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[3] < -MOTOR_IGNORE_PULSE))
+        // if((motor_data.SpeedPPS[3] > -400 && motor_data.SpeedPPS[3] < 400) && (motor_data.speed_pwm[3] > MOTOR_IGNORE_PULSE || motor_data.speed_pwm[3] < -MOTOR_IGNORE_PULSE))
         // {
         //     Motor_Set_Pwm(MOTOR_ID_M4, 0);
         // }

@@ -31,7 +31,7 @@ typedef struct _pid
 
 typedef struct _motor_data_t
 {
-    float speed_mm_s[4];        // 输入值，编码器计算速度
+    float SpeedPPS[4];        // 输入值，编码器计算速度
     float speed_pwm[4];         // 输出值，PID计算出PWM值
     int16_t speed_set[4];       // 速度设置值
 } motor_data_t;
