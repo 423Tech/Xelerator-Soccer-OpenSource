@@ -23,6 +23,7 @@
 #include "bsp_can.h"
 #include "bsp_rgb.h"
 #include "bsp_mpu9250.h"
+#include "bsp_io.h"
 
 
 
@@ -31,18 +32,18 @@
 #define VERSION_PATCH          0x01
 
 
-//JTAG模式设置定义
+//JTAG模式锟斤拷锟矫讹拷锟斤拷
 #define JTAG_SWD_DISABLE       0X02
 #define SWD_ENABLE             0X01
 #define JTAG_SWD_ENABLE        0X00
 
 
-// 模式定义
+// 模式锟斤拷锟斤拷
 #define MODE_STANDARD          (0)
 #define MODE_TEST              (1)
 
 
-// IMU类型定义
+// IMU锟斤拷锟酵讹拷锟斤拷
 typedef enum 
 {
     IMU_TYPE_ICM20948 = 0,

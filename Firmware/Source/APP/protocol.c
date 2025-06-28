@@ -394,13 +394,13 @@ void Upper_Data_Parse(uint8_t *data_buf, uint8_t num)
 		break;
 	}
 
-	/* 判断功能字：控制单个舵机 */
-	case FUNC_PWM_SERVO:
+	/* 判断功能字：控制单个IO */
+	case FUNC_SET_IO:
 	{
-		uint8_t servo_id = *(data_buf + 4);
-		uint8_t angle = *(data_buf + 5);
-		DEBUG("pwmServo:%d, %d\n", servo_id, angle);
-		PwmServo_Set_Angle(servo_id - 1, angle);
+		uint8_t IOPort = *(data_buf + 4);
+		uint8_t State = *(data_buf + 5);
+		DEBUG("SetIO:%d, %d\n", IOPort, State);
+		SetIO(IOPort, State);
 		break;
 	}
 
@@ -890,12 +890,13 @@ void Upper_CAN_Execute_Command(uint8_t func, uint8_t* parm)
     }
 
 	/* 判断功能字：控制单个舵机 */
-	case FUNC_PWM_SERVO:
+	case FUNC_SET_IO:
 	{
 		uint8_t servo_id = parm[0];
 		uint8_t angle = parm[1];
 		DEBUG("pwmServo:%d, %d\n", servo_id, angle);
-		PwmServo_Set_Angle(servo_id - 1, angle);
+		SetIO(servo_id, angle);
+		// PwmServo_Set_Angle(servo_id - 1, angle);
 		break;
 	}
 

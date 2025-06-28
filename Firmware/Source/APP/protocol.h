@@ -12,7 +12,7 @@
 /* 功能名称定义 */
 #define FUNC_AUTO_REPORT          (0x01)
 #define FUNC_BEEP                 (0x02)
-#define FUNC_PWM_SERVO            (0x03)
+#define FUNC_SET_IO               (0x03)
 #define FUNC_PWM_SERVO_ALL        (0x04)
 #define FUNC_RGB                  (0x05)
 #define FUNC_RGB_EFFECT           (0x06)

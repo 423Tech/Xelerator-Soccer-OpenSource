@@ -30,7 +30,7 @@ class ArisBit(object):
 
         self.FUNC_AUTO_REPORT = 0x01
         self.FUNC_BEEP = 0x02
-        self.FUNC_PWM_SERVO = 0x03
+        self.FUNC_SET_IO = 0x03
         self.FUNC_PWM_SERVO_ALL = 0x04
         self.FUNC_RGB = 0x05
         self.FUNC_RGB_EFFECT = 0x06
@@ -432,7 +432,7 @@ class ArisBit(object):
                 angle = 180
             elif angle < 0:
                 angle = 0
-            cmd = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_PWM_SERVO, int(servo_id), int(angle)]
+            cmd = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_SET_IO, int(servo_id), int(angle)]
             cmd[2] = len(cmd) - 1
             checksum = sum(cmd, self.__COMPLEMENT) & 0xff
             cmd.append(checksum)

@@ -8,96 +8,96 @@
 #include "icm20948.h"
 
 
-static uint8_t fac_us = 0;  //us延时倍乘数
-static uint16_t fac_ms = 0; //ms延时倍乘数
+static uint8_t fac_us = 0;  //us锟斤拷时锟斤拷锟斤拷锟斤拷
+static uint16_t fac_ms = 0; //ms锟斤拷时锟斤拷锟斤拷锟斤拷
 
 uint8_t g_test_mode = MODE_STANDARD;
 uint8_t g_imu_type = IMU_TYPE_ICM20948;
 
 
-// 系统时钟为72M，1/8为9M，既每秒钟震动9000000次，1s=1000ms=1000000us =》 1us震动9次
+// 系统时锟斤拷为72M锟斤拷1/8为9M锟斤拷锟斤拷每锟斤拷锟斤拷锟斤拷9000000锟轿ｏ拷1s=1000ms=1000000us =锟斤拷 1us锟斤拷9锟斤拷
 void SysTick_Init(void)
 {
-	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);// 选择外部时钟  HCLK/8
-	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;   	//开启SYSTICK中断
-	SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;   	//开启SYSTICK
+	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);// 选锟斤拷锟解部时锟斤拷  HCLK/8
+	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;   	//锟斤拷锟斤拷SYSTICK锟叫讹拷
+	SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;   	//锟斤拷锟斤拷SYSTICK
 }
 
 /**********************************************************
-** 函数名: delay_init	初始化延迟函数
-** 功能描述: 初始化延迟函数,SYSTICK的时钟固定为HCLK时钟的1/8
-** 输入参数: SYSCLK（单位MHz)
-** 输出参数: 无
-** 调用方法：如果系统时钟被设为72MHz,则调用delay_init(72)
-** 系统时钟为72M，1/8为9M，既每秒钟震动9000000次，1s=1000ms=1000000us =》 1us震动9次
+** 锟斤拷锟斤拷锟斤拷: delay_init	锟斤拷始锟斤拷锟接迟猴拷锟斤拷
+** 锟斤拷锟斤拷锟斤拷锟斤拷: 锟斤拷始锟斤拷锟接迟猴拷锟斤拷,SYSTICK锟斤拷时锟接固讹拷为HCLK时锟接碉拷1/8
+** 锟斤拷锟斤拷锟斤拷锟?: SYSCLK锟斤拷锟斤拷位MHz)
+** 锟斤拷锟斤拷锟斤拷锟?: 锟斤拷
+** 锟斤拷锟矫凤拷锟斤拷锟斤拷锟斤拷锟较低呈憋拷颖锟斤拷锟轿?72MHz,锟斤拷锟斤拷锟絛elay_init(72)
+** 系统时锟斤拷为72M锟斤拷1/8为9M锟斤拷锟斤拷每锟斤拷锟斤拷锟斤拷9000000锟轿ｏ拷1s=1000ms=1000000us =锟斤拷 1us锟斤拷9锟斤拷
 ***********************************************************/
 void delay_init(void)
 {
 	uint8_t SYSCLK = 72;
-	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8); // 选择外部时钟  HCLK/8
+	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8); // 选锟斤拷锟解部时锟斤拷  HCLK/8
 	fac_us = SYSCLK / 8;
 	fac_ms = (uint16_t)fac_us * 1000;
 }
 
 /**********************************************************
-** 函数名: delay_ms
-** 功能描述: 延时nms
-** 输入参数: nms=[0, 1500]
-** 输出参数: 无
-** 说明：SysTick->LOAD为24位寄存器,所以,最大延时为:
+** 锟斤拷锟斤拷锟斤拷: delay_ms
+** 锟斤拷锟斤拷锟斤拷锟斤拷: 锟斤拷时nms
+** 锟斤拷锟斤拷锟斤拷锟?: nms=[0, 1500]
+** 锟斤拷锟斤拷锟斤拷锟?: 锟斤拷
+** 说锟斤拷锟斤拷SysTick->LOAD为24位锟侥达拷锟斤拷,锟斤拷锟斤拷,锟斤拷锟斤拷锟绞蔽?:
 		nms<=0xffffff*8*1000/SYSCLK
-		SYSCLK单位为Hz,nms单位为ms
-		对72M条件下,nms<=1864 
+		SYSCLK锟斤拷位为Hz,nms锟斤拷位为ms
+		锟斤拷72M锟斤拷锟斤拷锟斤拷,nms<=1864 
 ***********************************************************/
 void delay_ms(uint16_t nms)
 {
 	uint32_t temp;
 	if (nms > 1500) nms = 1500;
-	SysTick->LOAD = (uint32_t)nms * fac_ms; //时间加载(SysTick->LOAD为24bit)
-	SysTick->VAL = 0x00;			   //清空计数器
-	SysTick->CTRL = 0x01;			   //开始倒数
+	SysTick->LOAD = (uint32_t)nms * fac_ms; //时锟斤拷锟斤拷锟?(SysTick->LOAD为24bit)
+	SysTick->VAL = 0x00;			   //锟斤拷占锟斤拷锟斤拷锟?
+	SysTick->CTRL = 0x01;			   //锟斤拷始锟斤拷锟斤拷
 	do
 	{
 		temp = SysTick->CTRL;
-	} while (temp & 0x01 && !(temp & (1 << 16))); //等待时间到达
-	SysTick->CTRL = 0x00;						  //关闭计数器
-	SysTick->VAL = 0X00;						  //清空计数器
+	} while (temp & 0x01 && !(temp & (1 << 16))); //锟饺达拷时锟戒到锟斤拷
+	SysTick->CTRL = 0x00;						  //锟截闭硷拷锟斤拷锟斤拷
+	SysTick->VAL = 0X00;						  //锟斤拷占锟斤拷锟斤拷锟?
 }
 
 /**********************************************************
-** 函数名: delay_us
-** 功能描述: 延时nus，nus为要延时的us数.
-** 输入参数: nus
-** 输出参数: 无
+** 锟斤拷锟斤拷锟斤拷: delay_us
+** 锟斤拷锟斤拷锟斤拷锟斤拷: 锟斤拷时nus锟斤拷nus为要锟斤拷时锟斤拷us锟斤拷.
+** 锟斤拷锟斤拷锟斤拷锟?: nus
+** 锟斤拷锟斤拷锟斤拷锟?: 锟斤拷
 ***********************************************************/
 void delay_us(uint32_t nus)
 {
 	uint32_t temp;
-	SysTick->LOAD = nus * fac_us; //时间加载
-	SysTick->VAL = 0x00;		  //清空计数器
-	SysTick->CTRL = 0x01;		  //开始倒数
+	SysTick->LOAD = nus * fac_us; //时锟斤拷锟斤拷锟?
+	SysTick->VAL = 0x00;		  //锟斤拷占锟斤拷锟斤拷锟?
+	SysTick->CTRL = 0x01;		  //锟斤拷始锟斤拷锟斤拷
 	do
 	{
 		temp = SysTick->CTRL;
-	} while (temp & 0x01 && !(temp & (1 << 16))); //等待时间到达
-	SysTick->CTRL = 0x00;						  //关闭计数器
-	SysTick->VAL = 0X00;						  //清空计数器
+	} while (temp & 0x01 && !(temp & (1 << 16))); //锟饺达拷时锟戒到锟斤拷
+	SysTick->CTRL = 0x00;						  //锟截闭硷拷锟斤拷锟斤拷
+	SysTick->VAL = 0X00;						  //锟斤拷占锟斤拷锟斤拷锟?
 }
 
 
 void LED_GPIO_Init(void)
 {
-	/*定义一个GPIO_InitTypeDef类型的结构体*/
+	/*锟斤拷锟斤拷一锟斤拷GPIO_InitTypeDef锟斤拷锟酵的结构锟斤拷*/
 	GPIO_InitTypeDef GPIO_InitStructure;
-	/*开启外设时钟*/
+	/*锟斤拷锟斤拷锟斤拷锟斤拷时锟斤拷*/
 	RCC_APB2PeriphClockCmd(LED_GPIO_CLK, ENABLE);
-	/*选择要控制的引脚*/
+	/*选锟斤拷要锟斤拷锟狡碉拷锟斤拷锟斤拷*/
 	GPIO_InitStructure.GPIO_Pin = LED_GPIO_PIN;
-	/*设置引脚模式为通用推挽输出*/
+	/*锟斤拷锟斤拷锟斤拷锟斤拷模式为通锟斤拷锟斤拷锟斤拷锟斤拷锟?*/
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	/*设置引脚速率为50MHz */
+	/*锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷为50MHz */
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	/*调用库函数，初始化PORT*/
+	/*锟斤拷锟矫库函锟斤拷锟斤拷锟斤拷始锟斤拷PORT*/
 	GPIO_Init(LED_GPIO_PORT, &GPIO_InitStructure);
 
 	LED_ON();
@@ -105,24 +105,24 @@ void LED_GPIO_Init(void)
 
 void LED_SW_GPIO_Init(void)
 {
-	/*定义一个GPIO_InitTypeDef类型的结构体*/
+	/*锟斤拷锟斤拷一锟斤拷GPIO_InitTypeDef锟斤拷锟酵的结构锟斤拷*/
 	GPIO_InitTypeDef GPIO_InitStructure;
-	/*开启外设时钟*/
+	/*锟斤拷锟斤拷锟斤拷锟斤拷时锟斤拷*/
 	RCC_APB2PeriphClockCmd(LED_SW_GPIO_CLK, ENABLE);
-	/*选择要控制的引脚*/
+	/*选锟斤拷要锟斤拷锟狡碉拷锟斤拷锟斤拷*/
 	GPIO_InitStructure.GPIO_Pin = LED_SW_GPIO_PIN;
-	/*设置引脚模式为通用推挽输出*/
+	/*锟斤拷锟斤拷锟斤拷锟斤拷模式为通锟斤拷锟斤拷锟斤拷锟斤拷锟?*/
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	/*设置引脚速率为50MHz */
+	/*锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷为50MHz */
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	/*调用库函数，初始化PORT*/
+	/*锟斤拷锟矫库函锟斤拷锟斤拷锟斤拷始锟斤拷PORT*/
 	GPIO_Init(LED_SW_GPIO_PORT, &GPIO_InitStructure);
 
 	LED_SW_ON();
 }
 
-//JTAG模式设置,用于设置JTAG的模式
-//mode:jtag,swd模式设置;00,全使能;01,使能SWD;10,全关闭;
+//JTAG模式锟斤拷锟斤拷,锟斤拷锟斤拷锟斤拷锟斤拷JTAG锟斤拷模式
+//mode:jtag,swd模式锟斤拷锟斤拷;00,全使锟斤拷;01,使锟斤拷SWD;10,全锟截憋拷;
 //#define JTAG_SWD_DISABLE   0X02
 //#define SWD_ENABLE         0X01
 //#define JTAG_SWD_ENABLE    0X00
@@ -131,12 +131,12 @@ void Bsp_JTAG_Set(uint8_t mode)
 	uint32_t temp;
 	temp = mode;
 	temp <<= 25;
-	RCC->APB2ENR |= 1 << 0;	  //开启辅助时钟
-	AFIO->MAPR &= 0XF8FFFFFF; //清除MAPR的[26:24]
-	AFIO->MAPR |= temp;		  //设置jtag模式
+	RCC->APB2ENR |= 1 << 0;	  //锟斤拷锟斤拷锟斤拷锟斤拷时锟斤拷
+	AFIO->MAPR &= 0XF8FFFFFF; //锟斤拷锟組APR锟斤拷[26:24]
+	AFIO->MAPR |= temp;		  //锟斤拷锟斤拷jtag模式
 }
 
-// 发送当前版本号到主机上
+// 锟斤拷锟酵碉拷前锟芥本锟脚碉拷锟斤拷锟斤拷锟斤拷
 void Bsp_Send_Version(void)
 {
 	#define LEN       7
@@ -144,10 +144,10 @@ void Bsp_Send_Version(void)
 	uint8_t checknum = 0;
 	data[0] = PTO_HEAD;
 	data[1] = PTO_DEVICE_ID - 1;
-	data[2] = LEN - 2;           // 数量
-	data[3] = FUNC_VERSION;   // 功能字
-	data[4] = VERSION_MAJOR;      // 大版本号, 组成结果：1.2
-	data[5] = VERSION_MINOR;      // 小版本号
+	data[2] = LEN - 2;           // 锟斤拷锟斤拷
+	data[3] = FUNC_VERSION;   // 锟斤拷锟斤拷锟斤拷
+	data[4] = VERSION_MAJOR;      // 锟斤拷姹撅拷锟?, 锟斤拷山锟斤拷锟斤拷1.2
+	data[5] = VERSION_MINOR;      // 小锟芥本锟斤拷
 
 	for (uint8_t i = 2; i < LEN - 1; i++)
 	{
@@ -157,7 +157,7 @@ void Bsp_Send_Version(void)
 	USART1_Send_ArrayU8(data, LEN);
 }
 
-// LED指示单片机底层，每100毫秒调用一次,效果是LED每3秒闪2次。
+// LED指示锟斤拷片锟斤拷锟阶层，每100锟斤拷锟斤拷锟斤拷锟揭伙拷锟?,效锟斤拷锟斤拷LED每3锟斤拷锟斤拷2锟轿★拷
 void Bsp_Led_Show_State(void)
 {
 	static uint8_t led_flash = 0;
@@ -182,7 +182,7 @@ void Bsp_Led_Show_State(void)
 	}
 }
 
-// 单片机指示灯显示低电量状态，LED闪烁和蜂鸣器BB
+// 锟斤拷片锟斤拷指示锟斤拷锟斤拷示锟酵碉拷锟斤拷状态锟斤拷LED锟斤拷烁锟酵凤拷锟斤拷锟斤拷BB
 void Bsp_Led_Show_Low_Battery(uint8_t enable_beep)
 {
 	static uint8_t led_flash_1 = 0;
@@ -202,7 +202,7 @@ void Bsp_Led_Show_Low_Battery(uint8_t enable_beep)
 	}
 }
 
-// 单片机指示灯显示电压过高状态，LED闪烁和蜂鸣器长鸣笛B~B~
+// 锟斤拷片锟斤拷指示锟斤拷锟斤拷示锟斤拷压锟斤拷锟斤拷状态锟斤拷LED锟斤拷烁锟酵凤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷B~B~
 void Bsp_Led_Show_Overvoltage_Battery(uint8_t enable_beep)
 {
 	static uint8_t time_count = 0;
@@ -228,32 +228,32 @@ void Bsp_Led_Show_Overvoltage_Battery(uint8_t enable_beep)
 	}
 }
 
-// 设置工厂测试模式
+// 锟斤拷锟矫癸拷锟斤拷锟斤拷锟斤拷模式
 void Bsp_Set_TestMode(uint16_t mode)
 {
 	g_test_mode = mode & 0xFF;
 	if (g_test_mode > 2) g_test_mode = 0;
 }
 
-// 读取工厂测试模式状态
+// 锟斤拷取锟斤拷锟斤拷锟斤拷锟斤拷模式状态
 uint8_t Bsp_Get_TestMode(void)
 {
 	return g_test_mode;
 }
 
-// 获取IMU型号，0=icm20948,1=mpu9250,0xFF=空
+// 锟斤拷取IMU锟酵号ｏ拷0=icm20948,1=mpu9250,0xFF=锟斤拷
 uint8_t Bsp_Get_Imu_Type(void)
 {
 	return g_imu_type;
 }
 
-// 设置IMU类型为空
+// 锟斤拷锟斤拷IMU锟斤拷锟斤拷为锟斤拷
 void Bsp_Imu_Type_None(void)
 {
 	g_imu_type = IMU_TYPE_MAX;
 }
 
-// IMU初始化失败时，蜂鸣器长鸣一声以提示用户
+// IMU锟斤拷始锟斤拷失锟斤拷时锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷一锟斤拷锟斤拷锟斤拷示锟矫伙拷
 void Bsp_Long_Beep_Alarm(void)
 {
 	BEEP_ON();
@@ -261,7 +261,7 @@ void Bsp_Long_Beep_Alarm(void)
 	BEEP_OFF();
 }
 
-// 扫描是否有MPU9250设备。返回IMU类型值。
+// 扫锟斤拷锟角凤拷锟斤拷MPU9250锟借备锟斤拷锟斤拷锟斤拷IMU锟斤拷锟斤拷值锟斤拷
 uint8_t Bsp_MPU_Scanf(void)
 {
 	uint8_t res;
@@ -324,7 +324,7 @@ static void Bsp_imu_init(void)
 void Bsp_Init(void)
 {
 	delay_init();
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //设置为优先级组2
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //锟斤拷锟斤拷为锟斤拷锟饺硷拷锟斤拷2
 
 	USART1_Init(USART1_BAUDRATE);
 	#if !APP_RELEASE
@@ -376,12 +376,16 @@ void Bsp_Init(void)
 	TIM7_Init();
 	PwmServo_Init();
 
+	IOInit();
+
+	
+
 #if ENABLE_IWDG
 	IWDG_Init();
 #endif
 }
 
-// 重启单片机
+// 锟斤拷锟斤拷锟斤拷片锟斤拷
 void Bsp_Reset_MCU(void)
 {
 	printf("\r\nReset MCU\r\n");
