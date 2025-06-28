@@ -17,7 +17,7 @@ void App_Delay_ms(uint16_t ms);
 void App_Send_Version(void);
 
 void Set_Auto_Report(uint16_t enable);
-void SendKeyStatus(void);
+void SendIO(void);
 
 
 void App_Set_OLED_Flag(uint8_t flag);

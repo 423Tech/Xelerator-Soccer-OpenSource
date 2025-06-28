@@ -23,7 +23,7 @@
 #define FUNC_REPORT_ENCODER       (0x0D)
 #define FUNC_REPORT_ICM_RAW       (0x0E)
 #define FUNC_RESET_STATE          (0x0F)
-#define FUNC_REPORT_KEY           (0x91)
+#define FUNC_REPORT_IO            (0x91)
 
 
 /* 控制小车运动 */

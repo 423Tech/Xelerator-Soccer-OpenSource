@@ -233,7 +233,7 @@ void vTask_Auto_Report(void *pvParameters)
 		{
 			if (report_count == 0)
 			{
-				SendKeyStatus();
+				SendIO();
 			}
 			else if (report_count == 2)
 			{
@@ -394,24 +394,27 @@ void vTask_OLED(void *pvParameters)
 	}
 }
 
-void SendKeyStatus(void)
+void SendIO(void)
 {
-    #define LEN        6  // 参考Motion_Send_Data的格式
+    #define LEN 7  // 参考Motion_Send_Data的格式
     uint8_t data_buffer[LEN] = {0};
     uint8_t i, checknum = 0;
-    uint8_t KeyStatus = 0;
+    uint8_t KeyState = 0;
+	uint8_t IO1State = GetIO(1);
+	uint8_t IO2State = GetIO(2);
 
     if(Key1_is_Press() == KEY_PRESS)
     {
-        KeyStatus = 1;
+        KeyState = 1;
     }
     
     data_buffer[0] = PTO_HEAD;
     data_buffer[1] = PTO_DEVICE_ID-1;
     data_buffer[2] = LEN-2;                     // 4字节数据
-    data_buffer[3] = FUNC_REPORT_KEY;
-    data_buffer[4] = KeyStatus;
-    data_buffer[5] = 0xFF;                      // 添加一个标识字节
+    data_buffer[3] = FUNC_REPORT_IO;
+    data_buffer[4] = KeyState;
+    data_buffer[5] = IO1State;
+	data_buffer[6] = IO2State;
 
     for (i = 2; i < LEN-1; i++)
     {
