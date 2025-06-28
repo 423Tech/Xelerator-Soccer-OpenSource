@@ -890,15 +890,15 @@ void Upper_CAN_Execute_Command(uint8_t func, uint8_t* parm)
     }
 
 	/* 判断功能字：控制单个舵机 */
-	case FUNC_SET_IO:
-	{
-		uint8_t servo_id = parm[0];
-		uint8_t angle = parm[1];
-		DEBUG("pwmServo:%d, %d\n", servo_id, angle);
-		SetIO(servo_id, angle);
-		// PwmServo_Set_Angle(servo_id - 1, angle);
-		break;
-	}
+	// case FUNC_SET_IO:
+	// {
+	// 	uint8_t servo_id = parm[0];
+	// 	uint8_t angle = parm[1];
+	// 	DEBUG("pwmServo:%d, %d\n", servo_id, angle);
+	// 	SetIO(servo_id, angle);
+	// 	// PwmServo_Set_Angle(servo_id - 1, angle);
+	// 	break;
+	// }
 
 	/* 判断功能字：控制所有舵机 */
 	case FUNC_PWM_SERVO_ALL:
