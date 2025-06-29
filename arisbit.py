@@ -429,7 +429,7 @@ class ArisBit(object):
         Command = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_SET_IO, int(IOPort), int(State)]
         Command[2] = len(Command) - 1
         CheckSum = sum(Command, self.__COMPLEMENT) & 0xff
-        Command.append(checksum)
+        Command.append(CheckSum)
         self.ser.write(Command)
         time.sleep(self.__delay_time)
     
