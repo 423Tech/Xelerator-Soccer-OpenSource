@@ -425,27 +425,13 @@ class ArisBit(object):
     # 舵机控制，servo_id：对应ID编号，angle：对应舵机角度值
     # servo_id=[1, 4], angle=[0, 180]
     # Servo control, servo_id: corresponding, Angle: corresponding servo Angle value
-    def SetIO(self, servo_id, angle):
-        try:
-            if servo_id < 1 or servo_id > 4:
-                if self.__debug:
-                    print("set_pwm_servo input invalid")
-                return
-            if angle > 180:
-                angle = 180
-            elif angle < 0:
-                angle = 0
-            cmd = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_PWM_SERVO, int(servo_id), int(angle)]
-            cmd[2] = len(cmd) - 1
-            checksum = sum(cmd, self.__COMPLEMENT) & 0xff
-            cmd.append(checksum)
-            self.ser.write(cmd)
-            if self.__debug:
-                print("pwmServo:", cmd)
-            time.sleep(self.__delay_time)
-        except:
-            print('---set_pwm_servo error!---')
-            pass
+    def SetIO(self, IOPort, State):
+        Command = [self.__HEAD, self.__DEVICE_ID, 0x00, self.FUNC_SET_IO, int(IOPort), int(State)]
+        Command[2] = len(Command) - 1
+        CheckSum = sum(Command, self.__COMPLEMENT) & 0xff
+        Command.append(checksum)
+        self.ser.write(Command)
+        time.sleep(self.__delay_time)
     
     def GetKey(self):
         return self.__key_state
