@@ -14,7 +14,7 @@ void IOInit(void)
     GPIO_InitStructure.GPIO_Pin = IO_2_PIN;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(IO_2_PORT, &GPIO_InitStructure);
-    
+
     // Initialize IO_3
     RCC_APB2PeriphClockCmd(IO_3_CLK, ENABLE);
     GPIO_InitStructure.GPIO_Pin = IO_3_PIN;
@@ -30,6 +30,9 @@ void IOInit(void)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(IO_4_PORT, &GPIO_InitStructure);
     GPIO_SetBits(IO_4_PORT, IO_4_PIN);
+
+    IO_3_LOW();
+    IO_4_LOW();
 }
 
 void SetIO(uint8_t IOPort, uint8_t State)
@@ -48,6 +51,7 @@ void SetIO(uint8_t IOPort, uint8_t State)
         else
             IO_4_LOW();
     }
+    
 }
 
 uint8_t GetIO(uint8_t IOPort)
@@ -61,7 +65,8 @@ uint8_t GetIO(uint8_t IOPort)
     {
         State = GPIO_ReadInputDataBit(IO_2_PORT, IO_2_PIN);
     }
+    
+    
     return State;
 
 }
-

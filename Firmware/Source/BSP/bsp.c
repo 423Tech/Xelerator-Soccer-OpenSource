@@ -26,9 +26,9 @@ void SysTick_Init(void)
 /**********************************************************
 ** ������: delay_init	��ʼ���ӳٺ���
 ** ��������: ��ʼ���ӳٺ���,SYSTICK��ʱ�ӹ̶�ΪHCLKʱ�ӵ�1/8
-** �������?: SYSCLK����λMHz)
-** �������?: ��
-** ���÷��������ϵͳʱ�ӱ����?72MHz,�����delay_init(72)
+** �������??: SYSCLK����λMHz)
+** �������??: ��
+** ���÷��������ϵͳʱ�ӱ����?72MHz,�����delay_init(72)
 ** ϵͳʱ��Ϊ72M��1/8Ϊ9M����ÿ������9000000�Σ�1s=1000ms=1000000us =�� 1us��9��
 ***********************************************************/
 void delay_init(void)
@@ -42,9 +42,9 @@ void delay_init(void)
 /**********************************************************
 ** ������: delay_ms
 ** ��������: ��ʱnms
-** �������?: nms=[0, 1500]
-** �������?: ��
-** ˵����SysTick->LOADΪ24λ�Ĵ���,����,�����ʱ�?:
+** �������??: nms=[0, 1500]
+** �������??: ��
+** ˵����SysTick->LOADΪ24λ�Ĵ���,����,�����ʱ�?:
 		nms<=0xffffff*8*1000/SYSCLK
 		SYSCLK��λΪHz,nms��λΪms
 		��72M������,nms<=1864 
@@ -53,35 +53,35 @@ void delay_ms(uint16_t nms)
 {
 	uint32_t temp;
 	if (nms > 1500) nms = 1500;
-	SysTick->LOAD = (uint32_t)nms * fac_ms; //ʱ�����?(SysTick->LOADΪ24bit)
-	SysTick->VAL = 0x00;			   //��ռ�����?
+	SysTick->LOAD = (uint32_t)nms * fac_ms; //ʱ�����??(SysTick->LOADΪ24bit)
+	SysTick->VAL = 0x00;			   //��ռ�����??
 	SysTick->CTRL = 0x01;			   //��ʼ����
 	do
 	{
 		temp = SysTick->CTRL;
 	} while (temp & 0x01 && !(temp & (1 << 16))); //�ȴ�ʱ�䵽��
 	SysTick->CTRL = 0x00;						  //�رռ�����
-	SysTick->VAL = 0X00;						  //��ռ�����?
+	SysTick->VAL = 0X00;						  //��ռ�����??
 }
 
 /**********************************************************
 ** ������: delay_us
 ** ��������: ��ʱnus��nusΪҪ��ʱ��us��.
-** �������?: nus
-** �������?: ��
+** �������??: nus
+** �������??: ��
 ***********************************************************/
 void delay_us(uint32_t nus)
 {
 	uint32_t temp;
-	SysTick->LOAD = nus * fac_us; //ʱ�����?
-	SysTick->VAL = 0x00;		  //��ռ�����?
+	SysTick->LOAD = nus * fac_us; //ʱ�����??
+	SysTick->VAL = 0x00;		  //��ռ�����??
 	SysTick->CTRL = 0x01;		  //��ʼ����
 	do
 	{
 		temp = SysTick->CTRL;
 	} while (temp & 0x01 && !(temp & (1 << 16))); //�ȴ�ʱ�䵽��
 	SysTick->CTRL = 0x00;						  //�رռ�����
-	SysTick->VAL = 0X00;						  //��ռ�����?
+	SysTick->VAL = 0X00;						  //��ռ�����??
 }
 
 
@@ -93,7 +93,7 @@ void LED_GPIO_Init(void)
 	RCC_APB2PeriphClockCmd(LED_GPIO_CLK, ENABLE);
 	/*ѡ��Ҫ���Ƶ�����*/
 	GPIO_InitStructure.GPIO_Pin = LED_GPIO_PIN;
-	/*��������ģʽΪͨ���������?*/
+	/*��������ģʽΪͨ���������??*/
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	/*������������Ϊ50MHz */
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -111,7 +111,7 @@ void LED_SW_GPIO_Init(void)
 	RCC_APB2PeriphClockCmd(LED_SW_GPIO_CLK, ENABLE);
 	/*ѡ��Ҫ���Ƶ�����*/
 	GPIO_InitStructure.GPIO_Pin = LED_SW_GPIO_PIN;
-	/*��������ģʽΪͨ���������?*/
+	/*��������ģʽΪͨ���������??*/
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	/*������������Ϊ50MHz */
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -146,7 +146,7 @@ void Bsp_Send_Version(void)
 	data[1] = PTO_DEVICE_ID - 1;
 	data[2] = LEN - 2;           // ����
 	data[3] = FUNC_VERSION;   // ������
-	data[4] = VERSION_MAJOR;      // ��汾��?, ��ɽ����1.2
+	data[4] = VERSION_MAJOR;      // ��汾��??, ��ɽ����1.2
 	data[5] = VERSION_MINOR;      // С�汾��
 
 	for (uint8_t i = 2; i < LEN - 1; i++)
@@ -157,7 +157,7 @@ void Bsp_Send_Version(void)
 	USART1_Send_ArrayU8(data, LEN);
 }
 
-// LEDָʾ��Ƭ���ײ㣬ÿ100�������һ��?,Ч����LEDÿ3����2�Ρ�
+// LEDָʾ��Ƭ���ײ㣬ÿ100�������һ��??,Ч����LEDÿ3����2�Ρ�
 void Bsp_Led_Show_State(void)
 {
 	static uint8_t led_flash = 0;
@@ -374,7 +374,7 @@ void Bsp_Init(void)
 	CAN_Config_Init(CAN_BAUD_1000Kbps);
 
 	TIM7_Init();
-	PwmServo_Init();
+	// PwmServo_Init();
 
 	IOInit();
 

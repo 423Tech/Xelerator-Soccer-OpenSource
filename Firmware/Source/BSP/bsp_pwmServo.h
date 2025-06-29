@@ -6,10 +6,10 @@
 
 
 
-#define USE_SERVO_J1
-#define USE_SERVO_J2
-#define USE_SERVO_J3
-#define USE_SERVO_J4
+#define USE_SERVO_J1_
+#define USE_SERVO_J2_
+#define USE_SERVO_J3_
+#define USE_SERVO_J4_
 #define USE_SERVO_J5_
 #define USE_SERVO_J6_
 

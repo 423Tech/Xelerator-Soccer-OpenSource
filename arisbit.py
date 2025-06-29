@@ -447,7 +447,7 @@ class ArisBit(object):
             pass
     
     def GetKey(self):
-        return self.__key_status
+        return self.__key_state
     
     def GetIO(self,IOPort):
         if IOPort == 1:
