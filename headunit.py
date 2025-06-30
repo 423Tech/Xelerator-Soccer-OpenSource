@@ -52,7 +52,8 @@ def RoundThresholdJudger(Value, Round, MiddleValue, Offset):
 
 
 class YDLidarParser(Node):
-    def __init__(self,Queue):
+    def __init__(self, Queue):
+        self.Queue = Queue
         super().__init__('ydlidar_parser')
 
         oQos = QoSProfile(
@@ -85,7 +86,7 @@ class YDLidarParser(Node):
             Angle = AngleMin + i * AngleIncrement
             lRanges.append((math.degrees(Angle)+180, Ranges[i]))
 
-        Queue.put(lRanges)
+        self.Queue.put(lRanges)
 
 class Lidar:
     def __init__(self,GetYaw):
@@ -102,6 +103,10 @@ class Lidar:
         self.ParseLidarThread.daemon = True
         self.ParseLidarThread.start()
 
+        self.LidarPositioningThread = threading.Thread(target=self.LidarPositioning)
+        self.LidarPositioningThread.daemon = True
+        self.LidarPositioningThread.start()
+
     
     def ParseLidar(self):
         rclpy.init(domain_id=self.DomainID)
@@ -115,23 +120,23 @@ class Lidar:
         LastTime = time.time()
         
         while(1):
-            lRanges = oQueue.get()
-            lLines = []
-            lPoints = []
-            for tElement in lRanges:
-                if 0 < tElement[1] < 2.5:
-                    fX = tElement[1] * math.sin(math.radians(tElement[0]))
-                    fY = tElement[1] * math.cos(math.radians(tElement[0]))
-                    lPoints.append((fX, fY, tElement[0]))
+            Ranges = self.LidarQueue.get()
+            Lines = []
+            Points = []
+            for Element in Ranges:
+                if 0 < Element[1] < 2.5:
+                    X = Element[1] * math.sin(math.radians(Element[0]))
+                    Y = Element[1] * math.cos(math.radians(Element[0]))
+                    Points.append((X, Y, Element[0]))
             
-            if lPoints:
-                for i in range(0,len(lPoints),iStep):
-                    if i + 1 < len(lPoints):
-                        tLine = (lPoints[i][0], lPoints[i][1], lPoints[i+1][0], lPoints[i+1][1])
-                        iTheta = getLineTheta(tLine)
-                        fLidarAVGTheta = (lPoints[i][2] + lPoints[i+1][2]) / 2
-                        fDistance = getLineDistance(tLine)
-                        lLines.append((lPoints[i][0], lPoints[i][1], lPoints[i+1][0], lPoints[i+1][1], fDistance, iTheta, fLidarAVGTheta))
+            if Points:
+                for i in range(0,len(Points),Step):
+                    if i + 1 < len(Points):
+                        Line = (Points[i][0], Points[i][1], Points[i+1][0], Points[i+1][1])
+                        Theta = GetLineTheta(Line)
+                        LidarAVGTheta = (Points[i][2] + Points[i+1][2]) / 2
+                        Distance = GetLineDistance(Line)
+                        Lines.append((Points[i][0], Points[i][1], Points[i+1][0], Points[i+1][1], Distance, Theta, LidarAVGTheta))
 
                 FrameCount += 1
                 CurrentTime = time.time()
@@ -140,69 +145,50 @@ class Lidar:
                     FrameCount = 0
                     LastTime = CurrentTime
 
-                
-                iCompass = oCompass.value
-                iCompassFull = iCompass
+                Compass = self.GetYaw()
+                CompassFull = Compass
 
-                if iCompass == -1 or iCompass == 999:
-                    continue
+                if Compass > 180:
+                    Compass = Compass - 180
 
-                
-                
-                if iCompass > 180:
-                    iCompass = iCompass - 180
+                HorizontalLines = []
+                VerticalLines = []
 
-                lHorizontalLines = []
-                lVerticalLines = []
-
-                if lLines:
-                    oZeroDist.value = int(lLines[0][4] * 1000)
-                    for tLine in lLines:
-                        if roundThresholdJudger(tLine[5], 180, iCompass, 20):
-                            lHorizontalLines.append(tLine)
-                        elif roundThresholdJudger(tLine[5], 180, iCompass + 90, 20):
-                            lVerticalLines.append(tLine)
+                if Lines:
+                    for Line in Lines:
+                        if RoundThresholdJudger(Line[5], 180, Compass, 20):
+                            HorizontalLines.append(Line)
+                        elif RoundThresholdJudger(Line[5], 180, Compass + 90, 20):
+                            VerticalLines.append(Line)
                         
-                    print(iCompass,len(lHorizontalLines),len(lVerticalLines))
-                    lDistances = [[],[],[],[]]
-                    lDistance = [0,0,0,0]
+                    print(Compass,len(HorizontalLines),len(VerticalLines))
+                    Distances = [[],[],[],[]]
+                    Distance = [0,0,0,0]
                 
-                    if lHorizontalLines and lVerticalLines:
-                        for tLine in lHorizontalLines:
-                            if roundThresholdJudger(tLine[6], 360, -(iCompassFull), 90):
-                                fDistance = round(tLine[4], 3)
-                                lDistances[0].append(fDistance)
-                            elif roundThresholdJudger(tLine[6], 360, -(iCompassFull + 180), 90):
-                                fDistance = round(tLine[4], 3)
-                                lDistances[2].append(fDistance)
-                        for tLine in lVerticalLines:
-                            if roundThresholdJudger(tLine[6], 360, -(iCompassFull + 90), 90):
-                                fDistance = round(tLine[4], 3)
-                                lDistances[1].append(fDistance)
-                            elif roundThresholdJudger(tLine[6], 360, -(iCompassFull + 270), 90):
-                                fDistance = round(tLine[4], 3)
-                                lDistances[3].append(fDistance)
+                    if HorizontalLines and VerticalLines:
+                        for Line in HorizontalLines:
+                            if RoundThresholdJudger(Line[6], 360, -(CompassFull), 90):
+                                Distance = round(Line[4], 3)
+                                Distances[0].append(Distance)
+                            elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 180), 90):
+                                Distance = round(Line[4], 3)
+                                Distances[2].append(Distance)
+                        for Line in VerticalLines:
+                            if RoundThresholdJudger(Line[6], 360, -(CompassFull + 90), 90):
+                                Distance = round(Line[4], 3)
+                                Distances[1].append(Distance)
+                            elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 270), 90):
+                                Distance = round(Line[4], 3)
+                                Distances[3].append(Distance)
                                 
                         for i in range(4):
-                            # print(i)
-                            # print(lDistances[i],len(lDistances[i]))
-                            if len(lDistances[i]) > 5:
-                                lDistances[i].sort()
-                                iNum = int(len(lDistances[i])/100*85)
-                                lDistance[i] = int(lDistances[i][iNum] * 1000)
+                            if len(Distances[i]) > 5:
+                                Distances[i].sort()
+                                iNum = int(len(Distances[i])/100*85)
+                                Distance[i] = int(Distances[i][iNum] * 1000)
                             else:
-                                lDistance[i] = 0
+                                Distance[i] = 0
 
-                        oFrontDist.value = lDistance[0]
-                        oRightDist.value = lDistance[1]
-                        oBackDist.value = lDistance[2]
-                        oLeftDist.value = lDistance[3]
-    #
-                        print(lDistance[0],lDistance[1],lDistance[2],lDistance[3])
+                    print(Distance[0],Distance[1],Distance[2],Distance[3])
                         
-                        oLidarProcessGetDataStatus.value = True
-                        sData = 'som' + 'fd' + str(oFrontDist.value) + 'rd' + str(oRightDist.value) + 'bd' + str(oBackDist.value) + 'ld' + str(oLeftDist.value) + 'eom'
-                        sendUART(oSerial,sData)
-                        print('LidarSent')
-                        oCompass.value = -1
     
