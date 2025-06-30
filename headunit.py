@@ -2,10 +2,13 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+from rclpy.signals import SignalHandlerOptions
 import threading
 import math
 import queue
 import time
+import signal
+from arisbit import ArisBit
 
 def GetLineStandardEquation(Line):
 
@@ -108,9 +111,10 @@ class Lidar:
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
 
+
     
     def ParseLidar(self):
-        rclpy.init(domain_id=self.DomainID)
+        rclpy.init(domain_id=self.DomainID,signal_handler_options=SignalHandlerOptions(0))
         LidarParser = YDLidarParser(self.LidarQueue)
         rclpy.spin(LidarParser)
     
@@ -194,5 +198,11 @@ class Lidar:
 
     def GetDists(self):
         return self.LidarDists
-                        
+
+# Bot = ArisBit()
+# Lidar = Lidar(Bot.GetYaw)
+
+# while True:
+#     time.sleep(1)
+
     
