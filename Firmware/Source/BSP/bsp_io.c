@@ -6,13 +6,13 @@ void IOInit(void)
     GPIO_InitTypeDef GPIO_InitStructure;
     RCC_APB2PeriphClockCmd(IO_1_CLK, ENABLE);
     GPIO_InitStructure.GPIO_Pin = IO_1_PIN;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
     GPIO_Init(IO_1_PORT, &GPIO_InitStructure);
     
     // Initialize IO_2
     RCC_APB2PeriphClockCmd(IO_2_CLK, ENABLE);
     GPIO_InitStructure.GPIO_Pin = IO_2_PIN;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
     GPIO_Init(IO_2_PORT, &GPIO_InitStructure);
 
     // Initialize IO_3

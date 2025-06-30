@@ -396,7 +396,7 @@ void vTask_OLED(void *pvParameters)
 
 void SendIO(void)
 {
-    #define LEN 7  // 参考Motion_Send_Data的格式
+    #define LEN 8  // 参考Motion_Send_Data的格式
     uint8_t data_buffer[LEN] = {0};
     uint8_t i, checknum = 0;
     uint8_t KeyState = 0;
