@@ -97,7 +97,6 @@ class Lidar:
         self.DomainID = 99
 
         self.LidarDists = [0,0,0,0]
-        self.Pos = [0,0,0]
 
         self.LidarQueue = queue.Queue()
 
@@ -163,7 +162,7 @@ class Lidar:
                         elif RoundThresholdJudger(Line[5], 180, Compass + 90, 20):
                             VerticalLines.append(Line)
                         
-                    print(Compass,len(HorizontalLines),len(VerticalLines))
+                    # print(Compass,len(HorizontalLines),len(VerticalLines))
                     Distances = [[],[],[],[]]
                     LidarDists = [0,0,0,0]
                 
@@ -191,6 +190,9 @@ class Lidar:
                             else:
                                 LidarDists[i] = 0
 
-                    print(LidarDists[0],LidarDists[1],LidarDists[2],LidarDists[3])
+                    self.LidarDists = LidarDists
+
+    def GetDists(self):
+        return self.LidarDists
                         
     
