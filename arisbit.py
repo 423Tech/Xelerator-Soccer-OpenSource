@@ -30,7 +30,7 @@ class ArisBit(object):
 
         self.FUNC_AUTO_REPORT = 0x01
         self.FUNC_BEEP = 0x02
-        self.FUNC_PWM_SERVO = 0x03
+        self.FUNC_SET_IO = 0x03
         self.FUNC_PWM_SERVO_ALL = 0x04
         self.FUNC_RGB = 0x05
         self.FUNC_RGB_EFFECT = 0x06
