@@ -1,4 +1,6 @@
 import math
+from arisbit import ArisBit
+from headunit import Lidar
 
 from ReasonData import QkJson, logger
 cfg = QkJson()
@@ -20,6 +22,10 @@ elif cfg.read("model","bit") == "RB":
 else:
     logger.error("None Bit Model found.")
     raise ImportError("None Bit Model found.")
+
+
+Bot = ArisBit()
+Lidar = Lidar(Bot.GetYaw)
 
 
 if (batt.get()) <= cfg.read("advanced","BattVot"):
@@ -73,42 +79,43 @@ def GetDists() -> list[int,int,int]:
     return LidarDists()
 
 def GetPos() -> list[int,int]:
-    if not cfg.read("Distance","On"):
-        Distance = GetDists()
-        iCfgK = 10
-        if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-            if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
-                Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
-            else:
-                Y = (((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
-        else:
-            Y = (((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-        if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-            if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-                X = -(cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
-            else:
-                X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
-        else:
-            X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
+    # if not cfg.read("Distance","On"):
+    #     Distance = GetDists()
+    #     iCfgK = 10
+    #     if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
+    #         if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
+    #             Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
+    #         else:
+    #             Y = (((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
+    #     else:
+    #         Y = (((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
+    #     if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
+    #         if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
+    #             X = -(cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
+    #         else:
+    #             X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
+    #     else:
+    #         X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
 
-        return [int(X)/10,int(Y)/10]
+    #     return [int(X)/10,int(Y)/10]
+    # else:
+    Distance = Lidar.GetDists()
+    Compass = Bot.GetYaw()
+    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
+        if Distance[0] > Distance[2]:
+            Y = cfg.read("Position","Height")/2 - Distance[0] -4
+        else:
+            Y = Distance[2] - cfg.read("Position","Height")/2 + 4
     else:
-        Distance = GetDists()
-        if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
-            if Distance[0] > Distance[2]:
-                Y = cfg.read("Position","Height")/2 - Distance[0] -4
-            else:
-                Y = Distance[2] - cfg.read("Position","Height")/2 + 4
+        Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
+    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
+        if Distance[1] > Distance[3]:
+            X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
         else:
-            Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
-        if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
-            if Distance[1] > Distance[3]:
-                X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
-            else:
-                X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
-        else:
-            X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
-        return [X,Y]
+            X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
+    else:
+        X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
+    return [X,Y,Compass]
 
 
 #Operate models
