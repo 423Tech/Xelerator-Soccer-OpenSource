@@ -69,7 +69,7 @@ class YDLidarParser(Node):
             self.scanCallback,
             qos_profile=oQos)
         
-        self.get_logger().info('YDLidar X3解析器已启动，等待数据...')
+        # self.get_logger().info('YDLidar X3解析器已启动，等待数据...')
         
     def scanCallback(self, msg):
         lRanges = []
@@ -142,7 +142,7 @@ class Lidar:
                 FrameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - LastTime >= 1.0:
-                    print(f"FPS: {FrameCount}")
+                    # print(f"FPS: {FrameCount}")
                     FrameCount = 0
                     LastTime = CurrentTime
 
