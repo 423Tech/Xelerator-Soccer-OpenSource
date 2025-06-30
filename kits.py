@@ -119,7 +119,7 @@ def GetPos() -> list[int,int]:
 
 
 #Operate models
-def RailGun():
+# def RailGun():
     
 
 def Cover2Start():
