@@ -86,6 +86,8 @@ class YDLidarParser(Node):
             Angle = AngleMin + i * AngleIncrement
             lRanges.append((math.degrees(Angle)+180, Ranges[i]))
 
+#        print(lRanges)
+
         self.Queue.put(lRanges)
 
 class Lidar:
@@ -163,7 +165,7 @@ class Lidar:
                         
                     print(Compass,len(HorizontalLines),len(VerticalLines))
                     Distances = [[],[],[],[]]
-                    Distance = [0,0,0,0]
+                    LidarDists = [0,0,0,0]
                 
                     if HorizontalLines and VerticalLines:
                         for Line in HorizontalLines:
@@ -185,10 +187,10 @@ class Lidar:
                             if len(Distances[i]) > 5:
                                 Distances[i].sort()
                                 iNum = int(len(Distances[i])/100*85)
-                                Distance[i] = int(Distances[i][iNum] * 1000)
+                                LidarDists[i] = int(Distances[i][iNum] * 1000)
                             else:
-                                Distance[i] = 0
+                                LidarDists[i] = 0
 
-                    print(Distance[0],Distance[1],Distance[2],Distance[3])
+                    print(LidarDists[0],LidarDists[1],LidarDists[2],LidarDists[3])
                         
     

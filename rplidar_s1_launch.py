@@ -15,7 +15,7 @@ def generate_launch_description():
     serial_port = LaunchConfiguration('serial_port', default='/dev/rplidar')
     serial_baudrate = LaunchConfiguration('serial_baudrate', default='256000') 
     frame_id = LaunchConfiguration('frame_id', default='laser')
-    inverted = LaunchConfiguration('inverted', default='false')
+    inverted = LaunchConfiguration('inverted', default='true')
     angle_compensate = LaunchConfiguration('angle_compensate', default='true')
     scan_frequency = LaunchConfiguration('scan_frequency', default='20.0')
 
