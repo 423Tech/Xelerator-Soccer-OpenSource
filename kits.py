@@ -115,7 +115,7 @@ def GetPos() -> list[int,int]:
             X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
-    return [X,Y,Compass]
+    return [X/10,Y/10,Compass]
 
 
 #Operate models

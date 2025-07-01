@@ -1208,7 +1208,7 @@ class ArisBit(object):
 
     # 获取电池电压值
     # Get the battery voltage
-    def GetBatteryVoltage(self):
+    def GetBatVol(self):
         vol = self.__battery_voltage / 10.0
         # self.__battery_voltage = 0
         return vol
