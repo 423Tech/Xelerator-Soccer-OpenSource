@@ -8,7 +8,8 @@ import math
 import queue
 import time
 import signal
-from arisbit import ArisBit
+import cv2
+import numpy as np
 
 def GetLineStandardEquation(Line):
 
@@ -199,10 +200,73 @@ class Lidar:
     def GetDists(self):
         return self.LidarDists
 
-# Bot = ArisBit()
-# Lidar = Lidar(Bot.GetYaw)
+class ArisCam:
+    def __init__(self,GetYaw=None):
+        self.GetYaw = GetYaw
 
-# while True:
-#     time.sleep(1)
+        self.CamPorts = [0,2,4,6]
 
+        self.Cams = []
+        self.Frames = []
+
+        self.PerspectiveMatrices = []
+        self.P2CK = []
+        self.P2CHB = []
+        self.P2CVB = []
+
+        self.InitCam(self.CamPorts)
+
+        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
+        self.ReadCamsThread.daemon = True
+        self.ReadCamsThread.start()
+
+        for i in range(4):
+            NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
+            PerspectiveMatrix = NumpyData['matrix']
+            self.PerspectiveMatrices.append(PerspectiveMatrix)
+            P2CK = NumpyData['p2c'][0]
+            self.P2CK.append(P2CK)
+            P2CHB = NumpyData['p2c'][1]
+            self.P2CHB.append(P2CHB)
+            P2CVB = NumpyData['p2c'][2]
+            self.P2CVB.append(P2CVB)
+
+    def InitCam(self,CamPorts,Width=320, Height=240, AutoExposure=3, Exposure=130, Brightness=0, Contrast=32, Saturation=64):
+        for Port in CamPorts:
+            Cam = cv2.VideoCapture(Port)
+            Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            Cam.set(cv2.CAP_PROP_FRAME_WIDTH, Width)
+            Cam.set(cv2.CAP_PROP_FRAME_HEIGHT, Height)
+            Cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, AutoExposure)
+            Cam.set(cv2.CAP_PROP_EXPOSURE, Exposure)
+            Cam.set(cv2.CAP_PROP_BRIGHTNESS, Brightness)
+            Cam.set(cv2.CAP_PROP_CONTRAST, Contrast)
+            Cam.set(cv2.CAP_PROP_SATURATION, Saturation)
+            self.Cams.append(Cam)
     
+    def ReadCams(self):
+        Frames = []
+        for Cam in self.Cams:
+            Frame = Cam.read()[1]
+            Frames.append(Frame)
+        self.Frames = Frames
+    
+    def ApplyPerspectiveTransform(X, Y, Matrix):
+        Point = np.array([X, Y, 1], dtype=np.float64)
+        Transformed = Matrix @ Point
+        Transformed /= Transformed[2]
+        return int(Transformed[0]), int(Transformed[1])
+
+    def Pixel2CM(self,X,Y,CamIndex):
+        P2CK = self.P2CK[CamIndex]
+        P2CHB = self.P2CHB[CamIndex]
+        P2CVB = self.P2CVB[CamIndex]
+
+        X, Y = self.ApplyPerspectiveTransform(X, Y, self.PerspectiveMatrices[CamIndex])
+
+        X = int(self.P2CK[CamIndex][0] * X + self.P2CHB[CamIndex][0])
+        Y = int(-self.P2CK[CamIndex][1] * Y + self.P2CVB[CamIndex][1])
+
+        return X, Y
+    
+
