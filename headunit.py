@@ -11,6 +11,8 @@ import signal
 import cv2
 import numpy as np
 
+
+
 def GetLineStandardEquation(Line):
 
     x1, y1, x2, y2 = Line
@@ -147,7 +149,7 @@ class Lidar:
                 FrameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - LastTime >= 1.0:
-                    # print(f"FPS: {FrameCount}")
+                    print(f"FPS: {FrameCount}")
                     FrameCount = 0
                     LastTime = CurrentTime
 
@@ -233,7 +235,7 @@ class ArisCam:
 
     def InitCam(self,CamPorts,Width=320, Height=240, AutoExposure=3, Exposure=130, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
-            Cam = cv2.VideoCapture(Port)
+            Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
             Cam.set(cv2.CAP_PROP_FRAME_WIDTH, Width)
             Cam.set(cv2.CAP_PROP_FRAME_HEIGHT, Height)
@@ -245,11 +247,21 @@ class ArisCam:
             self.Cams.append(Cam)
     
     def ReadCams(self):
-        Frames = []
-        for Cam in self.Cams:
-            Frame = Cam.read()[1]
-            Frames.append(Frame)
-        self.Frames = Frames
+        FrameCount = 0
+        LastTime = time.time()
+        while True:
+            Frames = []
+            for Cam in self.Cams:
+                Frame = Cam.read()[1]
+                Frames.append(Frame)
+            self.Frames = Frames
+            # print(1)
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                # print(f"FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
     
     def ApplyPerspectiveTransform(X, Y, Matrix):
         Point = np.array([X, Y, 1], dtype=np.float64)
@@ -268,5 +280,40 @@ class ArisCam:
         Y = int(-self.P2CK[CamIndex][1] * Y + self.P2CVB[CamIndex][1])
 
         return X, Y
+    
+    def FindBlobs(Frame, Threshold, Format = 2, ROI = None, MinPixelCount = 5):
+        if Format == 1:
+            Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2LAB)
+
+        elif Format == 2:
+            Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2HSV)
+
+        LowerThreshold = Threshold[0], Threshold[2], Threshold[4]
+        UpperThreshold = Threshold[1], Threshold[3], Threshold[5]
+
+
+
+        Mask = cv2.inRange(Frame, np.array(LowerThreshold), np.array(UpperThreshold))
+
+        # Kernel = np.ones((5, 5), np.uint8)
+        # Mask = cv2.erode(Mask, Kernel, iterations=1)
+        # Mask = cv2.dilate(Mask, Kernel, iterations=2)
+
+        Conters, _ = cv2.findContours(Mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        Blobs = []
+        for Conter in Conters:
+            Area = cv2.contourArea(Conter)
+            if Area >= MinPixelCount:
+                X, Y, W, H = cv2.boundingRect(Conter)
+                CX = int(X + W / 2) 
+                CY = int(Y + H / 2)
+                if ROI is not None and (CX < ROI[0] or CX > ROI[0] + ROI[2]) or (CY < ROI[1] or CY > ROI[1] + ROI[3]):
+                    continue
+                Blobs.append((X, Y, W, H, CX, CY))
+        return Blobs
+
+
+
     
 
