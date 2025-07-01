@@ -202,7 +202,7 @@ class Lidar:
     def GetDists(self):
         return self.LidarDists
 
-class ArisCam:
+class ArisuIntelligence:
     def __init__(self,GetYaw=None):
         self.GetYaw = GetYaw
 
@@ -216,11 +216,10 @@ class ArisCam:
         self.P2CHB = []
         self.P2CVB = []
 
-        self.InitCam(self.CamPorts)
+        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
+        self.BallPos = [0,0]
 
-        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
-        self.ReadCamsThread.daemon = True
-        self.ReadCamsThread.start()
+        self.InitCam(self.CamPorts)
 
         for i in range(4):
             NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
@@ -233,7 +232,19 @@ class ArisCam:
             P2CVB = NumpyData['p2c'][2]
             self.P2CVB.append(P2CVB)
 
-    def InitCam(self,CamPorts,Width=320, Height=240, AutoExposure=3, Exposure=130, Brightness=0, Contrast=32, Saturation=64):
+        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
+        self.ReadCamsThread.daemon = True
+        self.ReadCamsThread.start()
+
+        time.sleep(5)
+
+        self.FindBallThread = threading.Thread(target=self.FindBall)
+        self.FindBallThread.daemon = True
+        self.FindBallThread.start()
+
+
+
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -263,7 +274,7 @@ class ArisCam:
                 FrameCount = 0
                 LastTime = CurrentTime
     
-    def ApplyPerspectiveTransform(X, Y, Matrix):
+    def ApplyPerspectiveTransform(self,X, Y, Matrix):
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
         Transformed /= Transformed[2]
@@ -276,12 +287,20 @@ class ArisCam:
 
         X, Y = self.ApplyPerspectiveTransform(X, Y, self.PerspectiveMatrices[CamIndex])
 
-        X = int(self.P2CK[CamIndex][0] * X + self.P2CHB[CamIndex][0])
-        Y = int(-self.P2CK[CamIndex][1] * Y + self.P2CVB[CamIndex][1])
+        X = int(self.P2CK[CamIndex] * X + self.P2CHB[CamIndex])
+        Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
 
         return X, Y
     
-    def FindBlobs(Frame, Threshold, Format = 2, ROI = None, MinPixelCount = 5):
+    def FindMaxBlob(self, Blobs):
+        MaxSize=0
+        for Blob in Blobs:
+            if Blob[2]*Blob[3] > MaxSize:
+                MaxBlob=Blob
+                MaxSize = Blob[2] * Blob[3]
+        return MaxBlob
+
+    def FindBlobs(self, Frame, Threshold, Format = 2, ROI = None, MinPixelCount = 5):
         if Format == 1:
             Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2LAB)
 
@@ -308,10 +327,57 @@ class ArisCam:
                 X, Y, W, H = cv2.boundingRect(Conter)
                 CX = int(X + W / 2) 
                 CY = int(Y + H / 2)
-                if ROI is not None and (CX < ROI[0] or CX > ROI[0] + ROI[2]) or (CY < ROI[1] or CY > ROI[1] + ROI[3]):
+                if ROI is not None and ((CX < ROI[0] or CX > ROI[0] + ROI[2]) or (CY < ROI[1] or CY > ROI[1] + ROI[3])):
                     continue
                 Blobs.append((X, Y, W, H, CX, CY))
         return Blobs
+    
+    def FindBall(self):
+        while True:
+            Balls = []
+            for i in range(4):
+                Blobs = []
+                Frame = self.Frames[i]
+                Blobs = self.FindBlobs(Frame, self.OrangeThreshold)
+                # print(Blobs)
+            
+                if Blobs:
+                    MaxBlob = self.FindMaxBlob(Blobs)
+                    X = MaxBlob[4]
+                    Y = MaxBlob[1] + MaxBlob[3]
+                    X, Y = self.Pixel2CM(X, Y, i)
+                    Balls.append((X, Y, i))
+            
+            if Balls:
+                X = Balls[0][0]
+                Y = Balls[0][1]
+                CamIndex = Balls[0][2]
+                if CamIndex == 0:
+                    BX = X
+                    BY = Y
+                elif CamIndex == 1:
+                    BY = -X
+                    BX = Y
+                elif CamIndex == 2:
+                    BX = -X
+                    BY = -Y
+                elif CamIndex == 3:
+                    BY = X
+                    BX = -Y
+            else:
+                BX = 0
+                BY = 0
+
+
+            self.BallPos = [BX, BY]
+            time.sleep(0.03)
+    
+    def GetBallPos(self):
+        return self.BallPos
+
+
+    
+
 
 
 
