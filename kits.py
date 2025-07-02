@@ -70,16 +70,16 @@ def GetPos() -> list[int,int]:
     Distance = GetDistance()
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
         if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")/2 - Distance[0] -4
+            Y = cfg.read("Position","Height")/2 - Distance[0]
         else:
-            Y = Distance[2] - cfg.read("Position","Height")/2 + 4
+            Y = Distance[2] - cfg.read("Position","Height")/2
     else:
         Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
     if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
         if Distance[1] > Distance[3]:
-            X = -(cfg.read("Position","Width")/2 - Distance[1] - 4)
+            X = -(cfg.read("Position","Width")/2 - Distance[1])
         else:
-            X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
+            X = -(Distance[3] - cfg.read("Position","Width")/2)
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X/10,Y/10,compass()]
@@ -172,7 +172,7 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     try:
         iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
         chassis.GoV(iFacingAngle,iAimAngle,iSpeed)
-        # car.z_move(iFacingAngle,iAimAngle,200)
+        # c.GoA(iFacingAngle,iAimAngle,200)
     except:
         chassis.stop()
 
@@ -250,14 +250,14 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
             chassis.stop()
             return True
         else:
-        # chassis.turn(iFacingAngle)
+        # chassis.GoZ(iFacingAngle)
             # Go2(iFacingAngle,iDeltaX,iDeltaY)
             if iDeltaY > 0:
                 iAngle = 180
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            chassis.GoA(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
 def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -314,16 +314,16 @@ def CircleAround(iAimAngle):
             break
         else:
             chassis.SetMotor(iDirectionFactor * 30,-iDirectionFactor * (130 - iDeltaAngle),-iDirectionFactor * 30,iDirectionFactor * (130 - iDeltaAngle))
-    chassis.turn(iAimAngle)
+    chassis.GoZ(iAimAngle)
     while(1):
         iBX = GetBallPos()[0]
         if iBX <= -2:
             print('atleft')
-            chassis.z_move(iAimAngle,iAimAngle + 90,-20)
+            chassis.GoA(iAimAngle,iAimAngle + 90,-20)
 #            chassischassis.SetMotor(-30,30,30,-30)
         elif iBX >= 2:
             print('atright')
-            chassis.z_move(iAimAngle,iAimAngle + 90,20)
+            chassis.GoA(iAimAngle,iAimAngle + 90,20)
 #            chassis.SetMotor(30,-30,-30,30)
         else:
             for _ in range(3):
@@ -453,14 +453,14 @@ def Offence():
             iAimAngle = AimBall([iBX - 2,iBY - 10])
         elif iBX >= 0:
             iAimAngle = AimBall([iBX + 2,iBY - 10])
-        chassis.z_move(0,iAimAngle,150)
+        chassis.GoA(0,iAimAngle,150)
     elif iBY <= -7:
         if iAbsBX < 0:
             iAimAngle = AimBall([iBX + 20,iBY - 10])
         elif iAbsBX >= 0:
             iAimAngle = AimBall([iBX - 20,iBY - 10])
         
-        chassis.z_move(0,iAimAngle,150)
+        chassis.GoA(0,iAimAngle,150)
     
     print(iX,iY,iBX,iBY,iAbsBX,iAbsBY)
 
