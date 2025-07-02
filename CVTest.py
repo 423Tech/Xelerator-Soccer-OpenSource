@@ -8,14 +8,14 @@ app = FastAPI()
 
 # 全局变量存储摄像头对象
 camera = None
-camera_num = 1 
+camera_num = 2
 camera_lock = threading.Lock()
 
 def initialize_camera():
     global camera
     with camera_lock:
         if camera is None:
-            camera = cv2.VideoCapture(camera_num)
+            camera = cv2.VideoCapture(camera_num,cv2.CAP_V4L2)
             if not camera.isOpened():
                 print("Error: Camera not found.")
                 return False
