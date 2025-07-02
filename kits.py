@@ -7,14 +7,15 @@ cfg = QkJson()
 from chassis import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
 ArisuCam = ArisuIntelligence()
-if cfg.read("model","bit") == "AB":
+if cfg.read("model","Bit") == "AB":
     from arisbit import ArisBit
-    lidar = Lidar(ArisBit().GetYaw)
-    chassis = Car(ArisBit().SetMotor,ArisBit().GetYaw)
-    compass = ArisBit().GetYaw
-    peripheral = Peripherals(ArisBit().SetIO)
+    Bits = ArisBit()
+    lidar = Lidar(Bits.GetYaw)
+    chassis = Car(Bits.SetMotor,Bits.GetYaw)
+    compass = Bits.GetYaw
+    peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
-elif cfg.read("model","bit") == "RB":
+elif cfg.read("model","Bit") == "RB":
     from ReasonBit import motor
     from ReasonBit import compass
     from ReasonBit import batt
@@ -22,12 +23,9 @@ elif cfg.read("model","bit") == "RB":
     logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model found.")
+    # breakpoint()
     raise ImportError("None Bit Model found.")
 
-
-
-if (batt.get()) <= cfg.read("advanced","BattVot"):
-   raise Exception("电池电量不足，请充电")
 
 #Values
 bLife = False

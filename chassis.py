@@ -26,6 +26,9 @@ class Car:
     def SetKp(self,Kp):
         self.Kp = Kp
     
+    def Compass(self):
+        return self.GetYaw() if self.GetYaw is not None else None
+
     def Go(self,SpeedX,SpeedY,SpeedZ):
         '''
         stand for a vector movement (SpeedX,SpeedY,SpeedZ)
