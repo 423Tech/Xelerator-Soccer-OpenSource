@@ -1,17 +1,18 @@
 import math
-from arisbit import ArisBit
-from headunit import Lidar
+import time
 
 from ReasonData import QkJson, logger
 cfg = QkJson()
 
-
-
-
-from chassis import Car
+from chassis import Car,Peripherals
+from headunit import Lidar,ArisuIntelligence
+ArisuCam = ArisuIntelligence()
 if cfg.read("model","bit") == "AB":
-    from .ArisBit import ArisBit
+    from arisbit import ArisBit
+    lidar = Lidar(ArisBit().GetYaw)
     chassis = Car(ArisBit().SetMotor,ArisBit().GetYaw)
+    compass = ArisBit().GetYaw
+    peripheral = Peripherals(ArisBit().SetIO)
     logger.info("Arisu Bit loaded.")
 elif cfg.read("model","bit") == "RB":
     from ReasonBit import motor
@@ -24,9 +25,6 @@ else:
     raise ImportError("None Bit Model found.")
 
 
-Bot = ArisBit()
-Lidar = Lidar(Bot.GetYaw)
-
 
 if (batt.get()) <= cfg.read("advanced","BattVot"):
    raise Exception("电池电量不足，请充电")
@@ -38,8 +36,6 @@ bCovered = False
 lBallPos = [0,0]
 lLidarDists = [0,0,0,0]
 bThreadControllerFlag = True
-iUARTPort = 1
-
 
 #Math Mod
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
@@ -59,48 +55,19 @@ def FindNearstAngle(arr, target):
 
 
 #Value Mod
-def LidarDists():
-    # ClearUART(1)
-    # iCompass = str(int(compass.read()))
-    # sSentData = 'cmp'+str(iCompass)+'end'
-    # SendUART(1,sSentData)
-    # sReceivedDataFrame = GetUART(1)
-    # sParsedDataFrame = sReceivedDataFrame[sReceivedDataFrame.index('som')+3:sReceivedDataFrame.index('eom',sReceivedDataFrame.index('som'))+3]
-    # iFrontDist = int(sParsedDataFrame[sParsedDataFrame.index('fd')+2:sParsedDataFrame.index('rd')])
-    # iRightDist = int(sParsedDataFrame[sParsedDataFrame.index('rd')+2:sParsedDataFrame.index('bd')])
-    # iBackDist = int(sParsedDataFrame[sParsedDataFrame.index('bd')+2:sParsedDataFrame.index('ld')])
-    # iLeftDist = int(sParsedDataFrame[sParsedDataFrame.index('ld')+2:sParsedDataFrame.index('eom')])
-    # lOutDists = [iFrontDist,iRightDist,iBackDist,iLeftDist]
-    # return lOutDists
-    pass
 
 #TODO Need update
-def GetDists() -> list[int,int,int]:
-    return LidarDists()
+def GetBallPos():
+    ArisuCam.__init__()
+
+def GetDistance() -> list[int,int,int]:
+    '''
+    获取激光雷达的距离数据
+    '''
+    return lidar.GetDists()
 
 def GetPos() -> list[int,int]:
-    # if not cfg.read("Distance","On"):
-    #     Distance = GetDists()
-    #     iCfgK = 10
-    #     if Distance[0]+Distance[2] < (cfg.read("Position","Height")*iCfgK):
-    #         if (cfg.read("Position","Height")*iCfgK) > Distance[0] > Distance[2]:
-    #             Y = (((cfg.read("Position","Height")*(iCfgK/2))) - (Distance[0]))
-    #         else:
-    #             Y = (((Distance[2]) - (cfg.read("Position","Height")*iCfgK/2)))
-    #     else:
-    #         Y = (((cfg.read("Position","Height")*(iCfgK/2)) - Distance[0]) + (Distance[2] - (cfg.read("Position","Height")*(iCfgK/2))))/2
-    #     if Distance[1]+Distance[3] < (cfg.read("Position","Width")*iCfgK):
-    #         if (cfg.read("Position","Height")*iCfgK) > Distance[1] > Distance[3]:
-    #             X = -(cfg.read("Position","Width")*(iCfgK/2) - Distance[1])
-    #         else:
-    #             X = -(Distance[3] - cfg.read("Position","Width")*(iCfgK/2))
-    #     else:
-    #         X = -((cfg.read("Position","Width")*(iCfgK/2) - Distance[1] ) + (Distance[3] - cfg.read("Position","Width")*(iCfgK/2)))/2
-
-    #     return [int(X)/10,int(Y)/10]
-    # else:
-    Distance = Lidar.GetDists()
-    Compass = Bot.GetYaw()
+    Distance = GetDistance()
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")/2 - Distance[0] -4
@@ -115,16 +82,16 @@ def GetPos() -> list[int,int]:
             X = -(Distance[3] - cfg.read("Position","Width")/2 + 4)
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
-    return [X/10,Y/10,Compass]
+    return [X/10,Y/10,compass()]
 
 
 #Operate models
-# def RailGun():
-    
+def RailGun():
+    peripheral.ShootBall()
 
 def Cover2Start():
     global bCovered
-    if LidarDists()[0] < 10 or bCovered:
+    if GetDistance()[0] < 10 or bCovered:
         bCovered = True
         return True
     else:
@@ -161,9 +128,9 @@ def AvoidOutBorder():
         iMoveAngle = iMoveAngle*iKX*iKY
         if iMoveAngle == -180:
             iMoveAngle = 0
-        GoV(0,-iMoveAngle,200)
+        chassis.GoV(0,-iMoveAngle,200)
     except:
-        car.stop()
+        chassis.stop()
 
 def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     '''
@@ -172,7 +139,7 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
     global lBlockedMemo,iMemoLife,bLife
     lStatusOfDist = [[],[]]
     # iMaxLife = cfg.read("A2AOb","LifeTime")
-    lDists = GetDists()
+    lDists = GetDistance()
     iNumOfDist = len(lDists)
     iPerAngle = int(359/iNumOfDist)
     if len(lStatusOfDist) < iNumOfDist:
@@ -204,10 +171,10 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
     print(lAvailbeAngles)
     try:
         iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-        GoV(iFacingAngle,iAimAngle,iSpeed)
+        chassis.GoV(iFacingAngle,iAimAngle,iSpeed)
         # car.z_move(iFacingAngle,iAimAngle,200)
     except:
-        car.stop()
+        chassis.stop()
 
 def Local2Angle(lAimPos:list[int,int]) -> int:
     '''
@@ -252,7 +219,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
     # AvoidOutBorder()
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
-    delay.ms(100)
+    time.sleep(0.01)
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
@@ -269,7 +236,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
-            car.stop()
+            chassis.stop()
         else:
             if 0 > iDeltaX:
                 PA = Local2Angle(lAimPos) + 180
@@ -280,17 +247,17 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
             AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
-            car.stop()
+            chassis.stop()
             return True
         else:
-        # car.turn(iFacingAngle)
+        # chassis.turn(iFacingAngle)
             # Go2(iFacingAngle,iDeltaX,iDeltaY)
             if iDeltaY > 0:
                 iAngle = 180
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            car.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            chassis.z_move(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
 def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -308,7 +275,7 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
                 if i == Posistions[-1]:
                     return True
                 else:
-                    delay.ms(iWaitMs)
+                    time.sleep(iWaitMs)
                     break
             else:
                 Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
@@ -346,21 +313,21 @@ def CircleAround(iAimAngle):
         if roundThresholdJudger(compass.read(), 360, iAimAngle, 3):
             break
         else:
-            set_motor.RPM(iDirectionFactor * 30,-iDirectionFactor * (130 - iDeltaAngle),-iDirectionFactor * 30,iDirectionFactor * (130 - iDeltaAngle))
-    car.turn(iAimAngle)
+            chassis.SetMotor(iDirectionFactor * 30,-iDirectionFactor * (130 - iDeltaAngle),-iDirectionFactor * 30,iDirectionFactor * (130 - iDeltaAngle))
+    chassis.turn(iAimAngle)
     while(1):
         iBX = GetBallPos()[0]
         if iBX <= -2:
             print('atleft')
-            car.z_move(iAimAngle,iAimAngle + 90,-20)
-#            set_motor.RPM(-30,30,30,-30)
+            chassis.z_move(iAimAngle,iAimAngle + 90,-20)
+#            chassischassis.SetMotor(-30,30,30,-30)
         elif iBX >= 2:
             print('atright')
-            car.z_move(iAimAngle,iAimAngle + 90,20)
-#            set_motor.RPM(30,-30,-30,30)
+            chassis.z_move(iAimAngle,iAimAngle + 90,20)
+#            chassis.SetMotor(30,-30,-30,30)
         else:
             for _ in range(3):
-                set_motor.RPM(0,0,0,0)
+                chassis.SetMotor(0,0,0,0)
             break
     print('stopped')
 
@@ -369,10 +336,10 @@ def TurnToTheBall():
         lBallPos = GetBallPos()
         iX, iY = lBallPos[0], lBallPos[1]
         if -2 <= iX <= 2 and iY > 0:
-            car.stop()
+            chassis.stop()
             break
         else:
-            set_motor.RPM(20,20,-20,-20)
+            chassis.SetMotor(20,20,-20,-20)
 
 def AutoFetch(bStop = True):
     TurnToTheBall()
@@ -381,17 +348,17 @@ def AutoFetch(bStop = True):
         iBX, iBY = lBallPos[0], lBallPos[1]
         SpeedL = 30 + 3 * iBX
         SpeedR = 30 - 3 * iBX
-        set_motor.RPM(SpeedL, SpeedL, SpeedR, SpeedR)
+        chassis.SetMotor(SpeedL, SpeedL, SpeedR, SpeedR)
         if iBX > -2 and iBX < 2 and iBY >= 7 and iBY <= 9:
             if bStop:
-                car.stop()
+                chassis.stop()
             break
 
 def Move2Pos(iFacingAngle,lPos):
     while not Pos2Pos(0,lPos,False):
         pass
     for _ in range(3):
-        set_motor.RPM(0,0,0,0)
+        chassis.SetMotor(0,0,0,0)
 
 def RunCircle(r:int, angle:int,a:int):
     iSpeed = 355/r
@@ -403,15 +370,15 @@ def RunCircle(r:int, angle:int,a:int):
     z= -int(iInsideSpeed * math.sin(iRad))
     w= -int(iOutsideSpeed* math.cos(iRad))
     if (a == 1):   #正
-        set_motor.RPM(x,y,z,w)
+        chassis.SetMotor(x,y,z,w)
     elif( a == -1 ): #反
-        set_motor.RPM(z,w,x,y)
+        chassis.SetMotor(z,w,x,y)
     else:
-        set_motor(0,0,0,0)
+        chassis.stop
     length = r * iRad  # 弧长
-    time = length / iSpeed
-    delay.ms(time)
-    set_motor.RPM(0, 0, 0, 0)
+    Ktime = length / iSpeed
+    time.sleep(Ktime/100)
+    chassis.stop
 
 def GoDistance(iDistance):
     iDistance = iDistance * 10
@@ -432,14 +399,14 @@ def GoDistance(iDistance):
     else:
         return False
     
-    iAimDist = GetDists()[iFacingDistIndex] - iDistance
+    iAimDist = GetDistance()[iFacingDistIndex] - iDistance
     
     while(1):
-        car.straight(iMovingAngle, 20)
-        iCurrentDist = GetDists()[iFacingDistIndex]
+        chassis.straight(iMovingAngle, 20)
+        iCurrentDist = GetDistance()[iFacingDistIndex]
         print(iCurrentDist,iAimDist)
         if iCurrentDist < iAimDist + 10:
-            set_motor.RPM(0,0,0,0)
+            chassis.stop()
             break
 
 #Offense & Defense
@@ -468,33 +435,32 @@ def Offence():
     iAbsBX = iX + iBX
     iAbsBY = iY + iBY
 
-    set_io.out(13,1)
-    set_io.out(14,0)
+    peripheral.DribbleBall()
 
     if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
         GoBack()
     elif 7 <= iBY <= 30:
         if -2 <= iBX <= 2:
-            GoY(500)
-            delay.ms(50)
+            chassis.GoY(500)
+            time.sleep(0.05)
             GoBack()
         elif iBX < -2:
-            GoX(-50)
+            chassis.GoX(-50)
         elif iBX > 2:
-            GoX(50)
+            chassis.GoX(50)
     elif iBY > 30:
         if iBX < 0:
             iAimAngle = AimBall([iBX - 2,iBY - 10])
         elif iBX >= 0:
             iAimAngle = AimBall([iBX + 2,iBY - 10])
-        car.z_move(0,iAimAngle,150)
+        chassis.z_move(0,iAimAngle,150)
     elif iBY <= -7:
         if iAbsBX < 0:
             iAimAngle = AimBall([iBX + 20,iBY - 10])
         elif iAbsBX >= 0:
             iAimAngle = AimBall([iBX - 20,iBY - 10])
         
-        car.z_move(0,iAimAngle,150)
+        chassis.z_move(0,iAimAngle,150)
     
     print(iX,iY,iBX,iBY,iAbsBX,iAbsBY)
 
@@ -512,7 +478,7 @@ def Defence()->None:
         Pos2Pos(0,cfg.read("Position","Home"),False)
     else:
         if lBallPos[0] > 0:
-            car.z_move(0,90,5*lBallPos[0])
+            chassis.GoA(0,90,5*lBallPos[0])
         else:
-            car.z_move(0,-90,5*lBallPos[0])
+            chassis.GoA(0,-90,5*lBallPos[0])
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
