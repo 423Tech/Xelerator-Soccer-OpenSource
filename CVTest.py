@@ -8,17 +8,21 @@ app = FastAPI()
 
 # 全局变量存储摄像头对象
 camera = None
-camera_num = 1 
+camera_num = 2
 camera_lock = threading.Lock()
 
 def initialize_camera():
     global camera
     with camera_lock:
-        if camera is None:
-            camera = cv2.VideoCapture(camera_num)
-            if not camera.isOpened():
-                print("Error: Camera not found.")
-                return False
+        # 如果摄像头已存在，先释放
+        if camera is not None:
+            camera.release()
+            
+        camera = cv2.VideoCapture(camera_num, cv2.CAP_V4L2)
+        if not camera.isOpened():
+            print(f"Error: Camera {camera_num} not found.")
+            camera = None
+            return False
     return True
 
 def generate_frames():
@@ -42,8 +46,6 @@ def generate_frames():
             # 生成多部分响应格式
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        
-        # time.sleep(0.033)  # 约30fps
 
 @app.get("/")
 async def home():
@@ -95,19 +97,89 @@ async def home():
             button:hover {
                 background-color: #0056b3;
             }
+            .camera-selector {
+                margin: 20px 0;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 5px;
+            }
+            input[type="number"] {
+                padding: 8px;
+                margin: 0 10px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                width: 80px;
+            }
+            .status {
+                margin: 10px 0;
+                padding: 10px;
+                border-radius: 5px;
+                background-color: #e9ecef;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <h1>实时摄像头画面</h1>
+            
+            <div class="status" id="camera-status">
+                当前摄像头: <span id="current-camera">加载中...</span> | 
+                状态: <span id="camera-state">检测中...</span>
+            </div>
+            
             <img id="video-stream" src="/video_feed" alt="Video Stream">
+            
+            <div class="camera-selector">
+                <label for="camera-input">摄像头端口号:</label>
+                <input type="number" id="camera-input" value="2" min="0" max="10">
+                <button onclick="changeCamera()">切换摄像头</button>
+            </div>
+            
             <div class="controls">
                 <button onclick="location.reload()">刷新页面</button>
                 <button onclick="toggleFullscreen()">全屏显示</button>
+                <button onclick="updateStatus()">更新状态</button>
             </div>
         </div>
         
         <script>
+            // 切换摄像头功能
+            async function changeCamera() {
+                const cameraId = document.getElementById('camera-input').value;
+                try {
+                    const response = await fetch(`/change_camera/${cameraId}`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert(result.message);
+                        // 重新加载视频流
+                        const videoImg = document.getElementById('video-stream');
+                        videoImg.src = '/video_feed?' + new Date().getTime();
+                        updateStatus();
+                    } else {
+                        alert('切换失败: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('切换摄像头时发生错误: ' + error.message);
+                }
+            }
+            
+            // 更新摄像头状态
+            async function updateStatus() {
+                try {
+                    const response = await fetch('/camera_status');
+                    const status = await response.json();
+                    
+                    document.getElementById('current-camera').textContent = status.current_camera;
+                    document.getElementById('camera-state').textContent = status.status;
+                    document.getElementById('camera-input').value = status.current_camera;
+                } catch (error) {
+                    console.error('更新状态失败:', error);
+                }
+            }
+            
             function toggleFullscreen() {
                 const img = document.getElementById('video-stream');
                 if (!document.fullscreenElement) {
@@ -118,6 +190,13 @@ async def home():
                     document.exitFullscreen();
                 }
             }
+            
+            // 页面加载完成后更新状态
+            window.onload = function() {
+                updateStatus();
+                // 定期更新状态
+                setInterval(updateStatus, 5000);
+            };
             
             // 检测图像加载错误
             document.getElementById('video-stream').onerror = function() {
@@ -141,6 +220,38 @@ async def video_feed():
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
 
+@app.post("/change_camera/{camera_id}")
+async def change_camera(camera_id: int):
+    """切换摄像头端口"""
+    global camera, camera_num
+    
+    with camera_lock:
+        # 释放当前摄像头
+        if camera is not None:
+            camera.release()
+            camera = None
+        
+        # 更新摄像头编号
+        camera_num = camera_id
+        
+        # 尝试初始化新的摄像头
+        if initialize_camera():
+            return {"success": True, "message": f"成功切换到摄像头 {camera_id}"}
+        else:
+            return {"success": False, "message": f"无法打开摄像头 {camera_id}"}
+
+@app.get("/camera_status")
+async def camera_status():
+    """获取当前摄像头状态"""
+    global camera, camera_num
+    with camera_lock:
+        is_active = camera is not None and camera.isOpened()
+        return {
+            "current_camera": camera_num,
+            "is_active": is_active,
+            "status": "正常运行" if is_active else "未连接"
+        }
+
 @app.on_event("startup")
 async def startup_event():
     """应用启动时初始化摄像头"""
@@ -157,4 +268,4 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
