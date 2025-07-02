@@ -62,14 +62,18 @@ class Car:
     def GoX(self,Angle,Speed):
         if self.GetYaw is None:
             return False
+        self.GoA(Angle,90,Speed)
    
     def GoY(self,Angle,Speed):
         if self.GetYaw is None:
             return False
+        self.GoA(Angle,0,Speed)
+
     
     def GoZ(self,Angle):
         if self.GetYaw is None:
             return False
+        self.GoA(Angle,0,0)
     
     def stop(self):
         self.SetMotor(0,0,0,0)
