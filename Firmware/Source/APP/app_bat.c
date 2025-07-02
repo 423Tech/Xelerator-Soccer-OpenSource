@@ -80,7 +80,7 @@ uint8_t Bat_Get_Low_Voltage(void)
 	{
 		return 65;
 	}
-	return 96;
+	return 105;
 }
 
 // Rosmaster系列小车使用的是12.6V电池组，电压过高报警阈值为13.0V。
