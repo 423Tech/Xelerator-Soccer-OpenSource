@@ -21,11 +21,15 @@ class Car:
             self.logger = logger
     
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
+        self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
         self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
         self.Kp = Kp
     
+    def Compass(self):
+        return self.GetYaw() if self.GetYaw is not None else None
+
     def Go(self,SpeedX,SpeedY,SpeedZ):
         '''
         stand for a vector movement (SpeedX,SpeedY,SpeedZ)
@@ -87,7 +91,7 @@ class Peripherals:
         from ReasonData import logger
         self.logger = logger
         self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
-        self.DribbleIO = self.cfg.read("Ports","DribbleIO")
+        self.DribbleIO = self.cfg.read("Ports","Dribble")
 
     def ShootBall(self):
         self.SetIO(self.ElecMagnetIO,0)

@@ -17,8 +17,8 @@ class QkJson:
                 },
                 "Ports": {
                     "Trigger" : 0,
-                    "ElecMagnet" : 4,
-                    "Dribble" : 3,
+                    "ElecMagnet" : 3,
+                    "Dribble" : 4,
                 },
                 "Border" : {
                     "0": [60,95],
@@ -28,7 +28,7 @@ class QkJson:
                     "ErrorRange": 20,
                     "Width": 180,
                     "Height": 240,
-                    "Home": [0,-70],
+                    "Home": [0,-70,0],
                 },
                 "BLE" : {
                     "Setup": False,
