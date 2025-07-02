@@ -21,6 +21,7 @@ class Car:
             self.logger = logger
     
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
+        self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
         self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):

@@ -15,12 +15,12 @@ if cfg.read("model","Bit") == "AB":
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
-elif cfg.read("model","Bit") == "RB":
-    from ReasonBit import motor
-    from ReasonBit import compass
-    from ReasonBit import batt
-    chassis = Car(motor.RPM,compass.get)
-    logger.info("RoboMaster Bit loaded.")
+# elif cfg.read("model","Bit") == "RB":
+    # from ReasonBit import motor
+    # from ReasonBit import compass
+    # from ReasonBit import batt
+    # chassis = Car(motor.RPM,compass.get)
+    # logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model found.")
     # breakpoint()
@@ -51,12 +51,35 @@ def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
 def FindNearstAngle(arr, target):
     return min(arr, key=lambda x: abs(x - target))
 
+def linear_map(value, input_range, output_range):
+    """
+    通用线性映射函数
+    
+    Args:
+        value: 要映射的值
+        input_range: 输入范围 (min, max)
+        output_range: 输出范围 (min, max)
+    
+    Returns:
+        映射后的值
+    """
+    input_min, input_max = input_range
+    output_min, output_max = output_range
+    
+    # 计算映射
+    input_span = input_max - input_min
+    output_span = output_max - output_min
+    
+    scaled_value = (value - input_min) / input_span
+    mapped_value = output_min + (scaled_value * output_span)
+    
+    return mapped_value
 
 #Value Mod
 
 #TODO Need update
 def GetBallPos():
-    ArisuCam.__init__()
+    return ArisuCam.GetBallPos()
 
 def GetDistance() -> list[int,int,int]:
     '''
@@ -207,7 +230,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
     iDeltaAngle = math.degrees(math.atan2(iDeltaY,iDeltaX))
     return int(iDeltaAngle)
 
-def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
+def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
 
     '''
     iFacingAngle 移动时面对的方向 0~360
@@ -217,12 +240,15 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
     # AvoidOutBorder()
     iAimX = lAimPos[0]
     iAimY = lAimPos[1]
-    time.sleep(0.01)
+    iAimZ = lAimPos[2]
+    # time.sleep(0.01)
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
+    iLocZ = lLocal[2]
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
+    iDeltaZ = iAimZ - iLocZ
     if iDeltaX > 500:
         iDeltaX = iDeltaX/5
     if iDeltaY > 500:
@@ -233,7 +259,7 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
         iDeltaY = iDeltaY*3
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
-        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange:
+        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange and iErrorRange > iDeltaZ > -iErrorRange:
             chassis.stop()
         else:
             if 0 > iDeltaX:
@@ -242,9 +268,9 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
                 PA = Local2Angle(lAimPos)
             if 0 > iDeltaY:
                 PA = Local2Angle(lAimPos) - 180
-            AvoidObt(iFacingAngle,PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
+            AvoidObt(lAimPos[2],PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
-        if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
+        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange and iErrorRange > iDeltaZ > -iErrorRange:
             chassis.stop()
             return True
         else:
@@ -255,15 +281,16 @@ def Pos2Pos(iFacingAngle,lAimPos:list[int,int], A2O:bool | None = False) -> int:
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.GoA(iFacingAngle,90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
-def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWaitMs:int,A2O:bool | None = False):
+def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
     iErrorRange = cfg.read("Position","ErrorRange")/2
     for i in Posistions:
         while (1):
             iAimX = i[0]
             iAimY = i[1]
+            iAimZ = i[2]
             lLocal = GetPos()
             iLocX = lLocal[0]
             iLocY = lLocal[1]
@@ -276,22 +303,10 @@ def Move2Path(iFacingAngle:int,Posistions:list[list[int,int],list[int,int]],iWai
                     time.sleep(iWaitMs)
                     break
             else:
-                Pos2Pos(iFacingAngle=iFacingAngle,lAimPos=i,A2O=A2O)
-
-def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
-    iValue = iValue % iRound
-    iLowerThreshold = (iMiddleValue - iOffset) % iRound
-    iUpperThreshold = (iMiddleValue + iOffset) % iRound
-    
-    if iLowerThreshold <= iUpperThreshold:
-        return iLowerThreshold <= iValue <= iUpperThreshold
-    else:
-        return iValue >= iLowerThreshold or iValue <= iUpperThreshold
+                Pos2Pos(lAimPos=i,A2O=A2O)
 
 def CircleAround(iAimAngle):
     iCompass = int(compass.read())
-
-
     if roundThresholdJudger(iCompass,360,iAimAngle+90,90):
         iDirectionFactor = 1
     else:
@@ -352,8 +367,8 @@ def AutoFetch(bStop = True):
                 chassis.stop()
             break
 
-def Move2Pos(iFacingAngle,lPos):
-    while not Pos2Pos(0,lPos,False):
+def Move2Pos(lPos):
+    while not Pos2Pos(lPos,False):
         pass
     for _ in range(3):
         chassis.SetMotor(0,0,0,0)
@@ -422,7 +437,7 @@ def AimBall(Ball) -> int:
         return 0
 
 def GoBack():
-    Pos2Pos(0,cfg.read("Position","Home"),False)
+    Pos2Pos(cfg.read("Position","Home"),False)
 
 def Offence():
     lBallPos = GetBallPos()
@@ -464,19 +479,21 @@ def Offence():
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
-        angle,
         [origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,
-        origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5]
+        origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5,
+        angle]
         ,False)
 
 def Defence()->None:
     lBallPos = GetBallPos()
     lPos = GetPos()
+    logger.debug("Ball Position: %s, Local Position: %s" % (lBallPos,lPos))
     if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
-        Pos2Pos(0,cfg.read("Position","Home"),False)
+        Pos2Pos(cfg.read("Position","Home"),False)
     else:
-        if lBallPos[0] > 0:
-            chassis.GoA(0,90,5*lBallPos[0])
-        else:
-            chassis.GoA(0,-90,5*lBallPos[0])
+        
+        # if lBallPos[0] > 0:
+            # chassis.GoA(0,90,100)
+        # else:
+        chassis.GoA(0,90,lBallPos[0]*4)
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)

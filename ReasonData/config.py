@@ -28,7 +28,7 @@ class QkJson:
                     "ErrorRange": 20,
                     "Width": 180,
                     "Height": 240,
-                    "Home": [0,-70],
+                    "Home": [0,-70,0],
                 },
                 "BLE" : {
                     "Setup": False,
