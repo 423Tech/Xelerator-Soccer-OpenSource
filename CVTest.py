@@ -8,8 +8,34 @@ app = FastAPI()
 
 # 全局变量存储摄像头对象
 camera = None
-camera_num = 2
+camera_num = 1
 camera_lock = threading.Lock()
+
+def scan_available_cameras(max_cameras=10):
+    """扫描所有可用的摄像头设备"""
+    available_cameras = []
+    
+    for i in range(max_cameras):
+        cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+        if cap is not None and cap.isOpened():
+            # 尝试读取一帧来确认摄像头真正可用
+            ret, frame = cap.read()
+            if ret:
+                # 获取摄像头信息
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                fps = int(cap.get(cv2.CAP_PROP_FPS))
+                
+                available_cameras.append({
+                    "id": i,
+                    "name": f"Camera {i}",
+                    "resolution": f"{width}x{height}",
+                    "fps": fps,
+                    "status": "available"
+                })
+            cap.release()
+    
+    return available_cameras
 
 def initialize_camera():
     global camera
@@ -116,6 +142,35 @@ async def home():
                 border-radius: 5px;
                 background-color: #e9ecef;
             }
+            .camera-list {
+                margin: 20px 0;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 5px;
+                border: 1px solid #dee2e6;
+            }
+
+            .cameras-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+                margin-top: 10px;
+            }
+
+            .camera-item {
+                padding: 10px;
+                background-color: white;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                text-align: left;
+            }
+
+            .camera-item button {
+                margin-top: 8px;
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
         </style>
     </head>
     <body>
@@ -129,6 +184,19 @@ async def home():
             
             <img id="video-stream" src="/video_feed" alt="Video Stream">
             
+            <div class="camera-selector">
+                <label for="camera-input">摄像头端口号:</label>
+                <input type="number" id="camera-input" value="2" min="0" max="10">
+                <button onclick="changeCamera()">切换摄像头</button>
+                <button onclick="scanCameras()">扫描可用摄像头</button>
+            </div>
+
+            <div id="camera-list" class="camera-list" style="display: none;">
+                <h3>可用摄像头列表：</h3>
+                <div id="camera-info"></div>
+            </div>
+
+
             <div class="camera-selector">
                 <label for="camera-input">摄像头端口号:</label>
                 <input type="number" id="camera-input" value="2" min="0" max="10">
@@ -166,6 +234,51 @@ async def home():
                 }
             }
             
+            // 扫描可用摄像头
+            async function scanCameras() {
+                try {
+                    const response = await fetch('/available_cameras');
+                    const result = await response.json();
+                    
+                    const cameraList = document.getElementById('camera-list');
+                    const cameraInfo = document.getElementById('camera-info');
+                    
+                    if (result.success && result.cameras.length > 0) {
+                        let htmlContent = '<div class="cameras-grid">';
+                        result.cameras.forEach(camera => {
+                            htmlContent += `
+                                <div class="camera-item">
+                                    <strong>摄像头 ${camera.id}</strong><br>
+                                    分辨率: ${camera.resolution}<br>
+                                    帧率: ${camera.fps} FPS<br>
+                                    状态: ${camera.status}<br>
+                                    <button onclick="selectCamera(${camera.id})">选择此摄像头</button>
+                                </div>
+                            `;
+                        });
+                        htmlContent += '</div>';
+                        
+                        cameraInfo.innerHTML = htmlContent;
+                        cameraList.style.display = 'block';
+                        
+                        alert(`找到 ${result.count} 个可用摄像头`);
+                    } else {
+                        cameraInfo.innerHTML = '<p>未找到可用摄像头或扫描失败</p>';
+                        cameraList.style.display = 'block';
+                        alert('未找到可用摄像头');
+                    }
+                } catch (error) {
+                    alert('扫描摄像头时发生错误: ' + error.message);
+                }
+            }
+
+            // 选择摄像头
+            function selectCamera(cameraId) {
+                document.getElementById('camera-input').value = cameraId;
+                changeCamera();
+            }
+
+
             // 更新摄像头状态
             async function updateStatus() {
                 try {
@@ -201,7 +314,7 @@ async def home():
             // 检测图像加载错误
             document.getElementById('video-stream').onerror = function() {
                 this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPua憒WDj+WktOi0pe+8jOivt+ajgOafpeaRhOWDj+WktOi/nue6rzwvdGV4dD48L3N2Zz4=';
-                alert('摄像头连接失败，请检查摄像头是否正常工作');
+                // alert('摄像头连接失败，请检查摄像头是否正常工作');
             };
         </script>
     </body>
@@ -251,6 +364,25 @@ async def camera_status():
             "is_active": is_active,
             "status": "正常运行" if is_active else "未连接"
         }
+
+@app.get("/available_cameras")
+async def get_available_cameras():
+    """获取所有可用摄像头列表"""
+    try:
+        cameras = scan_available_cameras()
+        return {
+            "success": True,
+            "cameras": cameras,
+            "count": len(cameras)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "cameras": [],
+            "count": 0
+        }
+
 
 @app.on_event("startup")
 async def startup_event():
