@@ -45,17 +45,16 @@ class BluetoothClass:
                 self.logger.info(f"蓝牙服务器启动，监听端口: {self.port}")
                 self.logger.info("等待客户端连接...")
                 # 等待客户端连接
-                self.connected = True
                 self.socket, self.client_address = self.server_socket.accept()
                 self.logger.success(f"客户端已连接: {self.client_address}")
+                self.connected = True
                 # 启动接收消息的线程
                 receive_thread = threading.Thread(target=self.receive_messages)
                 receive_thread.daemon = True
                 receive_thread.start()
-            
-            except ConnectionResetError as e:
+                break
+            except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
-            
             except Exception as e:
                 self.logger.error(f"服务器错误: {e}")
     
@@ -72,12 +71,13 @@ class BluetoothClass:
                 self.receive_thread = threading.Thread(target=self.receive_messages)
                 self.receive_thread.daemon = True
                 self.receive_thread.start()
-                
+            except bluetooth.btcommon.BluetoothError as e:
+                self.connected = False
             except Exception as e:
                 self.logger.error(f"连接错误: {e}")
-                self.cleanup()
 
     def create_connection(self):
+        # self.cleanup()
         if self.type == "Master":
             self.start_server()
         else:
@@ -96,24 +96,11 @@ class BluetoothClass:
                         message = data.decode('utf-8')
                         self.logger.success(f"收到消息: {message}")
                         self.receive_message = message
-            except AttributeError:
-                try:
-                    if self.socket:
-                        data = self.socket.recv(1024)
-                        if data:
-                            message = data.decode('utf-8')
-                            print(f"收到消息: {message}")
-                        else:
-                            break
-                except Exception as e:
-                    print(f"接收消息错误: {e}")
-                    break
             except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
+                break
             except Exception as e:
                 self.logger.error(f"接收消息错误: {e}")
-                # raise e
-                self.cleanup()
                 self.connected = False
                 break
     
@@ -121,13 +108,19 @@ class BluetoothClass:
         """发送消息"""
         try:
             if not self.connected:
-                self.logger.error("未连接到服务器，尝试重连中。")
+                self.logger.warning("未连接到服务器，尝试重连中。")
                 self.create_connection()
             if self.socket:
                 self.socket.send(message.encode('utf-8'))
+                self.logger.success("发送成功")
                 return True
             else:
+                self.logger.error("发送失败")
                 return False
+        except bluetooth.btcommon.BluetoothError as e:
+            self.connected = False
+            self.cleanup()
+            self.__init__(self.port)  # 重新初始化
         except Exception as e:
             self.logger.error(f"发送消息错误: {e}")
 
@@ -136,8 +129,11 @@ class BluetoothClass:
         """清理资源"""
         if self.socket:
             self.socket.close()
-        if self.server_socket:
-            self.server_socket.close()
+        try:
+            if self.server_socket:
+                self.server_socket.close()
+        except AttributeError:
+            pass
         self.logger.success("服务已关闭")
 
 class SerialCommunicate:
