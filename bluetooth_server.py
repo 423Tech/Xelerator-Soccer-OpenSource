@@ -8,16 +8,21 @@ import time
 class BluetoothServer:
     def __init__(self, port=1):
         self.port = port
-        self.server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        self.server_socket.bind(("", self.port))
-        self.server_socket.listen(1)
+        self.server_socket = None
+        self.client_socket = None
+        self.client_address = None
         
     def start_server(self):
         """启动蓝牙服务器"""
         try:
             # 创建蓝牙套接字
+            self.server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+            self.server_socket.bind(("", self.port))
+            self.server_socket.listen(1)
+            
             print(f"蓝牙服务器启动，监听端口: {self.port}")
             print("等待客户端连接...")
+            
             # 等待客户端连接
             self.client_socket, self.client_address = self.server_socket.accept()
             print(f"客户端已连接: {self.client_address}")
@@ -70,8 +75,6 @@ class BluetoothServer:
         if self.server_socket:
             self.server_socket.close()
         print("服务器已关闭")
-
-
 
 if __name__ == "__main__":
     server = BluetoothServer()
