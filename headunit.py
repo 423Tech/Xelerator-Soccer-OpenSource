@@ -212,6 +212,9 @@ class ArisuIntelligence:
 
         self.Cams = []
         self.Frames = []
+        self.Videos = []
+
+        self.StopRecord = 0
 
         self.PerspectiveMatrices = []
         self.P2CK = []
@@ -238,12 +241,43 @@ class ArisuIntelligence:
         self.ReadCamsThread.daemon = True
         self.ReadCamsThread.start()
 
-        time.sleep(5)
+        time.sleep(3)
+
+        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        self.VideoRecordThread.daemon = True
+        self.VideoRecordThread.start()
 
         self.FindBallThread = threading.Thread(target=self.FindBall)
         self.FindBallThread.daemon = True
         self.FindBallThread.start()
 
+
+    def InitVideo(self):
+        Videos = []
+        for i in range(4):
+            Time = int(time.time())
+            Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
+            Videos.append(Video)
+        self.Videos = Videos
+    
+    def CloseVideo(self):
+        for Video in self.Videos:
+            Video.release()
+        self.Videos = []
+    
+    def VideoRecord(self):
+        while True:
+            if not self.Videos:
+                self.InitVideo()
+            elif int(time.time()) % 30 == 0:
+                self.CloseVideo()
+            
+            for i in range(4):
+                if self.Videos:
+                    Frame = self.Frames[i]
+                    if Frame is not None:
+                        self.Videos[i].write(Frame)
+            time.sleep(0.03)
 
 
     def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
