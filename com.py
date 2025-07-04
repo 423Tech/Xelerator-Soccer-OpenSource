@@ -4,7 +4,7 @@ import subprocess
 import re
 import threading
 
-class BluetoothClass:
+class Beacon:
     def __init__(self, port=1):
         from ReasonData import QkJson,logger
         self.logger = logger
