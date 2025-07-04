@@ -7,6 +7,8 @@ cfg = QkJson()
 from chassis import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
 ArisuCam = ArisuIntelligence()
+from ReasonBeacon import BTBeacon
+Beacon = BTBeacon()
 if cfg.read("model","Bit") == "AB":
     from arisbit import ArisBit
     Bits = ArisBit()
@@ -26,14 +28,6 @@ else:
     # breakpoint()
     raise ImportError("None Bit Model found.")
 
-
-#Values
-bLife = False
-lBlockedMemo = []
-bCovered = False
-lBallPos = [0,0]
-lLidarDists = [0,0,0,0]
-bThreadControllerFlag = True
 
 #Math Mod
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
@@ -79,7 +73,42 @@ def linear_map(value, input_range, output_range):
 
 #TODO Need update
 def GetBallPos():
+    '''
+    retrun a relative position of the ball
+    [x,y]
+    '''
     return ArisuCam.GetBallPos()
+
+def GetBallDistance():
+    ballX,ballY = ArisuCam.GetBallPos()
+    return math.sqrt(ballX**2 + ballY**2)
+
+def GetBallAngle():
+    '''
+    retrun a angle of the ball
+    '''
+    ballX,ballY = ArisuCam.GetBallPos()
+    if ballY == 0:
+        return 0
+    try:
+        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
+        else:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+        return ballRltAngle
+    except ZeroDivisionError:
+        return 0
+    
+def AbsBallAngle():
+    '''
+    retrun a absolute angle of the ball
+    [x,y]
+    '''
+    BallAngleCache = GetBallAngle() + compass()
+    if BallAngleCache > 360:
+        return BallAngleCache - 360
+    else:
+        return BallAngleCache
 
 def GetDistance() -> list[int,int,int]:
     '''
@@ -104,6 +133,29 @@ def GetPos() -> list[int,int]:
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X/10,Y/10,compass()]
+
+def AbsBallPos():
+    '''
+    retrun a absolute position of the ball
+    '''
+    ballX,ballY = ArisuCam.GetBallPos()
+    SelfX,SelfY,SelfZ = GetPos()
+    ballDistance = math.sqrt(ballX**2 + ballY**2)
+    if ballY == 0:
+        ballRltAngle = 0
+    try:
+        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
+        else:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+    except ZeroDivisionError:
+        ballRltAngle =  0
+    BallAngleCache = (ballRltAngle + compass())%360
+    AbsBallPositon = [
+        int(ballDistance * math.sin(math.radians(BallAngleCache))+SelfX),
+        int(ballDistance * math.cos(math.radians(BallAngleCache))+SelfY)
+        ]
+    return AbsBallPositon
 
 
 #Operate models
@@ -172,14 +224,16 @@ def ObtDetect() -> list[list[int,int],list[bool,bool]]:
             lStatusOfDist[1][i] = False
         else:
             lStatusOfDist[1][i] = True
-    return lStatusOfDist
+    return None
 
 def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int | None = 150) -> None:
     '''
     iFacingAngle 移动时面对的方向 0~360
     iTargetAngle 需要移动的方向 可能不采用 -180~180
     iSpeed 移动的速度 默认150
+    已弃用
     '''
+    return 0
     iTargetAngle = -iTargetAngle
     lStatusOfDist = ObtDetect()
     #获取挡住/被挡住的角度
@@ -196,6 +250,7 @@ def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int
         # c.GoA(iFacingAngle,iAimAngle,200)
     except:
         chassis.stop()
+    
 
 def Local2Angle(lAimPos:list[int,int]) -> int:
     '''
