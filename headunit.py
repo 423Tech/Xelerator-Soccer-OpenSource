@@ -4,6 +4,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
+from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
 import threading
 import math
@@ -216,6 +217,9 @@ class ArisuIntelligence:
 
         self.StopRecord = 0
 
+        self.HailoParams = VDevice.create_params()
+        self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
+
         self.PerspectiveMatrices = []
         self.P2CK = []
         self.P2CHB = []
@@ -247,9 +251,9 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-        self.FindBallThread = threading.Thread(target=self.FindBall)
-        self.FindBallThread.daemon = True
-        self.FindBallThread.start()
+        # self.FindBallThread = threading.Thread(target=self.FindBall)
+        # self.FindBallThread.daemon = True
+        # self.FindBallThread.start()
 
 
     def InitVideo(self):
@@ -278,6 +282,34 @@ class ArisuIntelligence:
                     if Frame is not None:
                         self.Videos[i].write(Frame)
             time.sleep(0.03)
+    
+    def YOLOProcess(self):
+        with VDevice(self.HailoParams) as Hat:
+            InferModel = Hat.create_infer_model('/xel/ArisuIntelligence.hef')
+            InferModel.set_batch_size(4)
+            with InferModel.configure() as ConfiguredInferModel:
+                while True:
+                    Bindings = ConfiguredInferModel.create_bindings()
+                    Frames = []
+                    
+                    for i in range(4):
+                        Frame = self.Frames[i]
+                        if Frame is not None:
+                            Frame = self.Resize(Frame, (640, 640))
+                            Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                            Frames.append(Frame)
+                    
+                    InputBuffer = np.stack(Frames, axis=0)
+                    InputBuffer = InputBuffer.transpose(0, 3, 1, 2)
+                    InputBuffer = InputBuffer.astype(np.uint8)
+
+                    Bindings.input().set_buffer(InputBuffer)
+
+                    ConfiguredInferModel.run([Bindings])
+                    
+                    OutputBuffer = Bindings.output().get_buffer()
+                
+
 
 
     def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
@@ -327,6 +359,26 @@ class ArisuIntelligence:
         Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
 
         return X, Y
+
+    def Resize(Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
     
     def FindMaxBlob(self, Blobs):
         MaxSize=0
