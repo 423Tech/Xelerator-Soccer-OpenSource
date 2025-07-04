@@ -206,8 +206,8 @@ class Lidar:
         return self.LidarDists
 
 class ArisuIntelligence:
-    def __init__(self,GetYaw=None):
-        self.GetYaw = GetYaw
+    def __init__(self,GetPos=None):
+        self.GetPos = GetPos
 
         self.CamPorts = [0,2,4,6]
 
@@ -364,6 +364,18 @@ class ArisuIntelligence:
         Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
 
         return X, Y
+    
+    def CM2Pixel(self, X, Y, CamIndex):
+        P2CK = self.P2CK[CamIndex]
+        P2CHB = self.P2CHB[CamIndex]
+        P2CVB = self.P2CVB[CamIndex]
+
+        X = (X - P2CHB) / P2CK
+        Y = -(Y - P2CVB) / P2CK
+
+        X, Y = self.ApplyPerspectiveTransform(X, Y, np.linalg.inv(self.PerspectiveMatrices[CamIndex]))
+
+        return int(X), int(Y)
 
     def Resize(Frame, TargetSize=(640, 640)):
         Height, Width = Frame.shape[:2]
@@ -467,6 +479,22 @@ class ArisuIntelligence:
     
     def GetBallPos(self):
         return self.BallPos
+    
+    def BinaryObjectDetection(self):
+        Frame = self.Frames[0]
+        Pos = [self.GetPos()[0], self.GetPos()[1]]
+        Yaw = self.GetPos()[2]
+        DistToCorner = int(math.sqrt((Pos[0] - 10) ** 2 + (Pos[1] - 13) ** 2))
+        VisionAngle = math.degrees(math.atan2(Pos[0] - 10, Pos[1] - 13))
+        Theta = VisionAngle - Yaw
+        VisionCornerX = int(DistToCorner * math.sin(math.radians(Theta)))
+        VisionCornerY = int(DistToCorner * math.cos(math.radians(Theta)))
+        VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
+        print(VisionCornerX, VisionCornerY)
+
+
+
+
 
 
     

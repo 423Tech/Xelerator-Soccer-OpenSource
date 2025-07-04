@@ -108,6 +108,7 @@ void Motor_Set_Pwm(uint8_t id, int16_t speed)
     {
     case MOTOR_ID_M1:
     {
+        pulse = -pulse;
         if (pulse >= 0)
         {
             PWM_M1_A = pulse;
@@ -122,6 +123,7 @@ void Motor_Set_Pwm(uint8_t id, int16_t speed)
     }
     case MOTOR_ID_M2:
     {
+        pulse = -pulse;
         if (pulse >= 0)
         {
             PWM_M2_A = pulse;
@@ -137,7 +139,6 @@ void Motor_Set_Pwm(uint8_t id, int16_t speed)
 
     case MOTOR_ID_M3:
     {
-        pulse = -pulse;
         if (pulse >= 0)
         {
             PWM_M3_A = pulse;
@@ -152,7 +153,6 @@ void Motor_Set_Pwm(uint8_t id, int16_t speed)
     }
     case MOTOR_ID_M4:
     {
-        pulse = -pulse;
         if (pulse >= 0)
         {
             PWM_M4_A = pulse;
