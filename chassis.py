@@ -73,12 +73,19 @@ class Car:
             return False
         self.GoA(Angle,0,Speed)
 
-    
     def GoZ(self,Angle):
         if self.GetYaw is None:
             return False
         self.GoA(Angle,0,0)
     
+    def TurnTo(self,Angle):
+        '''
+        Turn to any angle on compass
+        '''
+        errorValue = Angle - self.GetYaw
+        while abs(errorValue) < self.cfg.read("Position","ErrorRange"):
+            self.SetMotor(self.Kp*errorValue,self.Kp*errorValue,self.Kp*errorValue,self.Kp*errorValue)
+
     def stop(self):
         self.SetMotor(0,0,0,0)
 
