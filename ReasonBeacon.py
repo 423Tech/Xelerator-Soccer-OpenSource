@@ -1,4 +1,3 @@
-
 import bluetooth
 import subprocess
 import re
@@ -34,10 +33,10 @@ class Beacon:
             self.server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
             self.server_socket.bind(("", self.port))
             self.server_socket.listen(1)
-        self.receive_message = None
+        self.MessageCache = None
         self.connected = False
         
-    def start_server(self):
+    def StartServer(self):
         """启动蓝牙服务器"""
         while True:
             try:
@@ -58,7 +57,7 @@ class Beacon:
             except Exception as e:
                 self.logger.error(f"服务器错误: {e}")
     
-    def connect_to_server(self):
+    def ConnectToServer(self):
             """连接到蓝牙服务器"""
             try:
                 self.logger.info(f"正在连接到服务器: {self.server_address}")
@@ -76,14 +75,14 @@ class Beacon:
             except Exception as e:
                 self.logger.error(f"连接错误: {e}")
 
-    def create_connection(self):
+    def CreateConnection(self):
         # self.cleanup()
         if self.type == "Master":
             self.start_server()
         else:
             self.connect_to_server()
 
-    def receive_messages(self):
+    def receive(self):
         """接收消息的线程函数"""
         while True:
             if not self.connected:
@@ -95,7 +94,7 @@ class Beacon:
                     if data:
                         message = data.decode('utf-8')
                         self.logger.success(f"收到消息: {message}")
-                        self.receive_message = message
+                        self.MessageCache = message
             except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
                 break
@@ -104,7 +103,7 @@ class Beacon:
                 self.connected = False
                 break
     
-    def send_messages(self,message):
+    def Send(self,message):
         """发送消息"""
         try:
             if not self.connected:
