@@ -111,6 +111,7 @@ def AbsBallPos():
     retrun a absolute position of the ball
     '''
     ballX,ballY = ArisuCam.GetBallPos()
+    SelfX,SelfY = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
     if ballY == 0:
         ballRltAngle = 0
@@ -124,8 +125,8 @@ def AbsBallPos():
     else:
         ballAbsAngle = BallAngleCache
     AbsBallPositon = [
-        ballDistance * math.cos(math.radians(ballAbsAngle)),
-        ballDistance * math.sin(math.radians(ballAbsAngle))
+        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
+        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
         ]
     return AbsBallPositon
 
