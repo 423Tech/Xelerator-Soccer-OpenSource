@@ -294,9 +294,15 @@ class ArisuIntelligence:
         with VDevice(self.HailoParams) as Hat:
             InferModel = Hat.create_infer_model('/xel/ArisuIntelligence.hef')
             InferModel.set_batch_size(4)
+
+            InputShape = InferModel.input().shape
+            OutputShape = InferModel.output().shape
+            print(InputShape, OutputShape)
             with InferModel.configure() as ConfiguredInferModel:
                 while True:
                     Bindings = ConfiguredInferModel.create_bindings()
+                    OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+
                     Frames = []
                     
                     for i in range(4):
@@ -307,15 +313,20 @@ class ArisuIntelligence:
                             Frames.append(Frame)
                     
                     InputBuffer = np.stack(Frames, axis=0)
-                    InputBuffer = InputBuffer.transpose(0, 3, 1, 2)
+                    # InputBuffer = InputBuffer.transpose(0, 3, 1, 2)
                     InputBuffer = InputBuffer.astype(np.uint8)
+                    InputBuffer = np.ascontiguousarray(InputBuffer)
+
+                    print(InputBuffer.shape)
 
                     Bindings.input().set_buffer(InputBuffer)
 
-                    ConfiguredInferModel.run([Bindings])
+                    ConfiguredInferModel.run([Bindings],1000)
                     
                     OutputBuffer = Bindings.output().get_buffer()
                     print(OutputBuffer.shape)
+
+                    time.sleep(0.03)
                 
 
 
@@ -400,7 +411,7 @@ class ArisuIntelligence:
 
         return int(X), int(Y)
 
-    def Resize(Frame, TargetSize=(640, 640)):
+    def Resize(self,Frame, TargetSize=(640, 640)):
         Height, Width = Frame.shape[:2]
         TargetHeight, TargetWidth = TargetSize
         
