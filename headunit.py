@@ -152,7 +152,7 @@ class Lidar:
                 FrameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - LastTime >= 1.0:
-                    print(f"FPS: {FrameCount}")
+                    # print(f"FPS: {FrameCount}")
                     FrameCount = 0
                     LastTime = CurrentTime
 

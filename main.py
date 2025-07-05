@@ -9,6 +9,7 @@ while True:
     # Stop the chassis
     try:
         MacaoShotMove(10,-65)
+        logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

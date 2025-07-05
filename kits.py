@@ -572,7 +572,7 @@ def MacaoShotMove(x,y): #-110 +-35
     if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
         if iLocX > 0:
             target_angle1 = math.degrees(math.atan2( 80 + iLocX  - 35 ,iLocY + 110)) 
-            target_angle = 90
+            target_angle = 130
             target_angle2 = 0 
             while True:
                 Yaw = chassis.GetYaw()
@@ -583,18 +583,18 @@ def MacaoShotMove(x,y): #-110 +-35
             time.sleep(0.5)
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(190)
+                chassis.GoZspeed(150)
                 if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                     break
             peripheral.StopDribble()
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-300)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 8:
+                chassis.GoZspeed(-200)
+                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
                     break
         else:
             target_angle1 = - math.degrees(math.atan2(80 - iLocX  - 35 ,iLocY + 110 )) 
-            target_angle = -90
+            target_angle = 230
             target_angle2 = 0 
             while True:
                 Yaw = chassis.GetYaw()
@@ -605,13 +605,13 @@ def MacaoShotMove(x,y): #-110 +-35
             time.sleep(0.5)
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-190)
+                chassis.GoZspeed(-150)
                 if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                     break
             peripheral.StopDribble()
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(300)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 5:
+                chassis.GoZspeed(200)
+                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
                     break
             peripheral.StopDribble()
