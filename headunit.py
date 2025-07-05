@@ -102,8 +102,8 @@ class YDLidarParser(Node):
 class Lidar:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
-
-        self.DomainID = 99
+        from ReasonData import QkJson
+        self.DomainID = QkJson().read("Position","DomainID")
 
         self.LidarDists = [0,0,0,0]
 
@@ -207,6 +207,8 @@ class Lidar:
 
 class ArisuIntelligence:
     def __init__(self,GetPos=None):
+        from ReasonData import QkJson
+        self.cfg = QkJson()
         self.GetPos = GetPos
 
         self.CamPorts = [0,2,4,6]
@@ -261,6 +263,8 @@ class ArisuIntelligence:
 
 
     def InitVideo(self):
+        if not self.cfg.read("Vision","Record"):
+            return
         Videos = []
         for i in range(4):
             Time = int(time.time())
@@ -317,7 +321,9 @@ class ArisuIntelligence:
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, Brightness=0, Contrast=32, Saturation=64):
+        Exposure = self.cfg.read("Vision","ExposeVal")
+        AutoExposure= self.cfg.read("Vision","AutoExpose")
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
