@@ -140,7 +140,7 @@ def AbsBallPos():
     retrun a absolute position of the ball
     '''
     ballX,ballY = ArisuCam.GetBallPos()
-    SelfX,SelfY = GetPos()
+    SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
     if ballY == 0:
         ballRltAngle = 0
@@ -158,6 +158,37 @@ def AbsBallPos():
         ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
         ]
     return AbsBallPositon
+
+
+def Lockball_angle():#贝尔巴托夫转身
+    lBallPos = GetBallPos()#获取球的位置
+    iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
+    Compass = chassis.GetYaw()#获取机器人的航向
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = -(Angle - Compass)
+    logger.debug("Ball Angle: %f" % Fangle)
+    chassis.GoZ(Fangle)
+
+def Lockballangle():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoZ(Fangle* 1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+
+def Lockballmove():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    chassis.GoV(iBX*5,iBY*5,0)
+
+def Lockballslip():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 
 #Operate models
