@@ -118,7 +118,7 @@ class ArisBit(object):
         self.__akm_readed_angle = False
         self.__AKM_SERVO_ID = 0x01
 
-        self.MotorRatio = 14
+        self.MotorRatio = -14
 
         self.__key_state = 0
         self.__io1_state = 0

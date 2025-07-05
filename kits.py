@@ -91,11 +91,7 @@ def GetBallAngle():
     if ballY == 0:
         return 0
     try:
-        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
-        else:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
-        return ballRltAngle
+        return -int(math.degrees(math.atan2(ballY,ballX)) - 90)
     except ZeroDivisionError:
         return 0
     
@@ -109,6 +105,30 @@ def AbsBallAngle():
         return BallAngleCache - 360
     else:
         return BallAngleCache
+
+def AbsBallPos():
+    '''
+    retrun a absolute position of the ball
+    '''
+    ballX,ballY = ArisuCam.GetBallPos()
+    SelfX,SelfY = GetPos()
+    ballDistance = math.sqrt(ballX**2 + ballY**2)
+    if ballY == 0:
+        ballRltAngle = 0
+    try:
+        ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+    except ZeroDivisionError:
+        ballRltAngle =  0
+    BallAngleCache = ballRltAngle + compass()
+    if BallAngleCache > 360:
+        ballAbsAngle = BallAngleCache - 360
+    else:
+        ballAbsAngle = BallAngleCache
+    AbsBallPositon = [
+        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
+        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
+        ]
+    return AbsBallPositon
 
 def GetDistance() -> list[int,int,int]:
     '''
