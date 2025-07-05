@@ -36,7 +36,8 @@ class QkJson:
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 20,
+                    "DomainID": 99,  # Default Domain ID
+                    "ErrorRange": 15,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70,0],
@@ -53,7 +54,6 @@ class QkJson:
                 },
                 "Advanced": {
                     "Cover2Start": False,
-                    "BattVot" : 11,
                     "logger": True,
                     "Database": True,
                 }
