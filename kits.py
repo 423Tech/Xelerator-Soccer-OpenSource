@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import math
 import time
 
@@ -6,7 +8,7 @@ cfg = QkJson()
 
 from chassis import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
-ArisuCam = ArisuIntelligence()
+# ArisuCam = ArisuIntelligence()
 from ReasonBeacon import BTBeacon
 Beacon = BTBeacon()
 if cfg.read("model","Bit") == "AB":
@@ -91,7 +93,11 @@ def GetBallAngle():
     if ballY == 0:
         return 0
     try:
-        return -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
+        else:
+            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+        return ballRltAngle
     except ZeroDivisionError:
         return 0
     
@@ -105,30 +111,6 @@ def AbsBallAngle():
         return BallAngleCache - 360
     else:
         return BallAngleCache
-
-def AbsBallPos():
-    '''
-    retrun a absolute position of the ball
-    '''
-    ballX,ballY = ArisuCam.GetBallPos()
-    SelfX,SelfY = GetPos()
-    ballDistance = math.sqrt(ballX**2 + ballY**2)
-    if ballY == 0:
-        ballRltAngle = 0
-    try:
-        ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
-    except ZeroDivisionError:
-        ballRltAngle =  0
-    BallAngleCache = ballRltAngle + compass()
-    if BallAngleCache > 360:
-        ballAbsAngle = BallAngleCache - 360
-    else:
-        ballAbsAngle = BallAngleCache
-    AbsBallPositon = [
-        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
-        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
-        ]
-    return AbsBallPositon
 
 def GetDistance() -> list[int,int,int]:
     '''
@@ -153,6 +135,62 @@ def GetPos() -> list[int,int]:
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X/10,Y/10,compass()]
+
+
+def AbsBallPos():
+    '''
+    retrun a absolute position of the ball
+    '''
+    ballX,ballY = ArisuCam.GetBallPos()
+    SelfX,SelfY,SelfZ = GetPos()
+    ballDistance = math.sqrt(ballX**2 + ballY**2)
+    if ballY == 0:
+        ballRltAngle = 0
+    try:
+        ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+    except ZeroDivisionError:
+        ballRltAngle =  0
+    BallAngleCache = ballRltAngle + compass()
+    if BallAngleCache > 360:
+        ballAbsAngle = BallAngleCache - 360
+    else:
+        ballAbsAngle = BallAngleCache
+    AbsBallPositon = [
+        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
+        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
+        ]
+    return AbsBallPositon
+
+
+def Lockball_angle():#贝尔巴托夫转身
+    lBallPos = GetBallPos()#获取球的位置
+    iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
+    Compass = chassis.GetYaw()#获取机器人的航向
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = -(Angle - Compass)
+    logger.debug("Ball Angle: %f" % Fangle)
+    chassis.GoZ(Fangle)
+
+def Lockballangle():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoZ(Fangle* 1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+
+def Lockballmove():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    chassis.GoV(iBX*5,iBY*5,0)
+
+def Lockballslip():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 
 #Operate models
@@ -548,3 +586,98 @@ def Defence()->None:
         # else:
         chassis.GoA(0,90,lBallPos[0]*4)
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
+
+###############################################################################################
+def Lockball_angle():#贝尔巴托夫转身
+    lBallPos = GetBallPos()#获取球的位置
+    iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
+    Compass = chassis.GetYaw()#获取机器人的航向
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = -(Angle - Compass)
+    logger.debug("Ball Angle: %f" % Fangle)
+    chassis.GoZ(Fangle)
+
+def Lockballangle():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoZ(Fangle* 1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+
+def Lockballmove():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    chassis.GoV(iBX*5,iBY*5,0)
+
+def Lockballslip():
+    lBallPos = GetBallPos()
+    iBX,iBY = lBallPos[0],lBallPos[1]
+    Compass = chassis.GetYaw()
+    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+    Fangle = Angle + Compass
+    chassis.GoV(iBX*5,iBY*5,Fangle*1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+
+
+
+def MacaoShotMove(x,y,z): #-110 +-35
+    if chassis.GetYaw is None:
+        return False
+    Yaw = chassis.GetYaw()
+    peripheral.DribbleBall()
+    lAimPos = [x,y,0]
+    lLocal = GetPos()
+    print(GetPos())
+    iLocX = lLocal[0]
+    iLocY = lLocal[1]
+    # time.sleep(0.1)
+    # iLocX1 = lLocal[0]
+    # iLocY1 = lLocal[1]
+    # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
+    Pos2Pos([lAimPos[0],lAimPos[1],0],False)
+    if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
+        if iLocX > 0:
+            target_angle1 = math.degrees(math.atan2( 80 + iLocX  - 35 ,iLocY + 110)) 
+            target_angle = 130
+            target_angle2 = 0 
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(50,0,0)
+                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
+                    break
+            chassis.GoZspeed(0,0,0)
+            time.sleep(0.5)
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(190,z,0)
+                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                    break
+            peripheral.StopDribble()
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(-200,0,0)
+                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
+                    break
+        else:
+            target_angle1 = 360 - math.degrees(math.atan2(80 - iLocX  - 35 ,iLocY + 110 )) 
+            target_angle = 230
+            target_angle2 = 0 
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(50,0,0)
+                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 5:
+                    break
+            chassis.GoZspeed(0,0,0)
+            time.sleep(0.5)
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(-190,0,z)
+                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                    break
+            peripheral.StopDribble()
+            while True:
+                Yaw = chassis.GetYaw()
+                chassis.GoZspeed(200,0,0)
+                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
+                    break
+            peripheral.StopDribble()

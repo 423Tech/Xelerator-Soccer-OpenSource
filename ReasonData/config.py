@@ -16,16 +16,28 @@ class QkJson:
                     "Bit" : "AB",
                 },
                 "Ports": {
-                    "Trigger" : 0,
+                    "LowTigger" : 0,
                     "ElecMagnet" : 3,
                     "Dribble" : 4,
+                },
+                "Motors": {
+                    "LeftFront" : 0,
+                    "LeftBack" : 1,
+                    "RightFront" : 2,
+                    "RightBack" : 3,
+                },
+                "Vision": {
+                    "Record" : False, # False to Disable Record video
+                    "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
+                    "AutoExpose" : 0,  # 0: Manual, 1: Auto
                 },
                 "Border" : {
                     "0": [60,95],
                     "1": [40,85],
                 },
                 "Position" : {
-                    "ErrorRange": 20,
+                    "DomainID": 99,  # Default Domain ID
+                    "ErrorRange": 15,
                     "Width": 180,
                     "Height": 240,
                     "Home": [0,-70,0],
@@ -42,7 +54,6 @@ class QkJson:
                 },
                 "Advanced": {
                     "Cover2Start": False,
-                    "BattVot" : 11,
                     "logger": True,
                     "Database": True,
                 }
