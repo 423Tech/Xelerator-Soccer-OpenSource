@@ -16,9 +16,20 @@ class QkJson:
                     "Bit" : "AB",
                 },
                 "Ports": {
-                    "Trigger" : 0,
+                    "LowTigger" : 0,
                     "ElecMagnet" : 3,
                     "Dribble" : 4,
+                },
+                "Motors": {
+                    "LeftFront" : 0,
+                    "LeftBack" : 1,
+                    "RightFront" : 2,
+                    "RightBack" : 3,
+                },
+                "Vision": {
+                    "Record" : False, # False to Disable Record video
+                    "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
+                    "AutoExpose" : 0,  # 0: Manual, 1: Auto
                 },
                 "Border" : {
                     "0": [60,95],
