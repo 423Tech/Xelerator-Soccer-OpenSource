@@ -102,8 +102,8 @@ class YDLidarParser(Node):
 class Lidar:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
-
-        self.DomainID = 99
+        from ReasonData import QkJson
+        self.DomainID = QkJson().read("Position","DomainID")
 
         self.LidarDists = [0,0,0,0]
 
@@ -152,7 +152,7 @@ class Lidar:
                 FrameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - LastTime >= 1.0:
-                    print(f"FPS: {FrameCount}")
+                    # print(f"FPS: {FrameCount}")
                     FrameCount = 0
                     LastTime = CurrentTime
 
@@ -208,7 +208,8 @@ class Lidar:
 class ArisuIntelligence:
     def __init__(self,GetPos=None):
         self.GetPos = GetPos
-
+        from ReasonData import QkJson
+        self.cfg = QkJson()
         self.CamPorts = [0,2,4,6]
 
         self.Cams = []
@@ -251,9 +252,9 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-        # self.FindBallThread = threading.Thread(target=self.FindBall)
-        # self.FindBallThread.daemon = True
-        # self.FindBallThread.start()
+        self.FindBallThread = threading.Thread(target=self.FindBall)
+        self.FindBallThread.daemon = True
+        self.FindBallThread.start()
 
         self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
         self.YOLOProcessThread.daemon = True
@@ -262,6 +263,8 @@ class ArisuIntelligence:
 
     def InitVideo(self):
         Videos = []
+        if not self.cfg.read("Vision","Record"):
+            return
         for i in range(4):
             Time = int(time.time())
             Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
@@ -291,28 +294,39 @@ class ArisuIntelligence:
         with VDevice(self.HailoParams) as Hat:
             InferModel = Hat.create_infer_model('/xel/ArisuIntelligence.hef')
             InferModel.set_batch_size(4)
+
+            InputShape = InferModel.input().shape
+            OutputShape = InferModel.output().shape
+            print(InputShape, OutputShape)
             with InferModel.configure() as ConfiguredInferModel:
                 while True:
-                    Bindings = ConfiguredInferModel.create_bindings()
-                    Frames = []
+                    BindingsList = []
+                    # Bindings = ConfiguredInferModel.create_bindings()
+                    OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+
                     
                     for i in range(4):
+                        Bindings = ConfiguredInferModel.create_bindings()
                         Frame = self.Frames[i]
                         if Frame is not None:
                             Frame = self.Resize(Frame, (640, 640))
                             Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                            Frames.append(Frame)
-                    
-                    InputBuffer = np.stack(Frames, axis=0)
-                    InputBuffer = InputBuffer.transpose(0, 3, 1, 2)
-                    InputBuffer = InputBuffer.astype(np.uint8)
+                            # Frame = Frame.astype(np.uint8)
+                            # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                            # print(Frame.shape)
+                            Bindings.input().set_buffer(Frame)
+                            Bindings.output().set_buffer(OutputBuffer)
 
-                    Bindings.input().set_buffer(InputBuffer)
+                            BindingsList.append(Bindings)
 
-                    ConfiguredInferModel.run([Bindings])
-                    
-                    OutputBuffer = Bindings.output().get_buffer()
-                    print(OutputBuffer.shape)
+                    ConfiguredInferModel.run(BindingsList,1000)
+
+
+
+                    Output = BindingsList[0].output().get_buffer()
+                    print(Output)
+
+                    time.sleep(0.03)
                 
 
 
@@ -364,6 +378,26 @@ class ArisuIntelligence:
         Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
 
         return X, Y
+
+    def Resize(Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
     
     def CM2Pixel(self, X, Y, CamIndex):
         P2CK = self.P2CK[CamIndex]
@@ -377,7 +411,7 @@ class ArisuIntelligence:
 
         return int(X), int(Y)
 
-    def Resize(Frame, TargetSize=(640, 640)):
+    def Resize(self,Frame, TargetSize=(640, 640)):
         Height, Width = Frame.shape[:2]
         TargetHeight, TargetWidth = TargetSize
         
