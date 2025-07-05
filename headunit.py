@@ -252,9 +252,9 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-        # self.FindBallThread = threading.Thread(target=self.FindBall)
-        # self.FindBallThread.daemon = True
-        # self.FindBallThread.start()
+        self.FindBallThread = threading.Thread(target=self.FindBall)
+        self.FindBallThread.daemon = True
+        self.FindBallThread.start()
 
         self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
         self.YOLOProcessThread.daemon = True
