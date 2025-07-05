@@ -77,7 +77,7 @@ class Car:
         if self.GetYaw is None:
             return False
         self.GoA(Angle,0,0)
-        
+
     def GoZspeed(self,Speed): #Macao
         Speed1 = Speed
         Speed2 = Speed

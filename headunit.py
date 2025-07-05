@@ -103,7 +103,7 @@ class Lidar:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
 
-        self.DomainID = 99
+        self.DomainID = 88
 
         self.LidarDists = [0,0,0,0]
 
