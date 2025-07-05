@@ -1,7 +1,7 @@
 import math
 import time
 
-from ReasonData import QkJson, logger, Positions
+from ReasonData import QkJson, logger
 cfg = QkJson()
 
 from chassis import Car,Peripherals
@@ -91,11 +91,7 @@ def GetBallAngle():
     if ballY == 0:
         return 0
     try:
-        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
-        else:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
-        return ballRltAngle
+        return -int(math.degrees(math.atan2(ballY,ballX)) - 90)
     except ZeroDivisionError:
         return 0
     
@@ -109,6 +105,30 @@ def AbsBallAngle():
         return BallAngleCache - 360
     else:
         return BallAngleCache
+
+def AbsBallPos():
+    '''
+    retrun a absolute position of the ball
+    '''
+    ballX,ballY = ArisuCam.GetBallPos()
+    SelfX,SelfY = GetPos()
+    ballDistance = math.sqrt(ballX**2 + ballY**2)
+    if ballY == 0:
+        ballRltAngle = 0
+    try:
+        ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+    except ZeroDivisionError:
+        ballRltAngle =  0
+    BallAngleCache = ballRltAngle + compass()
+    if BallAngleCache > 360:
+        ballAbsAngle = BallAngleCache - 360
+    else:
+        ballAbsAngle = BallAngleCache
+    AbsBallPositon = [
+        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
+        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
+        ]
+    return AbsBallPositon
 
 def GetDistance() -> list[int,int,int]:
     '''
@@ -133,38 +153,6 @@ def GetPos() -> list[int,int]:
     else:
         X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
     return [X/10,Y/10,compass()]
-
-def AbsBallPos():
-    '''
-    retrun a absolute position of the ball
-    '''
-    ballX,ballY = ArisuCam.GetBallPos()
-    SelfX,SelfY,SelfZ = GetPos()
-    ballDistance = math.sqrt(ballX**2 + ballY**2)
-    if ballY == 0:
-        ballRltAngle = 0
-    try:
-        if -int(math.degrees(math.atan2(ballY,ballX)) - 90) < 0:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90) + 360
-        else:
-            ballRltAngle = -int(math.degrees(math.atan2(ballY,ballX)) - 90)
-    except ZeroDivisionError:
-        ballRltAngle =  0
-    BallAngleCache = (ballRltAngle + compass())%360
-    AbsBallPositon = [
-        int(ballDistance * math.sin(math.radians(BallAngleCache))+SelfX),
-        int(ballDistance * math.cos(math.radians(BallAngleCache))+SelfY)
-        ]
-    PosCache = Positions(
-        BallXPosition = AbsBallPositon[0],
-        BallYPosition = AbsBallPositon[1],
-        XPosition = SelfX,
-        YPosition = SelfY,
-        ZPosition = SelfZ,
-        Tick = time.time()
-    )
-    PosCache.save()
-    return AbsBallPositon
 
 
 #Operate models
