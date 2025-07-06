@@ -1,14 +1,33 @@
 import cv2
 import asyncio
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, HTMLResponse
 import threading
+from fastapi.responses import StreamingResponse, HTMLResponse
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时执行
+    print("应用启动")
+    # 这里放置启动时需要执行的代码
+    # 比如初始化摄像头
+    global cap
+    cap = cv2.VideoCapture(0)
+    
+    yield  # 应用运行期间
+    
+    # 关闭时执行
+    print("应用关闭")
+    # 这里放置关闭时需要执行的代码
+    # 比如释放摄像头资源
+    if cap is not None:
+        cap.release()
+
+app = FastAPI(lifespan=lifespan)
 
 # 全局变量存储摄像头对象
 camera = None
-camera_num = 1
+camera_num = 0
 camera_lock = threading.Lock()
 
 def scan_available_cameras(max_cameras=10):
@@ -49,7 +68,7 @@ def initialize_camera():
             print(f"Error: Camera {camera_num} not found.")
             camera = None
             return False
-    return True
+        return True
 
 def generate_frames():
     """生成视频帧的生成器函数"""
@@ -195,14 +214,6 @@ async def home():
                 <h3>可用摄像头列表：</h3>
                 <div id="camera-info"></div>
             </div>
-
-
-            <div class="camera-selector">
-                <label for="camera-input">摄像头端口号:</label>
-                <input type="number" id="camera-input" value="2" min="0" max="10">
-                <button onclick="changeCamera()">切换摄像头</button>
-            </div>
-            
             <div class="controls">
                 <button onclick="location.reload()">刷新页面</button>
                 <button onclick="toggleFullscreen()">全屏显示</button>
@@ -337,21 +348,21 @@ async def video_feed():
 async def change_camera(camera_id: int):
     """切换摄像头端口"""
     global camera, camera_num
+    print(1)
     
-    with camera_lock:
         # 释放当前摄像头
-        if camera is not None:
-            camera.release()
-            camera = None
-        
-        # 更新摄像头编号
-        camera_num = camera_id
-        
-        # 尝试初始化新的摄像头
-        if initialize_camera():
-            return {"success": True, "message": f"成功切换到摄像头 {camera_id}"}
-        else:
-            return {"success": False, "message": f"无法打开摄像头 {camera_id}"}
+    if camera is not None:
+        camera.release()
+        camera = None
+    
+    # 更新摄像头编号
+    camera_num = camera_id
+    print(2)
+    
+    # 尝试初始化新的摄像头
+    if initialize_camera():
+        return {"success": True, "message": f"成功切换到摄像头 {camera_id}"}
+    return {"success": False, "message": f"无法打开摄像头 {camera_id}"}
 
 @app.get("/camera_status")
 async def camera_status():
@@ -383,20 +394,6 @@ async def get_available_cameras():
             "count": 0
         }
 
-
-@app.on_event("startup")
-async def startup_event():
-    """应用启动时初始化摄像头"""
-    initialize_camera()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭时释放摄像头资源"""
-    global camera
-    with camera_lock:
-        if camera is not None:
-            camera.release()
-            camera = None
 
 if __name__ == "__main__":
     import uvicorn

@@ -40,7 +40,7 @@ class Car:
         Speed4 = SpeedX + SpeedY - SpeedZ
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
+        self.SetMotor((Speed1**3)/90, (Speed2**3)/90, (Speed3**3)/90, (Speed4**3)/90)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
         if self.GetYaw is None:
@@ -77,14 +77,15 @@ class Car:
         if self.GetYaw is None:
             return False
         self.GoA(Angle,0,0)
-    
-    def TurnTo(self,Angle):
-        '''
-        Turn to any angle on compass
-        '''
-        errorValue = Angle - self.GetYaw()
-        while abs(errorValue) < self.cfg.read("Position","ErrorRange"):
-            self.SetMotor(self.Kp*errorValue,self.Kp*errorValue,self.Kp*errorValue,self.Kp*errorValue)
+
+    def GoZspeed(self,Speed): #自转
+        Speed1 = Speed
+        Speed2 = Speed
+        Speed3 = - Speed
+        Speed4 = - Speed
+        if self.SaveData:
+            self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
+        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
 
     def stop(self):
         self.SetMotor(0,0,0,0)
