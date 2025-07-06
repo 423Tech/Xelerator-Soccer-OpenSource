@@ -620,7 +620,7 @@ def Lockballslip():
 
 
 
-def MacaoShot(z): #-110 +-35
+def MacaoShot(z): 
     if chassis.GetYaw is None:
         return False
     Yaw = chassis.GetYaw()
@@ -636,7 +636,7 @@ def MacaoShot(z): #-110 +-35
     # Pos2Pos([lAimPos[0],lAimPos[1],0],False)
     # if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
     if iLocX > 0:
-        target_angle1 = math.degrees(math.atan2( 80 + iLocX  - 35 ,iLocY + 110)) 
+        target_angle1 = 70
         target_angle = 140
         target_angle2 = 0 
         while True:
@@ -649,7 +649,7 @@ def MacaoShot(z): #-110 +-35
         while True:
             Yaw = chassis.GetYaw()
             speed = z
-            chassis.SetMotor(speed,speed,int(-speed/3),-speed)
+            chassis.SetMotor(speed+100,speed+100,-speed,-speed)
             if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                 break
         peripheral.StopDribble()
@@ -660,7 +660,7 @@ def MacaoShot(z): #-110 +-35
                 break
         peripheral.StopDribble()
     else:
-        target_angle1 = 360 - math.degrees(math.atan2(80 - iLocX  - 35 ,iLocY + 110 )) 
+        target_angle1 = 290
         target_angle = 220
         target_angle2 = 0 
         while True:
@@ -673,7 +673,7 @@ def MacaoShot(z): #-110 +-35
         while True:
             Yaw = chassis.GetYaw()
             speed = z
-            chassis.SetMotor(int(-speed/3),-speed,speed,speed)
+            chassis.SetMotor(-speed,-speed,speed+100,speed+100)
             if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                 break
         peripheral.StopDribble()

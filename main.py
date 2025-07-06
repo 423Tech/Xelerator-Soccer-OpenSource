@@ -8,7 +8,7 @@ logger.info("Starting Xelerator")
 while True:
     # Stop the chassis
     try:
-        MacaoShot(300)
+        MacaoShot(500)
         logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
