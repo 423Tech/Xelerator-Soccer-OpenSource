@@ -256,9 +256,9 @@ class ArisuIntelligence:
         self.FindBallThread.daemon = True
         self.FindBallThread.start()
 
-        self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
-        self.YOLOProcessThread.daemon = True
-        self.YOLOProcessThread.start()
+        # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
+        # self.YOLOProcessThread.daemon = True
+        # self.YOLOProcessThread.start()
 
 
     def InitVideo(self):

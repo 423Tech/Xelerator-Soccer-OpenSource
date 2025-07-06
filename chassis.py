@@ -40,7 +40,7 @@ class Car:
         Speed4 = SpeedX + SpeedY - SpeedZ
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
+        self.SetMotor((Speed1**3)/90, (Speed2**3)/90, (Speed3**3)/90, (Speed4**3)/90)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
         if self.GetYaw is None:

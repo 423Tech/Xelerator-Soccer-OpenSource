@@ -8,7 +8,7 @@ cfg = QkJson()
 
 from chassis import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
-# ArisuCam = ArisuIntelligence()
+ArisuCam = ArisuIntelligence()
 from ReasonBeacon import BTBeacon
 Beacon = BTBeacon()
 if cfg.read("model","Bit") == "AB":
@@ -162,7 +162,7 @@ def AbsBallPos():
     return AbsBallPositon
 
 
-def Lockball_angle():#贝尔巴托夫转身
+def Lockball________angle():#贝尔巴托夫转身
     lBallPos = GetBallPos()#获取球的位置
     iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
     Compass = chassis.GetYaw()#获取机器人的航向
@@ -177,12 +177,20 @@ def Lockballangle():
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
-    chassis.GoZ(Fangle* 1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+    chassis.GoZ(Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def Lockballmove():
     lBallPos = GetBallPos()
     iBX,iBY = lBallPos[0],lBallPos[1]
-    chassis.GoV(iBX*5,iBY*5,0)
+    if iBX > 0:
+        iBX=linear_map(iBX,(0,140),(60,80))
+    else:
+        iBX=linear_map(iBX,(-140,0),(-80,-60))
+    if iBY > 0:
+        iBY=linear_map(iBY,(0,140),(60,80))
+    else:
+        iBY=linear_map(iBY,(-140,0),(-80,-60))
+    chassis.GoV(iBX*4,iBY*4,0)
 
 def Lockballslip():
     lBallPos = GetBallPos()
@@ -588,38 +596,6 @@ def Defence()->None:
         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
 
 ###############################################################################################
-def Lockball_angle():#贝尔巴托夫转身
-    lBallPos = GetBallPos()#获取球的位置
-    iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
-    Compass = chassis.GetYaw()#获取机器人的航向
-    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-    Fangle = -(Angle - Compass)
-    logger.debug("Ball Angle: %f" % Fangle)
-    chassis.GoZ(Fangle)
-
-def Lockballangle():
-    lBallPos = GetBallPos()
-    iBX,iBY = lBallPos[0],lBallPos[1]
-    Compass = chassis.GetYaw()
-    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-    Fangle = Angle + Compass
-    chassis.GoZ(Fangle* 1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
-
-def Lockballmove():
-    lBallPos = GetBallPos()
-    iBX,iBY = lBallPos[0],lBallPos[1]
-    chassis.GoV(iBX*5,iBY*5,0)
-
-def Lockballslip():
-    lBallPos = GetBallPos()
-    iBX,iBY = lBallPos[0],lBallPos[1]
-    Compass = chassis.GetYaw()
-    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-    Fangle = Angle + Compass
-    chassis.GoV(iBX*5,iBY*5,Fangle*1.5) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
-
-
-
 def MacaoShot(z): 
     if chassis.GetYaw is None:
         return False

@@ -8,8 +8,9 @@ logger.info("Starting Xelerator")
 while True:
     # Stop the chassis
     try:
-        MacaoShot(500)
-        logger.debug(Bits.get_motor_encoder())
+        Lockballslip()
+        # Pos2Pos([0, 40, 30])
+        # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()
