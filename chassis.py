@@ -78,14 +78,14 @@ class Car:
             return False
         self.GoA(Angle,0,0)
 
-    def GoZspeed(self,Speed,z,p): #Macao
+    def GoZspeed(self,Speed): #自转
         Speed1 = Speed
         Speed2 = Speed
         Speed3 = - Speed
         Speed4 = - Speed
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1+z, Speed2+z-p, Speed3-z+p, Speed4+p)
+        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
 
     def stop(self):
         self.SetMotor(0,0,0,0)

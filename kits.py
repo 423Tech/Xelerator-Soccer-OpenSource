@@ -618,64 +618,66 @@ def Lockballslip():
 
 
 
-def MacaoShotMove(x,y,z): #-110 +-35
+def MacaoShot(z): #-110 +-35
     if chassis.GetYaw is None:
         return False
     Yaw = chassis.GetYaw()
     peripheral.DribbleBall()
-    lAimPos = [x,y,0]
+    # lAimPos = [x,y,0]
     lLocal = GetPos()
-    print(GetPos())
     iLocX = lLocal[0]
     iLocY = lLocal[1]
-    # time.sleep(0.1)
-    # iLocX1 = lLocal[0]
-    # iLocY1 = lLocal[1]
-    # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
-    Pos2Pos([lAimPos[0],lAimPos[1],0],False)
-    if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
-        if iLocX > 0:
-            target_angle1 = math.degrees(math.atan2( 80 + iLocX  - 35 ,iLocY + 110)) 
-            target_angle = 130
-            target_angle2 = 0 
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(50,0,0)
-                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
-                    break
-            chassis.GoZspeed(0,0,0)
-            time.sleep(0.5)
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(190,z,0)
-                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
-                    break
-            peripheral.StopDribble()
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-200,0,0)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
-                    break
-        else:
-            target_angle1 = 360 - math.degrees(math.atan2(80 - iLocX  - 35 ,iLocY + 110 )) 
-            target_angle = 230
-            target_angle2 = 0 
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(50,0,0)
-                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 5:
-                    break
-            chassis.GoZspeed(0,0,0)
-            time.sleep(0.5)
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-190,0,z)
-                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
-                    break
-            peripheral.StopDribble()
-            while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(200,0,0)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 15:
-                    break
-            peripheral.StopDribble()
+    # # time.sleep(0.1)
+    # # iLocX1 = lLocal[0]
+    # # iLocY1 = lLocal[1]
+    # # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
+    # Pos2Pos([lAimPos[0],lAimPos[1],0],False)
+    # if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
+    if iLocX > 0:
+        target_angle1 = math.degrees(math.atan2( 80 + iLocX  - 35 ,iLocY + 110)) 
+        target_angle = 140
+        target_angle2 = 0 
+        while True:
+            Yaw = chassis.GetYaw()
+            chassis.GoZspeed(50)
+            if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
+                break
+        chassis.GoZspeed(0)
+        time.sleep(0.3)
+        while True:
+            Yaw = chassis.GetYaw()
+            speed = z
+            chassis.SetMotor(speed,speed,int(-speed/3),-speed)
+            if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                break
+        peripheral.StopDribble()
+        while True:
+            Yaw = chassis.GetYaw()
+            chassis.GoZspeed(-200)
+            if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
+                break
+        peripheral.StopDribble()
+    else:
+        target_angle1 = 360 - math.degrees(math.atan2(80 - iLocX  - 35 ,iLocY + 110 )) 
+        target_angle = 220
+        target_angle2 = 0 
+        while True:
+            Yaw = chassis.GetYaw()
+            chassis.GoZspeed(-50)
+            if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
+                break
+        chassis.GoZspeed(0)
+        time.sleep(0.3)
+        while True:
+            Yaw = chassis.GetYaw()
+            speed = z
+            chassis.SetMotor(int(-speed/3),-speed,speed,speed)
+            if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                break
+        peripheral.StopDribble()
+        while True:
+            Yaw = chassis.GetYaw()
+            chassis.GoZspeed(200)
+            if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
+                break
+        peripheral.StopDribble()
