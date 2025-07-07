@@ -1,6 +1,6 @@
 import math
 from ReasonData.config import QkJson
-
+import time
 
 
 class Car:
@@ -21,7 +21,7 @@ class Car:
             self.logger = logger
     
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
-        self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
+        # self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
         self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
@@ -40,7 +40,7 @@ class Car:
         Speed4 = SpeedX + SpeedY - SpeedZ
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor((Speed1**3)/90, (Speed2**3)/90, (Speed3**3)/90, (Speed4**3)/90)
+        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
     
     def GoA(self,FacingAngle,MovingAngle,Speed):
         if self.GetYaw is None:
@@ -100,17 +100,31 @@ class Peripherals:
         self.logger = logger
         self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
         self.DribbleIO = self.cfg.read("Ports","Dribble")
+        self.SetIO(self.ElecMagnetIO,1)
 
     def ShootBall(self):
         self.SetIO(self.ElecMagnetIO,0)
+        time.sleep(0.3)
         self.SetIO(self.ElecMagnetIO,1)
-        self.SetIO(self.ElecMagnetIO,0)
         self.logger.info("Used ElecMagnet")
 
     def DribbleBall(self):
+        '''
+        Warning: This function will be unused.
+        '''
         self.SetIO(self.DribbleIO,1)
-        self.logger.info("Start Dribble")
+        # self.logger.info("Start Dribble")
 
     def StopDribble(self):
+        '''
+        Warning: This function will be unused.
+        '''
         self.SetIO(self.DribbleIO,0)
-        self.logger.info("Stop Dribble")
+        # self.logger.info("Stop Dribble")
+
+    def Dribble(self,Status:bool):
+        if Status:
+            self.SetIO(self.DribbleIO,1)
+        else:
+            self.SetIO(self.DribbleIO,0)
+        self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))
