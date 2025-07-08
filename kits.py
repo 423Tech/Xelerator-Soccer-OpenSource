@@ -34,6 +34,8 @@ SelfID = cfg.read("model","number") # 机器人编号 1/2
 role = cfg.read("model","type") # 攻防身份 OP攻 DP守
 ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
+PosXCache = 0
+PosYCache = 0
 
 #Math Mod
 def get_ball_distance():
@@ -187,23 +189,44 @@ def GetDistance() -> list[int,int,int]:
     '''
     return lidar.GetDists()
 
-def GetPos() -> list[int,int]:
+def GetPos(Fusion:bool | None = True) -> list[int,int]:
     Distance = GetDistance()
-    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 35):
+    global PosXCache, PosYCache
+    k = 10
+    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 20)*k:
         if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")/2 - Distance[0]
+            Y = cfg.read("Position","Height")*k/2 - Distance[0] +100
         else:
-            Y = Distance[2] - cfg.read("Position","Height")/2
+            Y = Distance[2] - cfg.read("Position","Height")*k/2 -100
     else:
-        Y = ((cfg.read("Position","Height")/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")/2))/2
-    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 35):
+        Y = ((cfg.read("Position","Height")*k/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*k/2))/2
+    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 20)*k:
         if Distance[1] > Distance[3]:
-            X = -(cfg.read("Position","Width")/2 - Distance[1])
+            X = -(cfg.read("Position","Width")*k/2 - Distance[1]) - 50
         else:
-            X = -(Distance[3] - cfg.read("Position","Width")/2)
+            X = -(Distance[3] - cfg.read("Position","Width")*k/2) + 50
     else:
-        X = -((cfg.read("Position","Width")/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")/2))/2
-    return [X/10,Y/10,compass()]
+        X = -((cfg.read("Position","Width")*k/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")*k/2))/2
+    if Fusion:
+        gx,gy,gz = Bits.get_accelerometer_data()
+        if abs(PosXCache - X) > cfg.read("Position","ErrorRange") or abs(PosYCache - Y) > cfg.read("Position","ErrorRange"):
+            if abs(gx) > 1 or abs(gy) > 1:
+                PosXCache = X
+                PosYCache = Y
+                return [X/10,Y/10,compass()]
+            else:
+                print("Fusion Pos: ",[PosXCache/10, PosYCache/10, compass()])
+                PosXCache = X
+                PosYCache = Y
+                return [PosXCache/10, PosYCache/10, compass()]
+        else:
+            PosXCache = X
+            PosYCache = Y
+            return [X/10,Y/10,compass()]
+    else:
+        PosXCache = X
+        PosYCache = Y
+        return [X/10,Y/10,compass()]
 
 
 def AbsBallPos():
