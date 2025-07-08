@@ -12,7 +12,7 @@ class QkJson:
         data = {
                 "model": {
                     "number" : 1,
-                    "type": "Offense",
+                    "type": "OP", # OP攻 DP守
                     "Bit" : "AB",
                 },
                 "Ports": {

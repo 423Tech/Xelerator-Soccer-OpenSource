@@ -68,8 +68,13 @@ def pure_inference_benchmark():
                         
                         while time.time() - start_time < test_duration:
                             # 只测量推理时间，不包括其他操作
-                            configured_infer_model.run([bindings], timeout_ms)
-                            inference_count += 1
+                            if batch_size == 4:
+                                configured_infer_model.run([bindings,bindings,bindings,bindings], timeout_ms)
+                                inference_count += 4
+                            else:
+                                configured_infer_model.run([bindings], timeout_ms)
+                                inference_count += 1
+                            
                         
                         total_time = time.time() - start_time
                         total_frames = inference_count * batch_size

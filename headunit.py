@@ -256,9 +256,9 @@ class ArisuIntelligence:
         self.FindBallThread.daemon = True
         self.FindBallThread.start()
 
-        self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
-        self.YOLOProcessThread.daemon = True
-        self.YOLOProcessThread.start()
+        # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
+        # self.YOLOProcessThread.daemon = True
+        # self.YOLOProcessThread.start()
 
 
     def InitVideo(self):
@@ -300,10 +300,10 @@ class ArisuIntelligence:
             print(InputShape, OutputShape)
             with InferModel.configure() as ConfiguredInferModel:
                 while True:
-                    Bindings = ConfiguredInferModel.create_bindings()
+                    BindingsList = []
+                    # Bindings = ConfiguredInferModel.create_bindings()
                     OutputBuffer = np.empty(OutputShape, dtype=np.float32)
 
-                    Frames = []
                     
                     for i in range(4):
                         Bindings = ConfiguredInferModel.create_bindings()
@@ -311,21 +311,20 @@ class ArisuIntelligence:
                         if Frame is not None:
                             Frame = self.Resize(Frame, (640, 640))
                             Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                            Frames.append(Frame)
-                    
-                    InputBuffer = np.stack(Frames, axis=0)
-                    # InputBuffer = InputBuffer.transpose(0, 3, 1, 2)
-                    InputBuffer = InputBuffer.astype(np.uint8)
-                    InputBuffer = np.ascontiguousarray(InputBuffer)
+                            # Frame = Frame.astype(np.uint8)
+                            # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                            # print(Frame.shape)
+                            Bindings.input().set_buffer(Frame)
+                            Bindings.output().set_buffer(OutputBuffer)
 
-                    print(InputBuffer.shape)
+                            BindingsList.append(Bindings)
 
-                    Bindings.input().set_buffer(InputBuffer)
+                    ConfiguredInferModel.run(BindingsList,1000)
 
-                    ConfiguredInferModel.run([Bindings],1000)
-                    
-                    OutputBuffer = Bindings.output().get_buffer()
-                    print(OutputBuffer.shape)
+
+
+                    Output = BindingsList[0].output().get_buffer()
+                    print(Output)
 
                     time.sleep(0.03)
                 

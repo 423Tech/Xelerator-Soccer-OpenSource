@@ -1,6 +1,6 @@
 import math
 from ReasonData.config import QkJson
-
+import time
 
 
 class Car:
@@ -21,7 +21,7 @@ class Car:
             self.logger = logger
     
     def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
-        self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
+        # self.logger.debug("SetMotor: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
         self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
@@ -60,7 +60,7 @@ class Car:
         Yaw = self.GetYaw()
         Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
-        SpeedZ = - Error * self.Kp
+        SpeedZ = - Error * 0.8
         self.Go(SpeedX, SpeedY, SpeedZ)
     
     def GoX(self,Angle,Speed):
@@ -78,14 +78,14 @@ class Car:
             return False
         self.GoA(Angle,0,0)
 
-    def GoZspeed(self,Speed,z,p): #Macao
+    def GoZspeed(self,Speed): #自转
         Speed1 = Speed
         Speed2 = Speed
         Speed3 = - Speed
         Speed4 = - Speed
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1+z, Speed2+z-p, Speed3-z+p, Speed4+p)
+        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
 
     def stop(self):
         self.SetMotor(0,0,0,0)
@@ -100,17 +100,31 @@ class Peripherals:
         self.logger = logger
         self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
         self.DribbleIO = self.cfg.read("Ports","Dribble")
+        self.SetIO(self.ElecMagnetIO,1)
 
     def ShootBall(self):
         self.SetIO(self.ElecMagnetIO,0)
+        time.sleep(0.3)
         self.SetIO(self.ElecMagnetIO,1)
-        self.SetIO(self.ElecMagnetIO,0)
         self.logger.info("Used ElecMagnet")
 
     def DribbleBall(self):
+        '''
+        Warning: This function will be unused.
+        '''
         self.SetIO(self.DribbleIO,1)
-        self.logger.info("Start Dribble")
+        # self.logger.info("Start Dribble")
 
     def StopDribble(self):
+        '''
+        Warning: This function will be unused.
+        '''
         self.SetIO(self.DribbleIO,0)
-        self.logger.info("Stop Dribble")
+        # self.logger.info("Stop Dribble")
+
+    def Dribble(self,Status:bool):
+        if Status:
+            self.SetIO(self.DribbleIO,1)
+        else:
+            self.SetIO(self.DribbleIO,0)
+        self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))
