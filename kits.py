@@ -197,7 +197,7 @@ def GetDistance() -> list[int,int,int]:
     '''
     return lidar.GetDists()
 
-def GetPos(Fusion:bool | None = True) -> list[int,int]:
+def GetPos(Fusion:bool | None = False) -> list[int,int]:
     Distance = GetDistance()
     global PosXCache, PosYCache
     k = 10
@@ -617,7 +617,6 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
     return int(iDeltaAngle)
 
 def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
-
     '''
     iFacingAngle 移动时面对的方向 0~360
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
@@ -629,7 +628,8 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     iAimZ = lAimPos[2]
     # time.sleep(0.01)
     lLocal = GetPos()
-    logger.info(lLocal)
+    logger.info("LocalPos:%s"%lLocal)
+    logger.info("AimPos:%s"%lAimPos)
     iLocX = lLocal[0]
     iLocY = lLocal[1]
     iLocZ = lLocal[2]
@@ -657,18 +657,22 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
                 PA = Local2Angle(lAimPos) - 180
             AvoidObt(lAimPos[2],PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
     else:
-        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange and iErrorRange > iDeltaZ > -iErrorRange:
+        if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
             return True
+        elif not abs(iErrorRange) > abs(iDeltaZ):
+            chassis.GoZspeed(iDeltaZ)
+            logger.warning("AimPos:%s"%lAimPos)
         else:
         # chassis.GoZ(iFacingAngle)
             # Go2(iFacingAngle,iDeltaX,iDeltaY)
+            logger.warning("moving to:%s"%lAimPos)
             if iDeltaY > 0:
                 iAngle = 180
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.GoA(lAimPos[2],90-iMovedAngle+iDeltaZ,int((abs(iDeltaX)+abs(iDeltaY)/2))+iDeltaZ)
+            chassis.GoA(lAimPos[2],90-iMovedAngle+iDeltaX,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
 def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -683,7 +687,7 @@ def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A
             iLocY = lLocal[1]
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
-            if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
+            if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and iErrorRange > abs(iDeltaZ):
                 if i == Posistions[-1]:
                     return True
                 else:
@@ -755,10 +759,11 @@ def AutoFetch(bStop = True):
             break
 
 def Move2Pos(lPos):
-    while not Pos2Pos(lPos,False):
-        pass
-    for _ in range(3):
-        chassis.SetMotor(0,0,0,0)
+    while Pos2Pos(lPos,False):
+        chassis.stop()
+        break
+    # for _ in range(3):
+    #     chassis.SetMotor(0,0,0,0)
 
 def RunCircle(r:int, angle:int,a:int):
     iSpeed = 355/r
@@ -802,7 +807,7 @@ def GoDistance(iDistance):
     iAimDist = GetDistance()[iFacingDistIndex] - iDistance
     
     while(1):
-        chassis.straight(iMovingAngle, 20)
+        chassis.GoA(0,iMovingAngle, 20)
         iCurrentDist = GetDistance()[iFacingDistIndex]
         print(iCurrentDist,iAimDist)
         if iCurrentDist < iAimDist + 10:
@@ -957,12 +962,12 @@ def Slipsideshot(): #溜边 10,-90
     ALocY = ALocal[1]
     DoorLocal = [0, -100]
     DoorY = DoorLocal[1]
-    iY = -90
+    iY = -80
     if iLocX > 0:
         iX = 10
     else:
         iX = -10
-    Angle = (Yaw - math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
     Pos2Pos([iX,iY,Angle],False)
     if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
         while True:
@@ -988,7 +993,7 @@ def OHMYBACK():
     ALocal = [0,0]
     ALocX = ALocal[0]
     ALocY = ALocal[1]
-    Angle = (Yaw - math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
     Pos2Pos([0,70,Angle],False)
 
 

@@ -11,7 +11,8 @@ while True:
         # peripheral.DribbleBall()
         # Lockballmove()
         # Offence()
-        OHMYBACK()
+        # OHMYBACK()
+        Slipsideshot()
         logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
