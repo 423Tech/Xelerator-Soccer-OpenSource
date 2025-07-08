@@ -995,6 +995,3 @@ def OHMYBACK():
     ALocY = ALocal[1]
     Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
     Pos2Pos([0,70,Angle],False)
-
-
-
