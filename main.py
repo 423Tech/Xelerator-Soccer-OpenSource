@@ -28,7 +28,7 @@ while True:
             logger.info("Ball is in possession, finding.")
             Lockballslip()
             peripheral.Dribble(True)
-        if BallFlag and GetPos()[1] > 80:
+        if BallFlag and GetPos()[1] > 70:
             peripheral.Dribble(True)
             logger.info("Ball is in possession, start shotting.")
             # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
