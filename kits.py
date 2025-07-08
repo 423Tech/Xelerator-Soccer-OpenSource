@@ -30,30 +30,34 @@ else:
     # breakpoint()
     raise ImportError("None Bit Model found.")
 
-SelfID = cfg.read("model","number") # 机器人编号 1/2
-role = cfg.read("model","type") # 攻防身份 OP攻 DP守
+my_id = 1 #Arisu ID
+peer_id = 2 #Kei ID
+role = "DP"    # OP攻 DP守
 ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
 PosXCache = 0
 PosYCache = 0
 
 #Math Mod
+#####################################################################################################
+
 def get_ball_distance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
     return math.sqrt((bx - x) ** 2 + (by - y) ** 2)
 
-def SendStatus(): # 发送身份和球权
+def Sendstatus(): # 发送身份和球权
     try:
-        my_dist = get_ball_distance()
-        msg = f"ROLE:{role};OWNER:{ball_owner};DIST:{my_dist:.2f}"
+        P2Ball = get_ball_distance()
+        P_Pos =  GetPos()
+        msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2Ball:.2f};P_Pos:{P_Pos:.2f}"
         Beacon.Send(msg)
     except Exception as e:
         logger.error(f"Failed to send status: {e}")
 
-def PeerStatus():# 解析对方身份球权距离
+def Peerstatus():# 解析对方身份球权距离
     msg = Beacon.MessageCache
-    peer_role, peer_owner, peer_dist = None, None, None
+    peer_role, peer_owner, P2Ball, P_Pos = None, None, None, None
     if msg:
         try:
             for part in msg.split(";"):
@@ -61,26 +65,28 @@ def PeerStatus():# 解析对方身份球权距离
                     peer_role = part.split(":")[1]
                 if part.startswith("OWNER:"):
                     peer_owner = int(part.split(":")[1])
-                if part.startswith("DIST:"):
-                    peer_dist = float(part.split(":")[1])
+                if part.startswith("P_Pos:"):
+                    P_Pos = float(part.split(":")[1])
+                if part.startswith("P2Ball:"):
+                    P2Ball = float(part.split(":")[1])
         except Exception:
             pass
-    return peer_role, peer_owner, peer_dist
+    return peer_role, peer_owner, P2Ball, P_Pos
 
 
-def IdentitySwitch():
+def Identityswitch(): #切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切换
     global role, ball_owner,Dribblingdistance
     Dribblingdistance = 9
     lBallPos = GetBallPos()
     lPos = GetPos()
     bx, by = lBallPos[0], lBallPos[1]
     x, y = lPos[0], lPos[1]
-    Mydist = math.sqrt((bx - x) ** 2 + (by - y) ** 2)
-    peer_role, peer_owner, Peerdist = PeerStatus()
+    My2Ball = math.sqrt((bx - x) ** 2 + (by - y) ** 2)
+    peer_role, peer_owner, P2Ball, P_Pos = Peerstatus()
     bluetooth_disconnected = (Beacon.MessageCache is None) or (Beacon.MessageCache == "")
     # 球权
     if get_ball_distance() < Dribblingdistance and (bx != 0 and by != 0):
-        ball_owner = SelfID
+        ball_owner = my_id
     else:
         ball_owner = 0
     # 攻防身份
@@ -88,19 +94,21 @@ def IdentitySwitch():
         if bluetooth_disconnected:
             role = "DP"
         else:
-            if Peerdist is not None:
-                role = "OP" if Mydist < Peerdist else "DP"
+            if P2Ball is not None:
+                role = "OP" if My2Ball < P2Ball else "DP"
             else:
                 role = "OP" 
     elif by < 0:
-        if Peerdist is not None and abs(Mydist - Peerdist) < 2:  
-            pass
-        else:
+        if bluetooth_disconnected:
             role = "DP"
+        else:
+            if P2Ball is not None and abs(My2Ball - P2Ball) < 5:
+                pass
+            else:
+                role = "DP" 
     # 3. 球在己方半场且距离相等，先到先得（默认不变）
-    SendStatus()
+    Sendstatus()
 
-#球权不等于攻防身份
 
 ###################################################################################################
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
@@ -234,12 +242,6 @@ def AbsBallPos():
     retrun a absolute position of the ball
     '''
     ballX,ballY = ArisuCam.GetBallPos()
-    logger.debug("Ball Position: %s" % [ballX, ballY])
-    if ballX == 0 and ballY == 0:
-        return [0, 0]
-    if abs(ballY) <= 10 and abs(ballX) == 0:
-        ball_owner = SelfID
-        return [1207, 1207]
     SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
     if ballY == 0:
@@ -297,11 +299,23 @@ def Lockballslip():
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
-    chassis.GoV(iBX*3,iBY*3,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+    chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 ##每
 def Offence():#1200 400
-    IdentitySwitch()
+    """
+    OP进攻逻辑
+    1. 默认在前半场，实时追球，首要目标是抢球。
+    2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
+    3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
+    4. 绝不进入己方禁区防守区域。
+
+    """
+    peripheral.DribbleBall()
+    if chassis.GetYaw is None:
+            return False
+    Yaw = chassis.GetYaw()
+    Identityswitch()
     lBallPos = AbsBallPos()
     lPos = GetPos()
     bx, by = lBallPos[0], lBallPos[1]
@@ -311,7 +325,7 @@ def Offence():#1200 400
             peripheral.StopDribble()
             Pos2Pos([0, -50, 0], False)
             return   
-    if ball_owner == SelfID:
+    if ball_owner == my_id:
         # 球在己方半场，优先溜边
         if abs(bx) > 50:
             Slipsideshot()
@@ -322,7 +336,7 @@ def Offence():#1200 400
             if by > 50:
                 Angle = math.degrees(math.atan2(abs(x),120-y))
                 while True:
-                    if abs(compass()-Angle) < 10:
+                    if abs(Yaw-Angle) < 10:
                         chassis.stop()
                         peripheral.ShootBall()
                         break
@@ -331,22 +345,141 @@ def Offence():#1200 400
                     else:
                         chassis.GoZspeed(150)
             else:
-                peripheral.StopDribble()
-                Pos2Pos([0, -50, 0], False)
-                return   
+                Lockballslip()
         else:
-            peripheral.StopDribble()
-            Pos2Pos([0, -50, 0], False)
-            return   
-    else:
-        peripheral.DribbleBall()
-        Lockballslip()
+            Lockballslip()  
+    else: #无球权
+        if by < 0:
+            Pos2Pos([x, 0, 0], False)
+        else:
+            Lockballslip()
+
+
+
+def Offence(): #CODEGEEX希望做的修改
+    if chassis.GetYaw is None:
+        return False
+    Yaw = chassis.GetYaw()
+
+    # 获取球和自身位置
+    lBallPos = GetBallPos()
+    lPos = GetPos()
+    iBX, iBY = lBallPos[0], lBallPos[1]
+    iX, iY = lPos[0], lPos[1]
+    
+    # 计算球的绝对位置
+    iAbsBX = iX + iBX
+    iAbsBY = iY + iBY
+    
+    # 球未检测到或位置异常，回到默认位置
+    if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
+        peripheral.StopDribble()
+        GoBack()
         return
-    Lockballslip()
+    
+    # 有球权的进攻策略
+    if ball_owner == my_id:
+        logger.info("OP: 有球权，准备进攻")
+        
+        # 根据位置选择射门方式
+        if abs(iX) > 50:  # 靠近边线
+            logger.info("OP: 选择溜边射门")
+            if iX > 0:
+                Slipsideshot(60, iY)  # 右侧溜边
+            else:
+                Slipsideshot(-60, iY)  # 左侧溜边
+        elif iBY < 0:  # 球在己方半场
+            logger.info("OP: 选择澳门射门")
+            if iX > 0:
+                MacaoShot(20, -30, 300)  # 右侧澳门
+            else:
+                MacaoShot(-20, -30, 300)  # 左侧澳门
+        elif iBY > 50:  # 深入对方半场
+            logger.info("OP: 选择直接射门")
+            # 计算射门角度
+            Angle = math.degrees(math.atan2(abs(iX), 120-iY))
+            while True:
+                if abs(Yaw -Angle) < 10:
+                    chassis.stop()
+                    peripheral.ShootBall()
+                    break
+                elif iX > 0:
+                    chassis.GoZspeed(-150)
+                else:
+                    chassis.GoZspeed(150)
+        else:
+            # 其他情况，控球并向前推进
+            Lockballslip()
+    else:  # 无球权的进攻策略
+        logger.info("OP: 无球权，寻找球")
+        
+        if iBY < 0:  # 球在己方半场
+            # 回到适当位置，不要太靠后
+            target_y = max(-30, iBY + 20)  # 保持在球前方一定距离
+            Pos2Pos([iX, target_y, 0], False)
+        else:  # 球在对方半场
+            # 积极追球
+            Lockballslip()
+    
 
+def Defence(): #bX有部分最好是改为AX（敌方坐标）
+    """
+    DP防守逻辑
+    1. 默认在己方半场，横向跟随球，保持在禁区外防守。
+    2. 球过中线到对方半场，解除区域限制，积极争抢球权。
+    3. 获得球权后 切换为OP。
+    4. 球丢失或出界，回撤至防守点。
+    5. 绝不与OP重叠在同一进攻区域。
 
+    """
+    peripheral.StopDribble()
+    Identityswitch()
+    lBallPos = AbsBallAngle()
+    lPos = GetPos()
+    iX, iY = lPos[0], lPos[1]
+    bX, bY = lBallPos[0], lBallPos[1]
 
+    HOMEPOS = [0, -90, 0]
+    GOAL_POS = [0, -90]
+    BLOCK_DIST = 20
 
+    if bX == 0 and bY == 0 or abs(iX) > 70 or abs(iY) > 90:
+        Pos2Pos(HOMEPOS, False)
+        return
+    if bY > 0 :  
+        if ball_owner == my_id:
+            return Offence()  #变成攻方
+        elif ball_owner == peer_id:
+            defend_x = - Peerstatus[2][0]   # 横向适当跟随(这里要改 是跟随谁 不确定)
+            defend_y = -40 + Peerstatus[2][1] * 0.5  # 等比前移
+            defend_y = max(-100, min(0, defend_y))
+        else:#我方失去球权
+            defend_x = bX * 0.8   
+            defend_y = -40 + bY * 0.5  # 等比前移
+            defend_y = max(-100, min(0, defend_y))
+        Pos2Pos([defend_x, defend_y, 0], False)
+    else:
+        ball_to_goal_dist = math.sqrt((bX - GOAL_POS[0])**2 + (bY - GOAL_POS[1])**2)
+        if ball_owner == my_id:
+            return Offence()  #变成攻方
+        elif ball_owner == peer_id:
+            defend_x = - Peerstatus[2][0]   # 各自站左右半场
+            defend_y = -90
+        else:
+            if ball_to_goal_dist < BLOCK_DIST: #离球门很近
+                defend_x = (bX - GOAL_POS[0])/ abs(bY - GOAL_POS[1]) * abs(iY - GOAL_POS[1]) #在球和球门连线上
+                defend_y = -90 
+            else:
+                defend_x =  bX 
+                defend_y = -90          
+        Pos2Pos([defend_x, defend_y, 0], False)
+
+def Circle(origin:list[int,int],angle:int,r:int):
+    Pos2Pos(
+        [origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,
+        origin[1]+(math.tan(angle)**-1)*((r**2)/((1+math.tan(angle)**2)))**0.5,
+        angle]
+        ,False)
 
 ##################################################################################################################
 
@@ -496,6 +629,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     iAimZ = lAimPos[2]
     # time.sleep(0.01)
     lLocal = GetPos()
+    logger.info(lLocal)
     iLocX = lLocal[0]
     iLocY = lLocal[1]
     iLocZ = lLocal[2]
@@ -534,7 +668,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            chassis.GoA(lAimPos[2],90-iMovedAngle+iDeltaZ,int((abs(iDeltaX)+abs(iDeltaY)/2))+iDeltaZ)
             return False
 
 def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -549,7 +683,7 @@ def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A
             iLocY = lLocal[1]
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
-            if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and iErrorRange > abs(iAimZ - lLocal[2]):
+            if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY):
                 if i == Posistions[-1]:
                     return True
                 else:
@@ -698,12 +832,12 @@ def Offence():
     lPos = GetPos()
     iX,iY = lPos[0],lPos[1]
 
-    # iAbsBX = iX + iBX
-    # iAbsBY = iY + iBY
-    iAbsBX, iAbsBY = AbsBallPos()
+    iAbsBX = iX + iBX
+    iAbsBY = iY + iBY
+
     peripheral.DribbleBall()
 
-    if (iAbsBX == 0 and iAbsBX == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
+    if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
         GoBack()
     elif 7 <= iBY <= 30:
         if -2 <= iBX <= 2:
@@ -783,13 +917,11 @@ def MacaoShot(x,y,z):
                 chassis.SetMotor(speed+100,speed+100,-speed,-speed)
                 if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                     break
-            peripheral.StopDribble()
             while True:
                 Yaw = chassis.GetYaw()
                 chassis.GoZspeed(-200)
                 if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
                     break
-            peripheral.StopDribble()
         else:
             target_angle1 = 290
             target_angle = 220
@@ -807,13 +939,57 @@ def MacaoShot(x,y,z):
                 chassis.SetMotor(-speed,-speed,speed+100,speed+100)
                 if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
                     break
-            peripheral.StopDribble()
             while True:
                 Yaw = chassis.GetYaw()
                 chassis.GoZspeed(200)
                 if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
                     break
-            peripheral.StopDribble()
 
-def Slipsideshot():
-    pass
+                    
+def Slipsideshot(): #溜边 10,-90
+    Yaw = compass()
+    peripheral.Dribble(True)
+    lLocal = GetPos()
+    iLocX = lLocal[0]
+    iLocY = lLocal[1]
+    ALocal = [0,0]
+    ALocX = ALocal[0]
+    ALocY = ALocal[1]
+    DoorLocal = [0, -100]
+    DoorY = DoorLocal[1]
+    iY = -90
+    if iLocX > 0:
+        iX = 10
+    else:
+        iX = -10
+    Angle = (Yaw - math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Pos2Pos([iX,iY,Angle],False)
+    if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
+        while True:
+            AngleD  = 180 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
+            Yaw = chassis.GetYaw()
+            if iLocX > 0:
+                chassis.GoZspeed(-100)
+            else:
+                chassis.GoZspeed(100)
+            if abs((Yaw - AngleD + 180) % 360 - 180) < 15:
+                    chassis.stop()
+                    peripheral.ShootBall()
+                    time.sleep(0.3)
+                    break
+        return
+
+def OHMYBACK():
+    Yaw = compass()
+    peripheral.Dribble(True)
+    lLocal = GetPos()
+    iLocX = lLocal[0]
+    iLocY = lLocal[1]
+    ALocal = [0,0]
+    ALocX = ALocal[0]
+    ALocY = ALocal[1]
+    Angle = (Yaw - math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Pos2Pos([0,70,Angle],False)
+
+
+
