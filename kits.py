@@ -200,21 +200,30 @@ def GetDistance() -> list[int,int,int]:
 def GetPos(Fusion:bool | None = False) -> list[int,int]:
     Distance = GetDistance()
     logger.debug(Distance)
+    if Distance == [0,0,0,0]:
+        logger.error("Lidar Not Started")
+        return [0,0,compass()]
     global PosXCache, PosYCache
     k = 10
-    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 20)*k:
+    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 50)*k:
         if Distance[0] > Distance[2]:
-            Y = cfg.read("Position","Height")*k/2 - Distance[0] +100
+            Y = cfg.read("Position","Height")*k/2 - Distance[0]
+            logger.warning("using front dist")
         else:
             Y = Distance[2] - cfg.read("Position","Height")*k/2 -100
+            logger.warning("using back dist")
     else:
         Y = ((cfg.read("Position","Height")*k/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*k/2))/2
-    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 20)*k:
+        logger.warning("using front&back dist")
+    if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 50)*k:
         if Distance[1] > Distance[3]:
             X = -(cfg.read("Position","Width")*k/2 - Distance[1]) - 50
+            logger.warning("using right dist")
         else:
             X = -(Distance[3] - cfg.read("Position","Width")*k/2) + 50
+            logger.warning("using left dist")
     else:
+        logger.warning("using left&right dist")
         X = -((cfg.read("Position","Width")*k/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")*k/2))/2
     if Fusion:
         gx,gy,gz = Bits.get_accelerometer_data()
@@ -235,7 +244,8 @@ def GetPos(Fusion:bool | None = False) -> list[int,int]:
     else:
         PosXCache = X
         PosYCache = Y
-        return [X/10,Y/10,compass()]
+        logger.success([X*0.85/10,Y*0.85/10,compass()])
+        return [X*0.85/10,Y*0.85/10,compass()]
 
 
 def AbsBallPos():
@@ -629,8 +639,6 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     iAimZ = lAimPos[2]
     # time.sleep(0.01)
     lLocal = GetPos()
-    logger.info("LocalPos:%s"%lLocal)
-    logger.info("AimPos:%s"%lAimPos)
     iLocX = lLocal[0]
     iLocY = lLocal[1]
     iLocZ = lLocal[2]
@@ -673,7 +681,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
             else:
                 iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.GoA(lAimPos[2],90-iMovedAngle+iDeltaX,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
 
 def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -686,8 +694,10 @@ def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A
             lLocal = GetPos()
             iLocX = lLocal[0]
             iLocY = lLocal[1]
+            iLocZ = lLocal[2]
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
+            iDeltaZ = iAimZ - iLocZ
             if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and iErrorRange > abs(iDeltaZ):
                 if i == Posistions[-1]:
                     return True
@@ -968,7 +978,7 @@ def Slipsideshot(): #溜边 10,-90
         iX = 30
     else:
         iX = -30
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-270) % 360 
     Pos2Pos([iX,iY,Angle],False)
     if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
         while True:
@@ -978,7 +988,7 @@ def Slipsideshot(): #溜边 10,-90
                 chassis.GoZspeed(-100)
             else:
                 chassis.GoZspeed(100)
-            if abs((Yaw - AngleD + 180) % 360 - 180) < 15:
+            if abs((Yaw - AngleD + 135) % 360) < 15:
                     chassis.stop()
                     peripheral.ShootBall()
                     time.sleep(0.3)
@@ -994,5 +1004,5 @@ def OHMYBACK():
     ALocal = [0,0]
     ALocX = ALocal[0]
     ALocY = ALocal[1]
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)-270)) % 360
     Pos2Pos([0,70,Angle],False)
