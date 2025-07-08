@@ -199,6 +199,7 @@ def GetDistance() -> list[int,int,int]:
 
 def GetPos(Fusion:bool | None = False) -> list[int,int]:
     Distance = GetDistance()
+    logger.debug(Distance)
     global PosXCache, PosYCache
     k = 10
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 20)*k:
@@ -971,7 +972,7 @@ def Slipsideshot(): #溜边 10,-90
     Pos2Pos([iX,iY,Angle],False)
     if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
         while True:
-            AngleD  = 180 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
+            AngleD  = 270 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
             Yaw = chassis.GetYaw()
             if iLocX > 0:
                 chassis.GoZspeed(-100)
