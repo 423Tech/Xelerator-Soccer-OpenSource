@@ -274,7 +274,7 @@ def Lockballslip():
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
-    chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+    chassis.GoV(iBX*3,iBY*3,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 ##每
 def Offence():#1200 400

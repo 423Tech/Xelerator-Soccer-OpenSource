@@ -60,7 +60,7 @@ class Car:
         Yaw = self.GetYaw()
         Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
-        SpeedZ = - Error * self.Kp
+        SpeedZ = - Error * 0.8
         self.Go(SpeedX, SpeedY, SpeedZ)
     
     def GoX(self,Angle,Speed):
