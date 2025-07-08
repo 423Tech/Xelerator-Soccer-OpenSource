@@ -24,6 +24,7 @@ typedef struct _pid
     float Kp,Ki,Kd;          		//定义比例、积分、微分系数
     float err;             			//定义偏差值
     float err_last;          		//定义上一个偏差值
+    float integral_sum;          // 定义积分值，增量式
 
     float err_next;                 //定义下一个偏差值, 增量式
     float integral;          		//定义积分值，位置式
