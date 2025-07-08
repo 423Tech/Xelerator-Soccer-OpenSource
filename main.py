@@ -69,18 +69,18 @@ logger.info("Starting Xelerator")
 #     # print(GetBallPos())
     
 
-while True:
-    try:
-        Move2Pos([0,0,90])
-    except KeyboardInterrupt:
-        chassis.stop()
-        peripheral.StopDribble()
-        break
-# cache = GetPos()
+# while True:
+#     try:
+#         Move2Pos([0,0,90])
+#     except KeyboardInterrupt:
+#         chassis.stop()
+#         peripheral.StopDribble()
+#         break
+cache = GetPos()
 
-# while(1):
-#     time.sleep(0.1)
-#     cache2 = GetPos()
-#     logger.debug("Error X: %s,Error Y: %s" % (int(cache[0] - cache2[0]),int(cache[1] - cache2[1])))
-#     logger.debug(" X: %s, Y: %s" % (int(cache2[0]),int(cache2[1])))
-#     cache = cache2
+while(1):
+    time.sleep(0.1)
+    cache2 = GetPos()
+    logger.debug("Error X: %s,Error Y: %s" % (int(cache[0] - cache2[0]),int(cache[1] - cache2[1])))
+    logger.debug(" X: %s, Y: %s" % (int(cache2[0]),int(cache2[1])))
+    cache = cache2

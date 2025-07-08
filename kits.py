@@ -962,11 +962,11 @@ def Slipsideshot(): #溜边 10,-90
     ALocY = ALocal[1]
     DoorLocal = [0, -100]
     DoorY = DoorLocal[1]
-    iY = -80
+    iY = -90
     if iLocX > 0:
-        iX = 10
+        iX = 30
     else:
-        iX = -10
+        iX = -30
     Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)) + 180) % 360 - 180 
     Pos2Pos([iX,iY,Angle],False)
     if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
