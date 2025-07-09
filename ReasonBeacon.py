@@ -38,8 +38,8 @@ class BTBeacon:
         self.CreateConnection()
         
     def StartServer(self):
-        """启动蓝牙服务器"""
-        while True:
+            """启动蓝牙服务器"""
+        # while True:
             try:
                 # 创建蓝牙套接字
                 self.logger.info(f"蓝牙服务器启动，监听端口: {self.port}")
@@ -52,7 +52,7 @@ class BTBeacon:
                 receive_thread = threading.Thread(target=self.receive_messages)
                 receive_thread.daemon = True
                 receive_thread.start()
-                break
+                # break
             except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
             except Exception as e:
