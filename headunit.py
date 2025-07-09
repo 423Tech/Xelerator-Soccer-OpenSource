@@ -381,13 +381,14 @@ class ArisuIntelligence:
                     for Chassis in List:
                         if Chassis[4] < 0.5:
                             continue
-                        YMin = int(Chassis[0] * 640)
+                        YMin = int(Chassis[0] * 640) + 80
                         XMin = int(Chassis[1] * 640)
-                        YMax = int(Chassis[2] * 640)
+                        YMax = int(Chassis[2] * 640) + 80
                         XMax = int(Chassis[3] * 640)
                         BottomY = YMax
                         CenterX = int((XMin + XMax) / 2)
-                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        # X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        X,Y = CenterX, BottomY
                         if i == 0:
                             CX = X
                             CY = Y

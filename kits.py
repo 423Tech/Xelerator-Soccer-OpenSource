@@ -76,7 +76,6 @@ def Peerstatus():# 解析对方身份球权距离
             pass
     return peer_role, peer_owner, P2BallDirect, P_Pos , Pbx, Pby
 
-
 def Identityswitch(): #切换
     global role, ball_owner,Dribblingdistance
     lBallPos = AbsBallPos()
@@ -709,19 +708,19 @@ def Circle(origin:list[int,int],angle:int,r:int):
         angle]
         ,False)
 
-def Defence()->None:
-    lBallPos = GetBallPos()
-    lPos = GetPos()
-    logger.debug("Ball Position: %s, Local Position: %s" % (lBallPos,lPos))
-    if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
-        Pos2Pos(cfg.read("Position","Home"),False)
-    else:
+# def Defence()->None:
+#     lBallPos = GetBallPos()
+#     lPos = GetPos()
+#     logger.debug("Ball Position: %s, Local Position: %s" % (lBallPos,lPos))
+#     if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
+#         Pos2Pos(cfg.read("Position","Home"),False)
+#     else:
         
-        # if lBallPos[0] > 0:
-            # chassis.GoA(0,90,100)
-        # else:
-        chassis.GoA(0,90,lBallPos[0]*4)
-        # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
+#         # if lBallPos[0] > 0:
+#             # chassis.GoA(0,90,100)
+#         # else:
+#         chassis.GoA(0,90,lBallPos[0]*4)
+#         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
 
 ###############################################################################################
 def MacaoShot(x,y,z): 
