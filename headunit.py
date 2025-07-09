@@ -231,6 +231,8 @@ class ArisuIntelligence:
 
         self.InitCam(self.CamPorts)
 
+        self.YOLOQueue = queue.Queue(maxsize=2)
+
         for i in range(4):
             NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
             PerspectiveMatrix = NumpyData['matrix']
@@ -246,16 +248,32 @@ class ArisuIntelligence:
         self.ReadCamsThread.daemon = True
         self.ReadCamsThread.start()
 
-        time.sleep(3)
+        time.sleep(2)
 
-        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
-        self.VideoRecordThread.daemon = True
-        self.VideoRecordThread.start()
+        # self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        # self.VideoRecordThread.daemon = True
+        # self.VideoRecordThread.start()
 
         self.FindBallThread = threading.Thread(target=self.FindBall)
         self.FindBallThread.daemon = True
         self.FindBallThread.start()
 
+        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+        self.InitConfiguredModelThread.daemon = True
+        self.InitConfiguredModelThread.start()
+
+        time.sleep(2)
+
+        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+        self.ModelPreProcessThread.daemon = True
+        self.ModelPreProcessThread.start()
+
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
+
+        
+        
         # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
         # self.YOLOProcessThread.daemon = True
         # self.YOLOProcessThread.start()
@@ -290,23 +308,80 @@ class ArisuIntelligence:
                         self.Videos[i].write(Frame)
             time.sleep(0.03)
     
-    def YOLOProcess(self):
+    def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model('/xel/ArisuIntelligence.hef')
+            InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+            InferModel.set_batch_size(4)
+
+            self.InputShape = InferModel.input().shape
+            self.OutputShape = InferModel.output().shape
+            with InferModel.configure() as ConfiguredInferModel:
+                self.ConfiguredInferModel = ConfiguredInferModel
+                time.sleep(114514)
+    
+    def ModelPreProcess(self):
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Bindings = self.ConfiguredInferModel.create_bindings()
+                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    Frame = self.Resize(Frame, (640, 640))
+                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                    # Frame = Frame.astype(np.uint8)
+                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                    # print(Frame.shape)
+                    Bindings.input().set_buffer(Frame)
+                    Bindings.output().set_buffer(OutputBuffer)
+                    BindingsList.append(Bindings)
+            self.YOLOQueue.put(BindingsList)
+                
+    def ModelInfer(self):
+        while(1):
+            BindingsList = self.YOLOQueue.get()
+            self.ConfiguredInferModel.run(BindingsList, 1000)
+            Outputs = []
+            for Bindings in BindingsList:
+                OutputBuffer = Bindings.output().get_buffer()
+                Outputs.append(OutputBuffer)
+            print(Outputs)
+            # print(Output0)
+            # time.sleep(0.01)
+
+
+    
+    def YOLOProcess(self):
+        FrameCount = 0
+        LastTime = time.time()
+        with VDevice(self.HailoParams) as Hat:
+            InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel.set_batch_size(4)
 
             InputShape = InferModel.input().shape
             OutputShape = InferModel.output().shape
             print(InputShape, OutputShape)
             with InferModel.configure() as ConfiguredInferModel:
+                # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+                
                 while True:
+
+                    FrameCount += 1
+                    CurrentTime = time.time()
+                    if CurrentTime - LastTime >= 1.0:
+                        print(f"FPS: {FrameCount}")
+                        FrameCount = 0
+                        LastTime = CurrentTime
+                    
                     BindingsList = []
-                    # Bindings = ConfiguredInferModel.create_bindings()
-                    OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+                    # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+                    # OutputBuffers = [np.empty(OutputShape, dtype=np.float32) for _ in range(4)]
+                    
 
                     
                     for i in range(4):
                         Bindings = ConfiguredInferModel.create_bindings()
+                        OutputBuffer = np.empty(OutputShape, dtype=np.float32)
                         Frame = self.Frames[i]
                         if Frame is not None:
                             Frame = self.Resize(Frame, (640, 640))
@@ -318,20 +393,28 @@ class ArisuIntelligence:
                             Bindings.output().set_buffer(OutputBuffer)
 
                             BindingsList.append(Bindings)
+                    while True:
+                        FrameCount += 1
+                        CurrentTime = time.time()
+                        if CurrentTime - LastTime >= 1.0:
+                            print(f"FPS: {FrameCount}")
+                            FrameCount = 0
+                            LastTime = CurrentTime
 
-                    ConfiguredInferModel.run(BindingsList,1000)
+                        ConfiguredInferModel.run(BindingsList,1000)
+                    # ConfiguredInferModel.run_async(BindingsList)
 
 
 
-                    Output = BindingsList[0].output().get_buffer()
-                    print(Output)
+                    Output0 = BindingsList[0].output().get_buffer()
+                    # print(Output0)
 
-                    time.sleep(0.03)
+                    # time.sleep(0.01)
                 
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=80, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
