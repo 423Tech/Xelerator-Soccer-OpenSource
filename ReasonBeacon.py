@@ -98,6 +98,7 @@ class BTBeacon:
                         self.MessageCache = message
             except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
+                self.logger.error(f"消息错误: {e}")
                 break
             except Exception as e:
                 self.logger.error(f"接收消息错误: {e}")
@@ -121,6 +122,7 @@ class BTBeacon:
             self.connected = False
             self.cleanup()
             self.__init__(self.port)  # 重新初始化
+            self.logger.error(f"消息错误: {e}")
         except Exception as e:
             self.logger.error(f"发送消息错误: {e}")
 
