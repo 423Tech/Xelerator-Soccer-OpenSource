@@ -978,7 +978,7 @@ def Slipsideshot(): #溜边 10,-90
         iX = 30
     else:
         iX = -30
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-270) % 360 
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-180) % 360
     Pos2Pos([iX,iY,Angle],False)
     if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
         while True:
@@ -986,9 +986,11 @@ def Slipsideshot(): #溜边 10,-90
             Yaw = chassis.GetYaw()
             if iLocX > 0:
                 chassis.GoZspeed(-100)
+                k = -180
             else:
                 chassis.GoZspeed(100)
-            if abs((Yaw - AngleD + 135) % 360) < 15:
+                k = 180
+            if abs((Yaw - AngleD + 180 +k) % 360) < 15:
                     chassis.stop()
                     peripheral.ShootBall()
                     time.sleep(0.3)
