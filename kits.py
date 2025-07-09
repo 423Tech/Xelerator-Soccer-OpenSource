@@ -39,15 +39,15 @@ PosYCache = 0
 #Math Mod
 #####################################################################################################
 
-def get_ball_distance():
+def GetBallDistance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
     return bx, by ,math.sqrt((bx - x) ** 2 + (by - y) ** 2)
 
 def Sendstatus(): # 发送身份和球权
     try:
-        P2BallDirect = get_ball_distance[2]
-        Pbx,Pby = get_ball_distance[:2]
+        P2BallDirect = GetBallDistance[2]
+        Pbx,Pby = GetBallDistance[:2]
         P_Pos =  GetPos()
         msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2BallDirect:.2f};P_Pos:{P_Pos:.2f};Pbx:{Pbx:.2f};Pby:{Pby:.2f};"
         while True:
@@ -162,10 +162,6 @@ def GetBallPos():
     [x,y]
     '''
     return ArisuCam.GetBallPos()
-
-def GetBallDistance():
-    ballX,ballY = ArisuCam.GetBallPos()
-    return math.sqrt(ballX**2 + ballY**2)
 
 def GetBallAngle():
     '''
