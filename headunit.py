@@ -233,6 +233,9 @@ class ArisuIntelligence:
 
         self.YOLOQueue = queue.Queue(maxsize=2)
 
+        self.ChassisList = []
+        self.ChassisQueue = queue.Queue(maxsize=1)
+
         for i in range(4):
             NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
             PerspectiveMatrix = NumpyData['matrix']
@@ -271,6 +274,10 @@ class ArisuIntelligence:
         self.ModelInferThread = threading.Thread(target=self.ModelInfer)
         self.ModelInferThread.daemon = True
         self.ModelInferThread.start()
+
+        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
+        self.ChassisDetectionThread.daemon = True
+        self.ChassisDetectionThread.start()
 
         
         
@@ -338,83 +345,138 @@ class ArisuIntelligence:
             self.YOLOQueue.put(BindingsList)
                 
     def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
         while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                print(f"FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
             self.ConfiguredInferModel.run(BindingsList, 1000)
             Outputs = []
+            ChassisList = []
             for Bindings in BindingsList:
                 OutputBuffer = Bindings.output().get_buffer()
                 Outputs.append(OutputBuffer)
-            print(Outputs)
+                
+
+            
+            self.ChassisQueue.put(Outputs)
+            # print(ChassisList)
+        
             # print(Output0)
             # time.sleep(0.01)
 
+    def ChassisDetection(self):
+        while True:
+            OutputBuffer = self.ChassisQueue.get()
+            ChassisList = []
+            # Process ChassisList
+            for i in range(4):
+                List = OutputBuffer[i][3]
+                if List.shape[0] > 0:
+                    for Chassis in List:
+                        if Chassis[4] < 0.5:
+                            continue
+                        YMin = int(Chassis[0] * 640)
+                        XMin = int(Chassis[1] * 640)
+                        YMax = int(Chassis[2] * 640)
+                        XMax = int(Chassis[3] * 640)
+                        BottomY = YMax
+                        CenterX = int((XMin + XMax) / 2)
+                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        if i == 0:
+                            CX = X
+                            CY = Y
+                        elif i == 1:
+                            CY = -X
+                            CX = Y
+                        elif i == 2:
+                            CX = -X
+                            CY = -Y
+                        elif i == 3:
+                            CY = X
+                            CX = -Y
+
+                        Width = XMax - XMin
+                        Height = YMax - YMin
+
+                        Confidence = Chassis[4]
+                        ChassisTuple = (CX, CY, Width, Height, Confidence)
+                        
+                        ChassisList.append(ChassisTuple)
+            print(ChassisList)
+
+
 
     
-    def YOLOProcess(self):
-        FrameCount = 0
-        LastTime = time.time()
-        with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
-            InferModel.set_batch_size(4)
+    # def YOLOProcess(self):
+    #     FrameCount = 0
+    #     LastTime = time.time()
+    #     with VDevice(self.HailoParams) as Hat:
+    #         InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+    #         InferModel.set_batch_size(4)
 
-            InputShape = InferModel.input().shape
-            OutputShape = InferModel.output().shape
-            print(InputShape, OutputShape)
-            with InferModel.configure() as ConfiguredInferModel:
-                # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+    #         InputShape = InferModel.input().shape
+    #         OutputShape = InferModel.output().shape
+    #         print(InputShape, OutputShape)
+    #         with InferModel.configure() as ConfiguredInferModel:
+    #             # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
                 
-                while True:
+    #             while True:
 
-                    FrameCount += 1
-                    CurrentTime = time.time()
-                    if CurrentTime - LastTime >= 1.0:
-                        print(f"FPS: {FrameCount}")
-                        FrameCount = 0
-                        LastTime = CurrentTime
+    #                 FrameCount += 1
+    #                 CurrentTime = time.time()
+    #                 if CurrentTime - LastTime >= 1.0:
+    #                     print(f"FPS: {FrameCount}")
+    #                     FrameCount = 0
+    #                     LastTime = CurrentTime
                     
-                    BindingsList = []
-                    # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
-                    # OutputBuffers = [np.empty(OutputShape, dtype=np.float32) for _ in range(4)]
+    #                 BindingsList = []
+    #                 # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+    #                 # OutputBuffers = [np.empty(OutputShape, dtype=np.float32) for _ in range(4)]
                     
 
                     
-                    for i in range(4):
-                        Bindings = ConfiguredInferModel.create_bindings()
-                        OutputBuffer = np.empty(OutputShape, dtype=np.float32)
-                        Frame = self.Frames[i]
-                        if Frame is not None:
-                            Frame = self.Resize(Frame, (640, 640))
-                            Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                            # Frame = Frame.astype(np.uint8)
-                            # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
-                            # print(Frame.shape)
-                            Bindings.input().set_buffer(Frame)
-                            Bindings.output().set_buffer(OutputBuffer)
+    #                 for i in range(4):
+    #                     Bindings = ConfiguredInferModel.create_bindings()
+    #                     OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+    #                     Frame = self.Frames[i]
+    #                     if Frame is not None:
+    #                         Frame = self.Resize(Frame, (640, 640))
+    #                         Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+    #                         # Frame = Frame.astype(np.uint8)
+    #                         # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+    #                         # print(Frame.shape)
+    #                         Bindings.input().set_buffer(Frame)
+    #                         Bindings.output().set_buffer(OutputBuffer)
 
-                            BindingsList.append(Bindings)
-                    while True:
-                        FrameCount += 1
-                        CurrentTime = time.time()
-                        if CurrentTime - LastTime >= 1.0:
-                            print(f"FPS: {FrameCount}")
-                            FrameCount = 0
-                            LastTime = CurrentTime
+    #                         BindingsList.append(Bindings)
+    #                 while True:
+    #                     FrameCount += 1
+    #                     CurrentTime = time.time()
+    #                     if CurrentTime - LastTime >= 1.0:
+    #                         print(f"FPS: {FrameCount}")
+    #                         FrameCount = 0
+    #                         LastTime = CurrentTime
 
-                        ConfiguredInferModel.run(BindingsList,1000)
-                    # ConfiguredInferModel.run_async(BindingsList)
+    #                     ConfiguredInferModel.run(BindingsList,1000)
+    #                 # ConfiguredInferModel.run_async(BindingsList)
 
 
 
-                    Output0 = BindingsList[0].output().get_buffer()
-                    # print(Output0)
+    #                 Output0 = BindingsList[0].output().get_buffer()
+    #                 # print(Output0)
 
-                    # time.sleep(0.01)
+    #                 # time.sleep(0.01)
                 
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=80, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=100, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
