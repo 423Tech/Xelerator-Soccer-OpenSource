@@ -36,8 +36,8 @@ class BTBeacon:
         # self.CreateConnection()
         
     def StartServer(self):
-        """启动蓝牙服务器"""
-        while True:
+            """启动蓝牙服务器"""
+        # while True:
             try:
                 # 创建蓝牙套接字
                 self.logger.info(f"蓝牙服务器启动，监听端口: {self.port}")
