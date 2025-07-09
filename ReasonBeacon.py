@@ -35,6 +35,7 @@ class BTBeacon:
             self.server_socket.listen(1)
         self.MessageCache = None
         self.connected = False
+        self.CreateConnection()
         
     def StartServer(self):
         """启动蓝牙服务器"""
