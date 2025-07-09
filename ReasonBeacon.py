@@ -35,6 +35,7 @@ class BTBeacon:
             self.server_socket.listen(1)
         self.MessageCache = None
         self.connected = False
+        self.CreateConnection()
         
     def StartServer(self):
         """启动蓝牙服务器"""
@@ -78,16 +79,16 @@ class BTBeacon:
     def CreateConnection(self):
         # self.cleanup()
         if self.type == "Master":
-            self.start_server()
+            self.StartServer()
         else:
-            self.connect_to_server()
+            self.ConnectToServer()
 
     def receive(self):
         """接收消息的线程函数"""
         while True:
             if not self.connected:
                 self.logger.warning("未连接到服务器，尝试重连中。")
-                self.create_connection()
+                self.CreateConnection()
             try:
                 if self.socket:
                     data = self.socket.recv(1024)
@@ -97,6 +98,7 @@ class BTBeacon:
                         self.MessageCache = message
             except bluetooth.btcommon.BluetoothError as e:
                 self.connected = False
+                self.logger.error(f"消息错误: {e}")
                 break
             except Exception as e:
                 self.logger.error(f"接收消息错误: {e}")
@@ -108,7 +110,7 @@ class BTBeacon:
         try:
             if not self.connected:
                 self.logger.warning("未连接到服务器，尝试重连中。")
-                self.create_connection()
+                self.CreateConnection()
             if self.socket:
                 self.socket.send(message.encode('utf-8'))
                 self.logger.success("发送成功")
@@ -120,6 +122,7 @@ class BTBeacon:
             self.connected = False
             self.cleanup()
             self.__init__(self.port)  # 重新初始化
+            self.logger.error(f"消息错误: {e}")
         except Exception as e:
             self.logger.error(f"发送消息错误: {e}")
 
