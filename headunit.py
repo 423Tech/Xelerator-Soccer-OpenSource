@@ -323,39 +323,164 @@ class ArisuIntelligence:
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
             with InferModel.configure() as ConfiguredInferModel:
-                while True:
-                    BindingsList = []
-                    # Bindings = ConfiguredInferModel.create_bindings()
-                    OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+                self.ConfiguredInferModel = ConfiguredInferModel
+                time.sleep(114514)
+    
+    def ModelPreProcess(self):
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Bindings = self.ConfiguredInferModel.create_bindings()
+                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    Frame = self.Resize(Frame, (640, 640))
+                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                    # cv2.imshow(f"Frame {i}", Frame)
+                    # Frame = Frame.astype(np.uint8)
+                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                    # print(Frame.shape)
+                    Bindings.input().set_buffer(Frame)
+                    Bindings.output().set_buffer(OutputBuffer)
+                    BindingsList.append(Bindings)
+            self.YOLOQueue.put(BindingsList)
+                
+    def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                # print(f"FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
+            BindingsList = self.YOLOQueue.get()
+            self.ConfiguredInferModel.run(BindingsList, 1000)
+            Outputs = []
+            ChassisList = []
+            for Bindings in BindingsList:
+                OutputBuffer = Bindings.output().get_buffer()
+                Outputs.append(OutputBuffer)
+                
+
+            
+            self.ChassisQueue.put(Outputs)
+            # print(ChassisList)
+        
+            # print(Output0)
+            # time.sleep(0.01)
+
+    def ChassisDetection(self):
+        while True:
+            OutputBuffer = self.ChassisQueue.get()
+            self.ChassisList = []
+            # Process ChassisList
+            for i in range(4):
+                List = OutputBuffer[i][3]
+                if List.shape[0] > 0:
+                    for Chassis in List:
+                        if Chassis[4] < 0.5:
+                            continue
+                        YMin = int(Chassis[0] * 640) - 80
+                        XMin = int(Chassis[1] * 640)
+                        YMax = int(Chassis[2] * 640) - 80
+                        XMax = int(Chassis[3] * 640)
+                        BottomY = YMax
+                        CenterX = int((XMin + XMax) / 2)
+                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        # X,Y = CenterX, BottomY
+                        if i == 0:
+                            CX = X
+                            CY = Y
+                        elif i == 1:
+                            CY = -X
+                            CX = Y
+                        elif i == 2:
+                            CX = -X
+                            CY = -Y
+                        elif i == 3:
+                            CY = X
+                            CX = -Y
+
+                        Width = XMax - XMin
+                        Height = YMax - YMin
+
+                        Confidence = Chassis[4]
+                        ChassisTuple = (CX, CY, Width, Height, Confidence)
+                        
+                        self.ChassisList.append(ChassisTuple)
+            # print(self.ChassisList)
+
+    def GetChassisPos(self):
+        return self.ChassisList
+
+
+    
+    # def YOLOProcess(self):
+    #     FrameCount = 0
+    #     LastTime = time.time()
+    #     with VDevice(self.HailoParams) as Hat:
+    #         InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+    #         InferModel.set_batch_size(4)
+
+    #         InputShape = InferModel.input().shape
+    #         OutputShape = InferModel.output().shape
+    #         print(InputShape, OutputShape)
+    #         with InferModel.configure() as ConfiguredInferModel:
+    #             # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+                
+    #             while True:
+
+    #                 FrameCount += 1
+    #                 CurrentTime = time.time()
+    #                 if CurrentTime - LastTime >= 1.0:
+    #                     print(f"FPS: {FrameCount}")
+    #                     FrameCount = 0
+    #                     LastTime = CurrentTime
+                    
+    #                 BindingsList = []
+    #                 # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
+    #                 # OutputBuffers = [np.empty(OutputShape, dtype=np.float32) for _ in range(4)]
+                    
 
                     
-                    for i in range(4):
-                        Bindings = ConfiguredInferModel.create_bindings()
-                        Frame = self.Frames[i]
-                        if Frame is not None:
-                            Frame = self.Resize(Frame, (640, 640))
-                            Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                            # Frame = Frame.astype(np.uint8)
-                            # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
-                            # print(Frame.shape)
-                            Bindings.input().set_buffer(Frame)
-                            Bindings.output().set_buffer(OutputBuffer)
+    #                 for i in range(4):
+    #                     Bindings = ConfiguredInferModel.create_bindings()
+    #                     OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+    #                     Frame = self.Frames[i]
+    #                     if Frame is not None:
+    #                         Frame = self.Resize(Frame, (640, 640))
+    #                         Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+    #                         # Frame = Frame.astype(np.uint8)
+    #                         # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+    #                         # print(Frame.shape)
+    #                         Bindings.input().set_buffer(Frame)
+    #                         Bindings.output().set_buffer(OutputBuffer)
 
-                            BindingsList.append(Bindings)
+    #                         BindingsList.append(Bindings)
+    #                 while True:
+    #                     FrameCount += 1
+    #                     CurrentTime = time.time()
+    #                     if CurrentTime - LastTime >= 1.0:
+    #                         print(f"FPS: {FrameCount}")
+    #                         FrameCount = 0
+    #                         LastTime = CurrentTime
 
-                    ConfiguredInferModel.run(BindingsList,1000)
+    #                     ConfiguredInferModel.run(BindingsList,1000)
+    #                 # ConfiguredInferModel.run_async(BindingsList)
 
 
 
-                    Output = BindingsList[0].output().get_buffer()
-                    print(Output)
+    #                 Output0 = BindingsList[0].output().get_buffer()
+    #                 # print(Output0)
 
-                    time.sleep(0.03)
+    #                 # time.sleep(0.01)
                 
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=100, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -539,11 +664,8 @@ class ArisuIntelligence:
         return self.BallPos
     
     def BinaryObjectDetection(self):
-        # 获取第一帧图像
         Frame = self.Frames[0]
-        # 获取当前位置
         Pos = [self.GetPos()[0], self.GetPos()[1]]
-        # 获取当前朝向
         Yaw = self.GetPos()[2]
         DistToCorner = int(math.sqrt((Pos[0] - 10) ** 2 + (Pos[1] - 13) ** 2))
         VisionAngle = math.degrees(math.atan2(Pos[0] - 10, Pos[1] - 13))
@@ -553,15 +675,4 @@ class ArisuIntelligence:
         VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
         print(VisionCornerX, VisionCornerY)
 
-
-
-
-
-
-    
-
-
-
-
-    
 
