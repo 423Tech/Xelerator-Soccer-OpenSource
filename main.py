@@ -12,12 +12,13 @@ while True:
         # Lockballmove()
         # Offence()
         BallFlag = False
-        logger.debug("Current Position: %s" % AbsBallPos())
-        if AbsBallPos() == [0, 0]:
+        x,y = AbsBallPos()
+        logger.debug("Current Position: %s" % [x,y])
+        if [x,y] == [1024, 1024]:
             logger.info("Ball not found, stopping chassis.")
             Pos2Pos([0, 0, 0], False)
             peripheral.StopDribble()
-        elif AbsBallPos() == [1207, 1207]:
+        elif [x,y] == [1207, 1207]:
             peripheral.Dribble(True)
             logger.success("Ball is at the Front, stopping chassis.")
             BallFlag = True
@@ -26,7 +27,13 @@ while True:
         else:
             BallFlag = False
             logger.info("Ball is in possession, finding.")
-            Lockballslip()
+            lBallPos = GetBallPos()
+            logger.warning(lBallPos)
+            iBX,iBY = lBallPos[0],lBallPos[1]
+            Compass = chassis.GetYaw()
+            Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+            Fangle = Angle + Compass
+            chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
             peripheral.Dribble(True)
         if BallFlag and GetPos()[1] > 70:
             peripheral.Dribble(True)
@@ -36,7 +43,7 @@ while True:
             #     Pos2Pos([0,80,0],False)
             # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
             for _ in range(20):
-                if not AbsBallPos() == [1207, 1207]:
+                if not [x,y] == [1207, 1207]:
                     break
                 X,Y,_ = GetPos()
                 DeltaY = 100 - Y
@@ -57,7 +64,7 @@ while True:
         #     peripheral.ShootBall()
         # Defence()
         # Pos2Pos([0, 40, 30])
-        logger.debug(Bits.get_motor_encoder())
+        # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

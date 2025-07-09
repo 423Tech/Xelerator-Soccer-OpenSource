@@ -199,53 +199,29 @@ def GetDistance() -> list[int,int,int]:
 
 def GetPos(Fusion:bool | None = False) -> list[int,int]:
     Distance = GetDistance()
-    logger.debug(Distance)
+    # logger.debug(Distance)
     if Distance == [0,0,0,0]:
         logger.error("Lidar Not Started")
         return [0,0,compass()]
-    global PosXCache, PosYCache
+    # global PosXCache, PosYCache
     k = 10
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 50)*k:
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")*k/2 - Distance[0]
-            logger.warning("using front dist")
         else:
             Y = Distance[2] - cfg.read("Position","Height")*k/2 -100
-            logger.warning("using back dist")
     else:
         Y = ((cfg.read("Position","Height")*k/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*k/2))/2
-        logger.warning("using front&back dist")
     if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 50)*k:
         if Distance[1] > Distance[3]:
             X = -(cfg.read("Position","Width")*k/2 - Distance[1]) - 50
-            logger.warning("using right dist")
         else:
             X = -(Distance[3] - cfg.read("Position","Width")*k/2) + 50
-            logger.warning("using left dist")
     else:
-        logger.warning("using left&right dist")
         X = -((cfg.read("Position","Width")*k/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")*k/2))/2
-    if Fusion:
-        gx,gy,gz = Bits.get_accelerometer_data()
-        if abs(PosXCache - X) > cfg.read("Position","ErrorRange") or abs(PosYCache - Y) > cfg.read("Position","ErrorRange"):
-            if abs(gx) > 1 or abs(gy) > 1:
-                PosXCache = X
-                PosYCache = Y
-                return [X/10,Y/10,compass()]
-            else:
-                print("Fusion Pos: ",[PosXCache/10, PosYCache/10, compass()])
-                PosXCache = X
-                PosYCache = Y
-                return [PosXCache/10, PosYCache/10, compass()]
-        else:
-            PosXCache = X
-            PosYCache = Y
-            return [X/10,Y/10,compass()]
-    else:
-        PosXCache = X
-        PosYCache = Y
-        logger.success([X*0.85/10,Y*0.85/10,compass()])
-        return [X*0.85/10,Y*0.85/10,compass()]
+    # PosXCache = X
+    # PosYCache = Y
+    return [X*0.85/10,Y*0.85/10,compass()]
 
 
 def AbsBallPos():
@@ -253,6 +229,10 @@ def AbsBallPos():
     retrun a absolute position of the ball
     '''
     ballX,ballY = ArisuCam.GetBallPos()
+    if [ballX,ballY] == [0,0]:
+        return [1024,1024] #找不到球 特征值为1024，1024
+    if abs(ballY-9) < 2 and abs(ballX) < 3:
+        return [1207,1207] #持球状态下 特征值为12071207
     SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
     if ballY == 0:
@@ -306,6 +286,7 @@ def Lockballmove():
 
 def Lockballslip():
     lBallPos = GetBallPos()
+    logger.warning(lBallPos)
     iBX,iBY = lBallPos[0],lBallPos[1]
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
@@ -671,15 +652,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
             return True
         elif not abs(iErrorRange) > abs(iDeltaZ):
             chassis.GoZspeed(iDeltaZ)
-            logger.warning("AimPos:%s"%lAimPos)
         else:
-        # chassis.GoZ(iFacingAngle)
-            # Go2(iFacingAngle,iDeltaX,iDeltaY)
-            logger.warning("moving to:%s"%lAimPos)
-            if iDeltaY > 0:
-                iAngle = 180
-            else:
-                iAngle = 0
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
             chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
             return False
@@ -964,7 +937,7 @@ def MacaoShot(x,y,z):
                     
 def Slipsideshot(): #溜边 10,-90
     Yaw = compass()
-    peripheral.Dribble(True)
+    # peripheral.Dribble(True)
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
@@ -973,29 +946,46 @@ def Slipsideshot(): #溜边 10,-90
     ALocY = ALocal[1]
     DoorLocal = [0, -100]
     DoorY = DoorLocal[1]
-    iY = -90
+    iY = 80
     if iLocX > 0:
         iX = 30
     else:
         iX = -30
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-180) % 360
-    Pos2Pos([iX,iY,Angle],False)
-    if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
-        while True:
-            AngleD  = 270 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
-            Yaw = chassis.GetYaw()
-            if iLocX > 0:
-                chassis.GoZspeed(-100)
-                k = -180
-            else:
-                chassis.GoZspeed(100)
-                k = 180
-            if abs((Yaw - AngleD + 180 +k) % 360) < 15:
-                    chassis.stop()
-                    peripheral.ShootBall()
-                    time.sleep(0.3)
-                    break
-        return
+    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-270) % 360
+    if Pos2Pos([iX,iY,Angle],False):
+        # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
+        # for _ in range(20):
+        #     Pos2Pos([0,80,0],False)
+        # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
+        for _ in range(20):
+            if not AbsBallPos() == [1207, 1207]:
+                break
+            X,Y,_ = GetPos()
+            DeltaY = 100 - Y
+            DeltaX = X
+            Theta = math.atan2(DeltaY, DeltaX)
+            Theta = math.degrees(Theta)
+            Compass = -(90 - Theta)
+            chassis.GoZ(Compass)
+            time.sleep(0.03)
+        peripheral.ShootBall()
+        logger.info("Ball is in possession, start shotting.")
+    # if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
+    #     while True:
+    #         AngleD  = 270 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
+    #         Yaw = chassis.GetYaw()
+    #         if iLocX > 0:
+    #             chassis.GoZspeed(-100)
+    #             k = -180
+    #         else:
+    #             chassis.GoZspeed(100)
+    #             k = 180
+    #         if abs((Yaw - AngleD + 180 +k) % 360) < 15:
+    #                 chassis.stop()
+    #                 peripheral.ShootBall()
+    #                 time.sleep(0.3)
+    #                 break
+    #     return
 
 def OHMYBACK():
     Yaw = compass()
