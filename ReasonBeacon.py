@@ -23,19 +23,17 @@ class BTBeacon:
                 raise RuntimeError("蓝牙自动设置失败，请先配置蓝牙参数。")
         if self.cfg.read("BLE", "REMOTE") == "NONE":
             logger.error("请先配置蓝牙远程设备地址。")
-            raise RuntimeError("请先配置蓝牙远程设备地址。")
         self.type = self.cfg.read("BLE", "Type")
         self.port = port
+        self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         if self.type == "Slave":
             self.server_address = self.cfg.read("BLE", "REMOTE")
-            self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         else:
-            self.server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-            self.server_socket.bind(("", self.port))
-            self.server_socket.listen(1)
+            self.socket.bind(("", self.port))
+            self.socket.listen(1)
         self.MessageCache = None
         self.connected = False
-        self.CreateConnection()
+        # self.CreateConnection()
         
     def StartServer(self):
         """启动蓝牙服务器"""
@@ -45,7 +43,7 @@ class BTBeacon:
                 self.logger.info(f"蓝牙服务器启动，监听端口: {self.port}")
                 self.logger.info("等待客户端连接...")
                 # 等待客户端连接
-                self.socket, self.client_address = self.server_socket.accept()
+                self.socket, self.client_address = self.socket.accept()
                 self.logger.success(f"客户端已连接: {self.client_address}")
                 self.connected = True
                 # 启动接收消息的线程
@@ -53,13 +51,12 @@ class BTBeacon:
                 receive_thread.daemon = True
                 receive_thread.start()
                 break
-            except bluetooth.btcommon.BluetoothError as e:
-                self.connected = False
             except Exception as e:
                 self.logger.error(f"服务器错误: {e}")
     
     def ConnectToServer(self):
-            """连接到蓝牙服务器"""
+        """连接到蓝牙服务器"""
+        while True:
             try:
                 self.logger.info(f"正在连接到服务器: {self.server_address}")
                 # 连接到服务器
@@ -71,13 +68,12 @@ class BTBeacon:
                 self.receive_thread = threading.Thread(target=self.receive_messages)
                 self.receive_thread.daemon = True
                 self.receive_thread.start()
-            except bluetooth.btcommon.BluetoothError as e:
-                self.connected = False
+                break
             except Exception as e:
                 self.logger.error(f"连接错误: {e}")
 
+
     def CreateConnection(self):
-        # self.cleanup()
         if self.type == "Master":
             self.StartServer()
         else:
@@ -87,8 +83,7 @@ class BTBeacon:
         """接收消息的线程函数"""
         while True:
             if not self.connected:
-                self.logger.warning("未连接到服务器，尝试重连中。")
-                self.CreateConnection()
+                self.logger.warning("未连接到服务器，等待连接中。")
             try:
                 if self.socket:
                     data = self.socket.recv(1024)
@@ -109,19 +104,18 @@ class BTBeacon:
         """发送消息"""
         try:
             if not self.connected:
-                self.logger.warning("未连接到服务器，尝试重连中。")
-                self.CreateConnection()
-            if self.socket:
-                self.socket.send(message.encode('utf-8'))
-                self.logger.success("发送成功")
-                return True
+                self.logger.warning("未连接到服务器，等待连接中。")
             else:
-                self.logger.error("发送失败")
-                return False
+                if self.socket:
+                    self.socket.send(message.encode('utf-8'))
+                    self.logger.success("发送成功")
+                    return True
+                else:
+                    self.logger.error("发送失败")
+                    return False
         except bluetooth.btcommon.BluetoothError as e:
             self.connected = False
             self.cleanup()
-            self.__init__(self.port)  # 重新初始化
             self.logger.error(f"消息错误: {e}")
         except Exception as e:
             self.logger.error(f"发送消息错误: {e}")
@@ -131,12 +125,8 @@ class BTBeacon:
         """清理资源"""
         if self.socket:
             self.socket.close()
-        try:
-            if self.server_socket:
-                self.server_socket.close()
-        except AttributeError:
-            pass
         self.logger.success("服务已关闭")
+        self.__init__()
 
 class SerialCommunicate:
     def __init__(self):
