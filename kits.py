@@ -44,13 +44,14 @@ PosYCache = 0
 def get_ball_distance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
-    return math.sqrt((bx - x) ** 2 + (by - y) ** 2)
+    return bx, by ,math.sqrt((bx - x) ** 2 + (by - y) ** 2)
 
 def Sendstatus(): # 发送身份和球权
     try:
-        P2Ball = get_ball_distance()
+        P2BallDirect = get_ball_distance[2]
+        Pbx,Pby = get_ball_distance[:2]
         P_Pos =  GetPos()
-        msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2Ball:.2f};P_Pos:{P_Pos:.2f}"
+        msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2BallDirect:.2f};P_Pos:{P_Pos:.2f};Pbx:{Pbx:.2f};Pby:{Pby:.2f};"
         while True:
             if Beacon.Send(msg):
                 break
@@ -61,8 +62,8 @@ def Peerstatus():# 解析对方身份球权距离
     msg = Beacon.MessageCache
     if msg == None:
         logger.error("No BlueTooth Message")
-    peer_role, peer_owner, P2Ball, P_Pos = None, None, None, None
-    if msg:
+    peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
+    if msg:      
         try:
             for part in msg.split(";"):
                 if part.startswith("ROLE:"):
@@ -72,25 +73,26 @@ def Peerstatus():# 解析对方身份球权距离
                 if part.startswith("P_Pos:"):
                     P_Pos = float(part.split(":")[1])
                 if part.startswith("P2Ball:"):
-                    P2Ball = float(part.split(":")[1])
+                    P2BallDirect = float(part.split(":")[1])
         except Exception:
             pass
-    return peer_role, peer_owner, P2Ball, P_Pos
+    return peer_role, peer_owner, P2BallDirect, P_Pos , Pbx, Pby
 
 
-def Identityswitch(): #切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切切换
+def Identityswitch(): #切换
     global role, ball_owner,Dribblingdistance
-    Dribblingdistance = 9
-    lBallPos = GetBallPos()
+    lBallPos = AbsBallPos()
     lPos = GetPos()
     bx, by = lBallPos[0], lBallPos[1]
     x, y = lPos[0], lPos[1]
     My2Ball = math.sqrt((bx - x) ** 2 + (by - y) ** 2)
-    peer_role, peer_owner, P2Ball, P_Pos = Peerstatus()
+    peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= Peerstatus()
     bluetooth_disconnected = (Beacon.MessageCache is None) or (Beacon.MessageCache == "")
     # 球权
-    if get_ball_distance() < Dribblingdistance and (bx != 0 and by != 0):
+    if [bx,by] == [1207, 1207]:
         ball_owner = my_id
+    elif[Pbx,Pby] == [1207, 1207]:
+        ball_owner = peer_id
     else:
         ball_owner = 0
     # 攻防身份
@@ -98,15 +100,15 @@ def Identityswitch(): #切切切切切切切切切切切切切切切切切切切
         if bluetooth_disconnected:
             role = "DP"
         else:
-            if P2Ball is not None:
-                role = "OP" if My2Ball < P2Ball else "DP"
+            if P2BallDirect is not None:
+                role = "OP" if My2Ball < P2BallDirect else "DP"
             else:
                 role = "OP" 
     elif by < 0:
         if bluetooth_disconnected:
             role = "DP"
         else:
-            if P2Ball is not None and abs(My2Ball - P2Ball) < 5:
+            if P2BallDirect is not None and abs(My2Ball - P2BallDirect) < 5:
                 pass
             else:
                 role = "DP" 
@@ -351,31 +353,30 @@ def Defence(): #bX有部分最好是改为AX（敌方坐标）
     iX, iY = lPos[0], lPos[1]
     bX, bY = lBallPos[0], lBallPos[1]
 
-    HOMEPOS = [0, -90, 0]
-    GOAL_POS = [0, -90]
-    BLOCK_DIST = 20
-    
+    HOMEPOS = [0, -80, 0]
+    GOAL_POS = [0, 90]
+    BLOCK_DIST = 50
     if bX == 0 and bY == 0 or abs(iX) > 70 or abs(iY) > 90:
-        Pos2Pos(HOMEPOS, False)
+        Pos2Pos(HOMEPOS, False,200)
         return
     if bY > 0 :  
         if ball_owner == my_id:
             return Offence()  #变成攻方
         elif ball_owner == peer_id:
-            defend_x = - Peerstatus[2][0]   # 横向适当跟随(这里要改 是跟随谁 不确定)
-            defend_y = -40 + Peerstatus[2][1] * 0.5  # 等比前移
+            defend_x = - Peerstatus[3][0]   # 横向适当跟随( 是跟随谁 不确定)
+            defend_y = -40 + Peerstatus[3][1] * 0.5  # 等比前移
             defend_y = max(-100, min(0, defend_y))
         else:#我方失去球权
             defend_x = bX * 0.8   
             defend_y = -40 + bY * 0.5  # 等比前移
             defend_y = max(-100, min(0, defend_y))
-        Pos2Pos([defend_x, defend_y, 0], False)
+        Pos2Pos([defend_x, defend_y, 0], False,200)
     else:
         ball_to_goal_dist = math.sqrt((bX - GOAL_POS[0])**2 + (bY - GOAL_POS[1])**2)
         if ball_owner == my_id:
             return Offence()  #变成攻方
         elif ball_owner == peer_id:
-            defend_x = - Peerstatus[2][0]   # 各自站左右半场
+            defend_x = - Peerstatus[3][0]   # 各自站左右半场
             defend_y = -90
         else:
             if ball_to_goal_dist < BLOCK_DIST: #离球门很近

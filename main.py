@@ -16,11 +16,11 @@ while True:
         logger.debug("Current Position: %s" % [x,y])
         if [x,y] == [1024, 1024]:
             logger.info("Ball not found, stopping chassis.")
-            Pos2Pos([0, 0, 0], False)
+            Pos2Pos([0, 0, 0], False, 400)
             peripheral.StopDribble()
         elif [x,y] == [1207, 1207]:
             peripheral.Dribble(True)
-            logger.success("Ball is at the Front, stopping chassis.")
+            logger.success("Ball is at the Front, Dribble.")
             BallFlag = True
             # while not abs(compass()) <= 10:
                 # chassis.GoA(0, 100, 100)
