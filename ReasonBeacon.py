@@ -33,14 +33,14 @@ class BTBeacon:
             self.socket.listen(1)
         self.MessageCache = None
         self.connected = False
-        # self.CreateConnection()
+        self.CreateConnection()
         
     def StartServer(self):
         """启动蓝牙服务器"""
         while True:
             try:
                 # 创建蓝牙套接字
-                self.logger.info(f"蓝牙服务器启动，监听端口: {self.port}")
+                self.logger.info(f"sub 蓝牙服务器启动，监听端口: {self.port}")
                 self.logger.info("等待客户端连接...")
                 # 等待客户端连接
                 self.socket, self.client_address = self.socket.accept()
@@ -53,12 +53,13 @@ class BTBeacon:
                 break
             except Exception as e:
                 self.logger.error(f"服务器错误: {e}")
+                self.cleanup()
     
     def ConnectToServer(self):
         """连接到蓝牙服务器"""
         while True:
             try:
-                self.logger.info(f"正在连接到服务器: {self.server_address}")
+                self.logger.info(f"sub 正在连接到服务器: {self.server_address}")
                 # 连接到服务器
                 self.socket.connect((self.server_address, self.port))
                 self.logger.success("连接成功！")
@@ -70,14 +71,23 @@ class BTBeacon:
                 self.receive_thread.start()
                 break
             except Exception as e:
+                if "Host is down" in str(e):
+                    self.cleanup()
+                else:
+                    raise e
                 self.logger.error(f"连接错误: {e}")
+                # self.cleanup()
 
 
     def CreateConnection(self):
         if self.type == "Master":
-            self.StartServer()
+            self.receive_thread = threading.Thread(target=self.StartServer())
+            self.receive_thread.daemon = True
+            self.receive_thread.start()
         else:
-            self.ConnectToServer()
+            self.receive_thread = threading.Thread(target=self.ConnectToServer())
+            self.receive_thread.daemon = True
+            self.receive_thread.start()
 
     def receive(self):
         """接收消息的线程函数"""
