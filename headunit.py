@@ -236,11 +236,6 @@ class ArisuIntelligence:
         self.ChassisList = []
         self.ChassisQueue = queue.Queue(maxsize=1)
 
-        self.YOLOQueue = queue.Queue(maxsize=2)
-
-        self.ChassisList = []
-        self.ChassisQueue = queue.Queue(maxsize=1)
-
         for i in range(4):
             NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
             PerspectiveMatrix = NumpyData['matrix']
@@ -257,11 +252,7 @@ class ArisuIntelligence:
         self.ReadCamsThread.start()
 
         time.sleep(2)
-        time.sleep(2)
 
-        # self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
-        # self.VideoRecordThread.daemon = True
-        # self.VideoRecordThread.start()
         # self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
         # self.VideoRecordThread.daemon = True
         # self.VideoRecordThread.start()
@@ -269,27 +260,6 @@ class ArisuIntelligence:
         self.FindBallThread = threading.Thread(target=self.FindBall)
         self.FindBallThread.daemon = True
         self.FindBallThread.start()
-
-        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
-        self.InitConfiguredModelThread.daemon = True
-        self.InitConfiguredModelThread.start()
-
-        time.sleep(2)
-
-        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-        self.ModelPreProcessThread.daemon = True
-        self.ModelPreProcessThread.start()
-
-        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-        self.ModelInferThread.daemon = True
-        self.ModelInferThread.start()
-
-        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-        self.ChassisDetectionThread.daemon = True
-        self.ChassisDetectionThread.start()
-
-        
-        
 
         self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
         self.InitConfiguredModelThread.daemon = True
@@ -346,14 +316,10 @@ class ArisuIntelligence:
             time.sleep(0.03)
     
     def InitConfiguredModel(self):
-    def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel.set_batch_size(4)
 
-            self.InputShape = InferModel.input().shape
-            self.OutputShape = InferModel.output().shape
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
             with InferModel.configure() as ConfiguredInferModel:
