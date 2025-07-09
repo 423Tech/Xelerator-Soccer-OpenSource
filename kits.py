@@ -680,12 +680,13 @@ def Offence():
     3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
     4. 绝不进入己方禁区防守区域。
     """
+    peripheral.DribbleBall()
     Yaw = compass()
     Identityswitch()
     BallX, BallY = AbsBallPos()
     LocalX, LocalY = GetPos()
     # 中场
-    if [BallX,BallY] == [1024,1024]:
+    if [BallX,BallY] == [1024,1024]:   
         peripheral.StopDribble()
         Pos2Pos([0, -50, 0], False)
     if ball_owner == my_id:
@@ -725,7 +726,6 @@ def MacaoShot(x,y,z):
         return False
     Yaw = chassis.GetYaw()
     peripheral.DribbleBall()
-    lAimPos = [x,y,0]
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
@@ -733,52 +733,54 @@ def MacaoShot(x,y,z):
     # # iLocX1 = lLocal[0]
     # # iLocY1 = lLocal[1]
     # # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
-    Pos2Pos([lAimPos[0],lAimPos[1],0],False)
-    if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
+    Pos2Pos([x,y,0],False,200)
+    if abs(iLocX - x) < 10 and abs(iLocY - y) < 10:
         if iLocX > 0:
-            target_angle1 = 70
-            target_angle = 140
+            target_angle1 = 110
+            target_angle = 40
             target_angle2 = 0 
             while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(50)
-                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
+                Yaw = (chassis.GetYaw() + 180)%360
+                chassis.GoZspeed(-50)
+                if abs(Yaw - target_angle1) < 8:
                     break
             chassis.GoZspeed(0)
             time.sleep(0.3)
             while True:
-                Yaw = chassis.GetYaw()
+                Yaw = (chassis.GetYaw() + 180)%360
                 speed = z
                 chassis.SetMotor(speed+100,speed+100,-speed,-speed)
-                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                if abs(Yaw - target_angle)< 10:
                     break
             while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-200)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
+                Yaw = (chassis.GetYaw() + 180)%360
+                chassis.GoZspeed(200)
+                if abs(Yaw - target_angle2 ) < 10:
                     break
+            return
         else:
-            target_angle1 = 290
-            target_angle = 220
+            target_angle1 = 250
+            target_angle = 320
             target_angle2 = 0 
             while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-50)
-                if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
+                Yaw = (chassis.GetYaw() + 180)%360
+                chassis.GoZspeed(50)
+                if abs(Yaw - target_angle1) < 8:
                     break
             chassis.GoZspeed(0)
             time.sleep(0.3)
             while True:
-                Yaw = chassis.GetYaw()
+                Yaw = (chassis.GetYaw() + 180)%360
                 speed = z
                 chassis.SetMotor(-speed,-speed,speed+100,speed+100)
-                if abs((Yaw - target_angle + 180) % 360 - 180) < 20:
+                if abs(Yaw - target_angle) < 10:
                     break
             while True:
-                Yaw = chassis.GetYaw()
-                chassis.GoZspeed(200)
-                if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
+                Yaw = (chassis.GetYaw() + 180)%360
+                chassis.GoZspeed(-200)
+                if abs(Yaw - target_angle2 ) < 10:
                     break
+            return
 
                     
 def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
