@@ -354,7 +354,7 @@ def Defence(): #bX有部分最好是改为AX（敌方坐标）
     HOMEPOS = [0, -90, 0]
     GOAL_POS = [0, -90]
     BLOCK_DIST = 20
-
+    
     if bX == 0 and bY == 0 or abs(iX) > 70 or abs(iY) > 90:
         Pos2Pos(HOMEPOS, False)
         return
