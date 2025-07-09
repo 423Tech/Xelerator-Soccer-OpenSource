@@ -6,7 +6,7 @@ from hailo_platform import VDevice, HailoSchedulingAlgorithm
 def batch_inference(batch_size=4):
     """批处理推理"""
     timeout_ms = 1000
-    image_path = "/root/TestImage.jpg"  # 图像路径
+    image_path = "./Test.png"  # 图像路径
     
     print(f"=== Hailo-8 批处理推理测试 ===")
     print(f"图像路径: {image_path}")
@@ -18,7 +18,7 @@ def batch_inference(batch_size=4):
     # 创建VDevice
     with VDevice(params) as vdevice:
         # 加载HEF模型
-        infer_model = vdevice.create_infer_model('/root/yolov8m.hef')
+        infer_model = vdevice.create_infer_model('/xel/yolov11s.hef')
         infer_model.set_batch_size(batch_size)
         
         # 配置并创建推理模型
@@ -121,7 +121,7 @@ def single_inference_repeated(num_repeats=4):
     # 创建VDevice
     with VDevice(params) as vdevice:
         # 加载HEF模型
-        infer_model = vdevice.create_infer_model('/root/yolov6n.hef')
+        infer_model = vdevice.create_infer_model('/xel/yolov11s.hef')
         
         # 配置并创建推理模型
         with infer_model.configure() as configured_infer_model:

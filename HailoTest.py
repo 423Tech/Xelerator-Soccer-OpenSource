@@ -1,108 +1,132 @@
 import numpy as np
-import time
-from hailo_platform import VDevice, HailoSchedulingAlgorithm
+from functools import partial
+from hailo_platform import VDevice, HailoSchedulingAlgorithm, FormatType
 
-def pure_inference_benchmark():
-    """
-    纯推理性能测试 - 接近hailortcli benchmark的结果
-    """
-    timeout_ms = 1000
-    hef_path = '/xel/ArisuIntelligence.hef'
-    test_duration = 10  # 测试时长（秒）
+def example_callback(completion_info, bindings):
+    """处理推理完成的回调函数"""
+    if completion_info.exception:
+        print(f"推理失败: {completion_info.exception}")
+        return
     
+    # 获取输出结果
+    output_data = bindings.output().get_buffer()
+    print(f"推理完成! 输出形状: {output_data.shape}")
+    print(f"输出数据类型: {output_data.dtype}")
+    
+    # 如果是分类任务，可以处理每个batch的结果
+    if len(output_data.shape) >= 2:
+        for i in range(output_data.shape[0]):
+            batch_result = output_data[i]
+            print(f"Batch {i+1} 结果预览: {batch_result[:5]}...")  # 显示前5个值
+
+def batch_inference_demo():
+    """演示batch=4的图像推理"""
+    
+    # 参数设置
+    batch_size = 4
+    timeout_ms = 10000
+    
+    # 创建VDevice
     params = VDevice.create_params()
     params.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
-    
-    print("="*60)
-    print("纯推理性能测试 (类似 hailortcli benchmark)")
-    print("="*60)
-    print(f"模型文件: {hef_path}")
-    print(f"测试模式: 纯推理 + 随机数据")
-    print(f"测试时长: {test_duration} 秒")
-    print("-"*60)
+    params.group_id = "SHARED"
     
     try:
         with VDevice(params) as vdevice:
             print("VDevice 创建成功")
             
+            # 创建推理模型
+            hef_path = '/xel/yolov11s.hef'
             infer_model = vdevice.create_infer_model(hef_path)
-            print("推理模型加载成功")
+            print(f"模型加载成功: {hef_path}")
             
-            # 测试不同批次大小
-            for batch_size in [1, 2, 4, 8]:
-                print(f"\n{'='*40}")
-                print(f"测试批次大小: {batch_size}")
-                print(f"{'='*40}")
+            # 设置batch size
+            infer_model.set_batch_size(batch_size)
+            print(f"Batch size 设置为: {batch_size}")
+            
+            # 查看输入输出信息
+            input_shape = infer_model.input().shape
+            output_shape = infer_model.output().shape
+            print(f"单个样本输入形状: {input_shape}")
+            print(f"单个样本输出形状: {output_shape}")
+            print(f"输入形状类型: {type(input_shape)}")
+            print(f"输出形状类型: {type(output_shape)}")
+            
+            # 设置数据格式
+            infer_model.input().set_format_type(FormatType.FLOAT32)
+            infer_model.output().set_format_type(FormatType.FLOAT32)
+            
+            # 配置推理模型
+            with infer_model.configure() as configured_infer_model:
+                print("模型配置完成")
                 
-                try:
-                    # 设置批次大小
-                    infer_model.set_batch_size(batch_size)
+                # 创建batch输入数据 - 修复：将list转换为tuple
+                batch_input_shape = tuple([batch_size] + list(input_shape))
+                print(f"Batch 输入形状: {batch_input_shape}")
+                
+                # 生成随机图像数据
+                batch_images = np.random.rand(*batch_input_shape).astype(np.float32)
+                print(f"生成了 {batch_size} 个随机图像")
+                
+                # 为了演示，可以给每个batch设置不同的值范围
+                for i in range(batch_size):
+                    # 设置不同的像素值范围，方便区分
+                    batch_images[i] = np.random.rand(*input_shape).astype(np.float32) * (i + 1) * 0.2
+                    print(f"Batch {i+1} 图像像素值范围: [{batch_images[i].min():.3f}, {batch_images[i].max():.3f}]")
+                
+                # 创建输出缓冲区 - 修复：将list转换为tuple
+                batch_output_shape = tuple([batch_size] + list(output_shape))
+                batch_output = np.empty(batch_output_shape).astype(np.float32)
+                print(f"Batch 输出形状: {batch_output_shape}")
+                
+                # 创建bindings并设置缓冲区
+                bindings = configured_infer_model.create_bindings()
+                bindings.input().set_buffer(batch_images)
+                bindings.output().set_buffer(batch_output)
+                
+                print("缓冲区设置完成，开始推理...")
+                
+                # 等待异步就绪
+                configured_infer_model.wait_for_async_ready(timeout_ms=timeout_ms)
+                
+                # 开始异步推理
+                job = configured_infer_model.run_async(
+                    [bindings], 
+                    partial(example_callback, bindings=bindings)
+                )
+                
+                print("异步推理任务已提交")
+                
+                # 等待推理完成
+                job.wait(timeout_ms)
+                print("推理任务完成")
+                
+                # 额外的结果分析
+                final_output = bindings.output().get_buffer()
+                print(f"\n=== 推理结果分析 ===")
+                print(f"最终输出形状: {final_output.shape}")
+                print(f"输出数据类型: {final_output.dtype}")
+                
+                # 分析每个batch的结果
+                for i in range(batch_size):
+                    batch_result = final_output[i]
+                    print(f"Batch {i+1}:")
+                    print(f"  - 输出形状: {batch_result.shape}")
+                    print(f"  - 值范围: [{batch_result.min():.6f}, {batch_result.max():.6f}]")
+                    print(f"  - 均值: {batch_result.mean():.6f}")
                     
-                    input_shape = infer_model.input().shape
-                    output_shape = infer_model.output().shape
-                    
-                    print(f"输入形状: {input_shape}")
-                    print(f"输出形状: {output_shape}")
-                    
-                    with infer_model.configure() as configured_infer_model:
-                        bindings = configured_infer_model.create_bindings()
-                        
-                        # 使用随机数据（类似benchmark）
-                        input_buffer = np.random.randint(0, 255, input_shape, dtype=np.uint8)
-                        output_buffer = np.empty(output_shape, dtype=np.float32)
-
-                        
-                        bindings.input().set_buffer(input_buffer)
-                        bindings.output().set_buffer(output_buffer)
-                        
-                        print("预热...")
-                        # 预热
-                        for _ in range(10):
-                            configured_infer_model.run([bindings], timeout_ms)
-                        
-                        print("开始纯推理测试...")
-                        
-                        # 纯推理性能测试
-                        inference_count = 0
-                        start_time = time.time()
-                        
-                        while time.time() - start_time < test_duration:
-                            # 只测量推理时间，不包括其他操作
-                            if batch_size == 4:
-                                configured_infer_model.run([bindings,bindings,bindings,bindings], timeout_ms)
-                                inference_count += 4
-                            else:
-                                configured_infer_model.run([bindings], timeout_ms)
-                                inference_count += 1
-                            
-                        
-                        total_time = time.time() - start_time
-                        total_frames = inference_count * batch_size
-                        pure_fps = total_frames / total_time
-                        inference_per_sec = inference_count / total_time
-                        avg_inference_time = total_time / inference_count * 1000
-                        
-                        print(f"结果:")
-                        print(f"  推理次数: {inference_count}")
-                        print(f"  总帧数: {total_frames}")
-                        print(f"  纯推理FPS: {pure_fps:.1f} FPS")
-                        print(f"  推理次数/秒: {inference_per_sec:.1f}")
-                        print(f"  平均推理时间: {avg_inference_time:.2f} ms/batch")
-                        print(f"  单帧推理时间: {avg_inference_time/batch_size:.2f} ms/frame")
-                        
-                        # 与benchmark对比
-                        benchmark_fps = 398.41
-                        efficiency = (pure_fps / benchmark_fps) * 100
-                        print(f"  vs hailortcli: {efficiency:.1f}% 效率")
-                        
-                except Exception as e:
-                    print(f"批次大小 {batch_size} 测试失败: {e}")
-                    continue
-            
+                    # 针对YOLO输出的特殊处理
+                    if len(batch_result.shape) == 1 and batch_result.shape[0] == 2004:
+                        print(f"  - 这是YOLO检测输出，包含边界框和置信度信息")
+                        # 可以进一步解析检测结果
+                        non_zero_count = np.count_nonzero(batch_result)
+                        print(f"  - 非零值数量: {non_zero_count}/{len(batch_result)}")
+                
     except Exception as e:
-        print(f"错误: {e}")
+        print(f"推理过程中出现错误: {e}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
-    pure_inference_benchmark()
+    print("=== HailoRT Batch=4 推理演示 ===")
+    batch_inference_demo()

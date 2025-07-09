@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import math
 import time
 
@@ -77,7 +75,6 @@ def Peerstatus():# 解析对方身份球权距离
         except Exception:
             pass
     return peer_role, peer_owner, P2BallDirect, P_Pos , Pbx, Pby
-
 
 def Identityswitch(): #切换
     global role, ball_owner,Dribblingdistance
@@ -687,12 +684,13 @@ def Offence():
     3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
     4. 绝不进入己方禁区防守区域。
     """
+    peripheral.DribbleBall()
     Yaw = compass()
     Identityswitch()
     BallX, BallY = AbsBallPos()
     LocalX, LocalY = GetPos()
     # 中场
-    if [BallX,BallY] == [1024,1024]:
+    if [BallX,BallY] == [1024,1024]:   
         peripheral.StopDribble()
         Pos2Pos([0, -50, 0], False)
     if ball_owner == my_id:
@@ -711,19 +709,19 @@ def Circle(origin:list[int,int],angle:int,r:int):
         angle]
         ,False)
 
-def Defence()->None:
-    lBallPos = GetBallPos()
-    lPos = GetPos()
-    logger.debug("Ball Position: %s, Local Position: %s" % (lBallPos,lPos))
-    if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
-        Pos2Pos(cfg.read("Position","Home"),False)
-    else:
+# def Defence()->None:
+#     lBallPos = GetBallPos()
+#     lPos = GetPos()
+#     logger.debug("Ball Position: %s, Local Position: %s" % (lBallPos,lPos))
+#     if -80 > lPos[1] > -50 or abs(lPos[0]) > 65 or (lBallPos[0]*lBallPos[1] == 0):
+#         Pos2Pos(cfg.read("Position","Home"),False)
+#     else:
         
-        # if lBallPos[0] > 0:
-            # chassis.GoA(0,90,100)
-        # else:
-        chassis.GoA(0,90,lBallPos[0]*4)
-        # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
+#         # if lBallPos[0] > 0:
+#             # chassis.GoA(0,90,100)
+#         # else:
+#         chassis.GoA(0,90,lBallPos[0]*4)
+#         # Circle(cfg.read("Position","Home"),AimBall(cfg.read("Position","Home")),35)
 
 ###############################################################################################
 def MacaoShot(x,y,z): 
@@ -740,15 +738,15 @@ def MacaoShot(x,y,z):
     # # iLocX1 = lLocal[0]
     # # iLocY1 = lLocal[1]
     # # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
-    Pos2Pos([lAimPos[0],lAimPos[1],0],False)
+    Pos2Pos([lAimPos[0],lAimPos[1],0],False,200)
     if abs(iLocX - lAimPos[0]) < 10 and abs(iLocY - lAimPos[1]) < 10:
         if iLocX > 0:
-            target_angle1 = 70
-            target_angle = 140
+            target_angle1 = 110
+            target_angle = 40
             target_angle2 = 0 
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(50)
+                chassis.GoZspeed(-50)
                 if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
                     break
             chassis.GoZspeed(0)
@@ -761,16 +759,17 @@ def MacaoShot(x,y,z):
                     break
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-200)
+                chassis.GoZspeed(200)
                 if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
                     break
+            return
         else:
-            target_angle1 = 290
-            target_angle = 220
+            target_angle1 = 250
+            target_angle = 320
             target_angle2 = 0 
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(-50)
+                chassis.GoZspeed(50)
                 if abs((Yaw - target_angle1 + 180) % 360 - 180) < 8:
                     break
             chassis.GoZspeed(0)
@@ -783,9 +782,10 @@ def MacaoShot(x,y,z):
                     break
             while True:
                 Yaw = chassis.GetYaw()
-                chassis.GoZspeed(200)
+                chassis.GoZspeed(-200)
                 if abs((Yaw - target_angle2 + 180) % 360 - 180) < 30:
                     break
+            return
 
                     
 def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
