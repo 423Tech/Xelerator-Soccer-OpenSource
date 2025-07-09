@@ -810,6 +810,7 @@ def Defence()->None:
 
 ###############################################################################################
 def MacaoShot(x,y,z): 
+    #等待修改
     if chassis.GetYaw is None:
         return False
     Yaw = chassis.GetYaw()
@@ -918,6 +919,7 @@ def OHMYBACK():
     Pos2Pos([0,70,Angle],False)
 
 def LockDoor():
+    #正常
     LocalPos = GetPos()
     GoalPos = [0, 80]
     LocalX,LocalY,_ = LocalPos
