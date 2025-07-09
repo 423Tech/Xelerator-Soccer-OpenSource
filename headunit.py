@@ -326,7 +326,7 @@ class ArisuIntelligence:
                 while True:
                     BindingsList = []
                     # Bindings = ConfiguredInferModel.create_bindings()
-                    OutputBuffer = np.empty(OutputShape, dtype=np.float32)
+                    OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
 
                     
                     for i in range(4):
