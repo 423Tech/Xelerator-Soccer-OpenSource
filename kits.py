@@ -51,12 +51,16 @@ def Sendstatus(): # 发送身份和球权
         P2Ball = get_ball_distance()
         P_Pos =  GetPos()
         msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2Ball:.2f};P_Pos:{P_Pos:.2f}"
-        Beacon.Send(msg)
+        while True:
+            if Beacon.Send(msg):
+                break
     except Exception as e:
         logger.error(f"Failed to send status: {e}")
 
 def Peerstatus():# 解析对方身份球权距离
     msg = Beacon.MessageCache
+    if msg == None:
+        logger.error("No BlueTooth Message")
     peer_role, peer_owner, P2Ball, P_Pos = None, None, None, None
     if msg:
         try:
@@ -407,10 +411,10 @@ def Cover2Start():
 
 def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
     InputX,InputY,InputZ = InputPos
-    OutX = (cfg.read("Position","Width")/2) - (InputX%cfg.read("Border",0)[0])
-    OutY = (cfg.read("Position","Height")/2) - (InputY%cfg.read("Border",0)[1])
+    OutX = (cfg.read("Position","Width")/2) - (InputX%(cfg.read("Border","0")[0]))
+    OutY = (cfg.read("Position","Height")/2) - (InputY%(cfg.read("Border","0")[1]))
     OutZ = InputZ%360
-    logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
+    # logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
     return [OutX,OutY,OutZ]
 
 def AvoidObject():
@@ -463,14 +467,6 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
     iDeltaZ = iAimZ - iLocZ
-    if iDeltaX > 500:
-        iDeltaX = iDeltaX/5
-    if iDeltaY > 500:
-        iDeltaY = iDeltaY/5
-    if iDeltaX < 100:
-        iDeltaX = iDeltaX*3
-    if iDeltaY < 100:
-        iDeltaY = iDeltaY*3
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         pass
@@ -818,6 +814,7 @@ def Defence()->None:
 
 ###############################################################################################
 def MacaoShot(x,y,z): 
+    #等待修改
     if chassis.GetYaw is None:
         return False
     Yaw = chassis.GetYaw()
@@ -878,7 +875,7 @@ def MacaoShot(x,y,z):
                     break
 
                     
-def Slipsideshot(Yaw,LocalPos,EnemyPos,GoalPos): #溜边 10,-90
+def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
     '''
     #### Yaw : 指南针 
     ##### <code>Yaw: int | [0,360]</code>
@@ -888,33 +885,33 @@ def Slipsideshot(Yaw,LocalPos,EnemyPos,GoalPos): #溜边 10,-90
     ### GoalPos : 球门坐标
     '''
     # peripheral.Dribble(True)
-    LocalX,LocalY = LocalPos[0]
-    EnemyX,EnemyY = EnemyPos[0]
-    GoalPos = [0, 100]
-    GoalX,GoalY = GoalPos
+    LocalPos = GetPos()
+    LocalX,LocalY,_ = LocalPos
+    EnemyX,EnemyY = EnemyPos
+    _ , GoalY = GoalPos
     GoalY = 80
+    AimX  = 45
+    AimY  = 75
     if LocalX > 0:
         pass
     else:
-        GoalX = -GoalX
-    Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY))-270) % 360
-    if Pos2Pos([GoalX,GoalY,Angle],False):
-        DeltaY = GoalY - LocalY
+        AimX = -AimX
+    Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY)-270)) % 360
+    if Pos2Pos([AimX,AimY,Angle],False):
+        DeltaY = LocalY - GoalY
         DeltaX = LocalX
-        Theta = math.atan2(DeltaY, DeltaX)
-        Theta = math.degrees(Theta)
-        Compass = -(90 - Theta)
+        Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) +180
+        Compass = Theta
         for _ in range(20):
             if not AbsBallPos() == [1207, 1207]:
                 break
-            chassis.GoZ(Compass)
-            time.sleep(0.03)
+        chassis.GoZ(Compass)
+        time.sleep(10)
         peripheral.ShootBall()
         logger.success("Ball is in possession, start shotting.")
 
 def OHMYBACK():
     #正常
-    Yaw = compass()
     peripheral.Dribble(True)
     lLocal = GetPos()
     iLocX = lLocal[0]
@@ -924,3 +921,14 @@ def OHMYBACK():
     ALocY = ALocal[1]
     Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)-270)) % 360
     Pos2Pos([0,70,Angle],False)
+
+def LockDoor():
+    #正常
+    LocalPos = GetPos()
+    GoalPos = [0, 80]
+    LocalX,LocalY,_ = LocalPos
+    _ ,GoalY = GoalPos
+    DeltaY = LocalY - GoalY
+    DeltaX = LocalX
+    Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) +180
+    chassis.GoZ(Compass)
