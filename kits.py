@@ -223,7 +223,7 @@ def GetPos(Fusion:bool | None = False) -> list[int,int]:
         X = -((cfg.read("Position","Width")*k/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")*k/2))/2
     # PosXCache = X
     # PosYCache = Y
-    return [X*0.85/10,Y*0.85/10,compass()]
+    return [X/10,Y/10,compass()]
 
 
 def AbsBallPos():
@@ -411,8 +411,8 @@ def Cover2Start():
 
 def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
     InputX,InputY,InputZ = InputPos
-    OutX = (cfg.read("Position","Width")/2) - (InputX%(cfg.read("Border","0")[0]))
-    OutY = (cfg.read("Position","Height")/2) - (InputY%(cfg.read("Border","0")[1]))
+    OutX = (InputX%(cfg.read("Border","0")[0]))
+    OutY = (InputY%(cfg.read("Border","0")[1]))
     OutZ = InputZ%360
     # logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
     return [OutX,OutY,OutZ]
@@ -456,7 +456,7 @@ def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
     iDeltaAngle = math.degrees(math.atan2(iDeltaY,iDeltaX))
     return int(iDeltaAngle)
 
-def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
+def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None = None) -> int:
     '''
     iFacingAngle 移动时面对的方向 0~360
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
@@ -467,6 +467,8 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
     iDeltaZ = iAimZ - iLocZ
+    linear_map(iDeltaX,[0,300],[100,1000])
+    linear_map(iDeltaY,[0,300],[100,1000])
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
         pass
@@ -478,7 +480,10 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
             chassis.GoZspeed(iDeltaZ)
         else:
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)/2)))
+            if Speed:
+                chassis.GoA(lAimPos[2],90-iMovedAngle,Speed)
+            else:
+                chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*1.5))
             return False
 
 def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
@@ -890,23 +895,25 @@ def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
     EnemyX,EnemyY = EnemyPos
     _ , GoalY = GoalPos
     GoalY = 80
-    AimX  = 45
-    AimY  = 75
+    AimX  = 40
+    AimY  = 80
     if LocalX > 0:
-        pass
+        k = 45
     else:
         AimX = -AimX
+        k = -45
     Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY)-270)) % 360
-    if Pos2Pos([AimX,AimY,Angle],False):
+    Pos2Pos([AimX,AimY,Angle],False,200)
+    if abs(AimX-LocalX)+abs(AimX-LocalX) < 5:
         DeltaY = LocalY - GoalY
         DeltaX = LocalX
-        Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) +180
+        Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 +k
         Compass = Theta
         for _ in range(20):
-            if not AbsBallPos() == [1207, 1207]:
-                break
-        chassis.GoZ(Compass)
-        time.sleep(10)
+            # if not AbsBallPos() == [1207, 1207]:
+            #     break
+            chassis.GoZ(Compass)
+            time.sleep(0.03)
         peripheral.ShootBall()
         logger.success("Ball is in possession, start shotting.")
 
@@ -925,10 +932,10 @@ def OHMYBACK():
 def LockDoor():
     #正常
     LocalPos = GetPos()
-    GoalPos = [0, 80]
+    GoalPos = [0, 90]
     LocalX,LocalY,_ = LocalPos
     _ ,GoalY = GoalPos
     DeltaY = LocalY - GoalY
     DeltaX = LocalX
-    Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) +180
-    chassis.GoZ(Compass)
+    Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180
+    chassis.GoZ(Theta)
