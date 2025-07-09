@@ -50,7 +50,7 @@ class BTBeacon:
                 receive_thread = threading.Thread(target=self.receive_messages)
                 receive_thread.daemon = True
                 receive_thread.start()
-                break
+                # break
             except Exception as e:
                 self.logger.error(f"服务器错误: {e}")
     
