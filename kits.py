@@ -199,11 +199,9 @@ def GetDistance() -> list[int,int,int]:
 
 def GetPos(Fusion:bool | None = False) -> list[int,int]:
     Distance = GetDistance()
-    # logger.debug(Distance)
     if Distance == [0,0,0,0]:
         logger.error("Lidar Not Started")
         return [0,0,compass()]
-    # global PosXCache, PosYCache
     k = 10
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 50)*k:
         if Distance[0] > Distance[2]:
@@ -254,7 +252,7 @@ def AbsBallPos():
 
 ##################################################################################################################
 
-def Lockball________angle():#贝尔巴托夫转身
+def Lockballangle():#贝尔巴托夫转身
     lBallPos = GetBallPos()#获取球的位置
     iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
     Compass = chassis.GetYaw()#获取机器人的航向
@@ -274,14 +272,6 @@ def Lockballangle():
 def Lockballmove():
     lBallPos = GetBallPos()
     iBX,iBY = lBallPos[0],lBallPos[1]
-    # if iBX > 0:
-    #     iBX=linear_map(iBX,(0,140),(60,80))
-    # else:
-    #     iBX=linear_map(iBX,(-140,0),(-80,-60))
-    # if iBY > 0:
-    #     iBY=linear_map(iBY,(0,140),(60,80))
-    # else:
-    #     iBY=linear_map(iBY,(-140,0),(-80,-60))
     chassis.GoV(iBX*4,iBY*4,0)
 
 def Lockballslip():
@@ -293,172 +283,52 @@ def Lockballslip():
     Fangle = Angle + Compass
     chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-##每
-# def Offence():#1200 400
-#     """
-#     OP进攻逻辑
-#     1. 默认在前半场，实时追球，首要目标是抢球。
-#     2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
-#     3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
-#     4. 绝不进入己方禁区防守区域。
-
-#     """
-#     peripheral.DribbleBall()
-#     if chassis.GetYaw is None:
-#             return False
-#     Yaw = chassis.GetYaw()
-#     Identityswitch()
-#     lBallPos = AbsBallPos()
-#     lPos = GetPos()
-#     bx, by = lBallPos[0], lBallPos[1]
-#     x, y = lPos[0], lPos[1]
-#     # 中场
-#     if bx == 0 and by == 0:   
-#             peripheral.StopDribble()
-#             Pos2Pos([0, -50, 0], False)
-#             return   
-#     if ball_owner == my_id:
-#         # 球在己方半场，优先溜边
-#         if abs(bx) > 50:
-#             Slipsideshot()
-#             return
-#         elif(abs(bx) <= 50 and by < 0):
-#             MacaoShot(300)
-#         elif(abs(bx) <= 50 and by > 0):
-#             if by > 50:
-#                 Angle = math.degrees(math.atan2(abs(x),120-y))
-#                 while True:
-#                     if abs(Yaw-Angle) < 10:
-#                         chassis.stop()
-#                         peripheral.ShootBall()
-#                         break
-#                     elif x > 0:
-#                         chassis.GoZspeed(-150)
-#                     else:
-#                         chassis.GoZspeed(150)
-#             else:
-#                 Lockballslip()
-#         else:
-#             Lockballslip()  
-#     else: #无球权
-#         if by < 0:
-#             Pos2Pos([x, 0, 0], False)
-#         else:
-#             Lockballslip()
-
-
-
-# def Offence(): #CODEGEEX希望做的修改
-#     if chassis.GetYaw is None:
-#         return False
-#     Yaw = chassis.GetYaw()
-
-#     # 获取球和自身位置
-#     lBallPos = GetBallPos()
-#     lPos = GetPos()
-#     iBX, iBY = lBallPos[0], lBallPos[1]
-#     iX, iY = lPos[0], lPos[1]
-    
-#     # 计算球的绝对位置
-#     iAbsBX = iX + iBX
-#     iAbsBY = iY + iBY
-    
-#     # 球未检测到或位置异常，回到默认位置
-#     if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
-#         peripheral.StopDribble()
-#         GoBack()
-#         return
-    
-#     # 有球权的进攻策略
-#     if ball_owner == my_id:
-#         logger.info("OP: 有球权，准备进攻")
-        
-#         # 根据位置选择射门方式
-#         if abs(iX) > 50:  # 靠近边线
-#             logger.info("OP: 选择溜边射门")
-#             if iX > 0:
-#                 Slipsideshot(60, iY)  # 右侧溜边
-#             else:
-#                 Slipsideshot(-60, iY)  # 左侧溜边
-#         elif iBY < 0:  # 球在己方半场
-#             logger.info("OP: 选择澳门射门")
-#             if iX > 0:
-#                 MacaoShot(20, -30, 300)  # 右侧澳门
-#             else:
-#                 MacaoShot(-20, -30, 300)  # 左侧澳门
-#         elif iBY > 50:  # 深入对方半场
-#             logger.info("OP: 选择直接射门")
-#             # 计算射门角度
-#             Angle = math.degrees(math.atan2(abs(iX), 120-iY))
-#             while True:
-#                 if abs(Yaw -Angle) < 10:
-#                     chassis.stop()
-#                     peripheral.ShootBall()
-#                     break
-#                 elif iX > 0:
-#                     chassis.GoZspeed(-150)
-#                 else:
-#                     chassis.GoZspeed(150)
-#         else:
-#             # 其他情况，控球并向前推进
-#             Lockballslip()
-#     else:  # 无球权的进攻策略
-#         logger.info("OP: 无球权，寻找球")
-        
-#         if iBY < 0:  # 球在己方半场
-#             # 回到适当位置，不要太靠后
-#             target_y = max(-30, iBY + 20)  # 保持在球前方一定距离
-#             Pos2Pos([iX, target_y, 0], False)
-#         else:  # 球在对方半场
-#             # 积极追球
-#             Lockballslip()
-    
-def Offence():
+def NormalShot():
+    BallFlag = False
+    x,y = AbsBallPos()
+    logger.debug("Current Position: %s" % [x,y])
+    if [x,y] == [1024, 1024]:
+        logger.info("Ball not found, stopping chassis.")
+        Pos2Pos([0, 0, 0], False)
+        peripheral.StopDribble()
+    elif [x,y] == [1207, 1207]:
+        peripheral.Dribble(True)
+        logger.success("Ball is at the Front, stopping chassis.")
+        BallFlag = True
+        # while not abs(compass()) <= 10:
+            # chassis.GoA(0, 100, 100)
+    else:
         BallFlag = False
-        x,y = AbsBallPos()
-        logger.debug("Current Position: %s" % [x,y])
-        if [x,y] == [1024, 1024]:
-            logger.info("Ball not found, stopping chassis.")
-            Pos2Pos([0, 0, 0], False)
-            peripheral.StopDribble()
-        elif [x,y] == [1207, 1207]:
-            peripheral.Dribble(True)
-            logger.success("Ball is at the Front, stopping chassis.")
-            BallFlag = True
-            # while not abs(compass()) <= 10:
-                # chassis.GoA(0, 100, 100)
-        else:
-            BallFlag = False
-            logger.info("Ball is in possession, finding.")
-            lBallPos = GetBallPos()
-            logger.warning(lBallPos)
-            iBX,iBY = lBallPos[0],lBallPos[1]
-            Compass = chassis.GetYaw()
-            Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-            Fangle = Angle + Compass
-            chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
-            peripheral.Dribble(True)
-        if BallFlag and GetPos()[1] > 70:
-            peripheral.Dribble(True)
-            logger.info("Ball is in possession, start shotting.")
-            # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
-            # for _ in range(20):
-            #     Pos2Pos([0,80,0],False)
-            # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
-            for _ in range(20):
-                if not [x,y] == [1207, 1207]:
-                    break
-                X,Y,_ = GetPos()
-                DeltaY = 100 - Y
-                DeltaX = X
-                Theta = math.atan2(DeltaY, DeltaX)
-                Theta = math.degrees(Theta)
-                Compass = -(90 - Theta)
-                chassis.GoZ(Compass)
-                time.sleep(0.03)
-                # chassis.GoA(Compass, Compass, 100)
-            peripheral.ShootBall()
-            BallFlag = False
+        logger.info("Ball is in possession, finding.")
+        lBallPos = GetBallPos()
+        logger.warning(lBallPos)
+        iBX,iBY = lBallPos[0],lBallPos[1]
+        Compass = chassis.GetYaw()
+        Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+        Fangle = Angle + Compass
+        chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+        peripheral.Dribble(True)
+    if BallFlag and GetPos()[1] > 70:
+        peripheral.Dribble(True)
+        logger.info("Ball is in possession, start shotting.")
+        # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
+        # for _ in range(20):
+        #     Pos2Pos([0,80,0],False)
+        # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
+        for _ in range(20):
+            if not [x,y] == [1207, 1207]:
+                break
+            X,Y,_ = GetPos()
+            DeltaY = 100 - Y
+            DeltaX = X
+            Theta = math.atan2(DeltaY, DeltaX)
+            Theta = math.degrees(Theta)
+            Compass = -(90 - Theta)
+            chassis.GoZ(Compass)
+            time.sleep(0.03)
+            # chassis.GoA(Compass, Compass, 100)
+        peripheral.ShootBall()
+        BallFlag = False
 
 def Defence(): #bX有部分最好是改为AX（敌方坐标）
     """
@@ -522,11 +392,6 @@ def Circle(origin:list[int,int],angle:int,r:int):
 ##################################################################################################################
 
 #Operate models
-# 定义RailGun函数
-def RailGun():
-    # 调用peripheral模块中的ShootBall函数
-    peripheral.ShootBall()
-
 # 定义一个函数，用于判断是否覆盖
 def Cover2Start():
     # 声明一个全局变量
@@ -540,85 +405,18 @@ def Cover2Start():
         bCovered = False
         return False
 
-def AvoidOutBorder():
-    # return 0
-    lLocalPos = GetPos()
-    if lLocalPos[0] <= 0:
-        iKX = -1
-    else:
-        iKX = 1
-    if lLocalPos[1] <= 0:
-        iKY = -1
-    else:
-        iKY = 1
-    if lLocalPos[1]*iKY >= list(cfg.read("Border","0"))[1]:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-            iMoveAngle = -135
-        else:
-            iMoveAngle = 180
-    elif lLocalPos[1]*iKY >= list(cfg.read("Border","1"))[1]:
-        if lLocalPos[0]*iKX >= list(cfg.read("Border","0"))[0]:
-            iMoveAngle = -90
-        elif lLocalPos[0]*iKX <= list(cfg.read("Border","1"))[0]:
-            # print(GetPos())
-            iMoveAngle = 180
-        else:
-            pass
-    else:
-        pass
-    try:
-        iMoveAngle = iMoveAngle*iKX*iKY
-        if iMoveAngle == -180:
-            iMoveAngle = 0
-        chassis.GoV(0,-iMoveAngle,200)
-    except:
-        chassis.stop()
+def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
+    InputX,InputY,InputZ = InputPos
+    OutX = (cfg.read("Position","Width")/2) - (InputX%cfg.read("Border",0)[0])
+    OutY = (cfg.read("Position","Height")/2) - (InputY%cfg.read("Border",0)[1])
+    OutZ = InputZ%360
+    logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
+    return [OutX,OutY,OutZ]
 
-def ObtDetect() -> list[list[int,int],list[bool,bool]]:
+def AvoidObject():
     '''
-    返回一个列表，[[角度],[是否被遮挡]]
     '''
-    global lBlockedMemo,iMemoLife,bLife
-    lStatusOfDist = [[],[]]
-    # iMaxLife = cfg.read("A2AOb","LifeTime")
-    lDists = GetDistance()
-    iNumOfDist = len(lDists)
-    iPerAngle = int(359/iNumOfDist)
-    if len(lStatusOfDist) < iNumOfDist:
-        for d in range(iNumOfDist):
-            lStatusOfDist.append(True)
-    for i in range(iNumOfDist):
-        lStatusOfDist[0].append(iPerAngle*i)
-        if lDists[i] <= cfg.read("A2AOb","ActiveRange"):
-            lStatusOfDist[1][i] = False
-        else:
-            lStatusOfDist[1][i] = True
-    return None
-
-def AvoidObt(iFacingAngle: int | None = 0,iTargetAngle:int | None = 0,iSpeed:int | None = 150) -> None:
-    '''
-    iFacingAngle 移动时面对的方向 0~360
-    iTargetAngle 需要移动的方向 可能不采用 -180~180
-    iSpeed 移动的速度 默认150
-    已弃用
-    '''
-    return 0
-    iTargetAngle = -iTargetAngle
-    lStatusOfDist = ObtDetect()
-    #获取挡住/被挡住的角度
-
-   #判断
-    lAvailbeAngles = []
-    for i in range(len(lStatusOfDist[0])):
-        if lStatusOfDist[1][i]:
-            lAvailbeAngles.append(lStatusOfDist[0][i])
-    print(lAvailbeAngles)
-    try:
-        iAimAngle = FindNearstAngle(lAvailbeAngles,iTargetAngle)
-        chassis.GoV(iFacingAngle,iAimAngle,iSpeed)
-        # c.GoA(iFacingAngle,iAimAngle,200)
-    except:
-        chassis.stop()
+    pass
     
 
 def Local2Angle(lAimPos:list[int,int]) -> int:
@@ -660,15 +458,8 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
     A2O 是否开启自动避障 默认True
     '''
-    # AvoidOutBorder()
-    iAimX = lAimPos[0]
-    iAimY = lAimPos[1]
-    iAimZ = lAimPos[2]
-    # time.sleep(0.01)
-    lLocal = GetPos()
-    iLocX = lLocal[0]
-    iLocY = lLocal[1]
-    iLocZ = lLocal[2]
+    iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
+    iLocX,iLocY,iLocZ = GetPos()
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
     iDeltaZ = iAimZ - iLocZ
@@ -682,16 +473,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False) -> int:
         iDeltaY = iDeltaY*3
     iErrorRange = cfg.read("Position","ErrorRange")/2
     if A2O:
-        if iErrorRange > iDeltaX > -iErrorRange and iErrorRange > iDeltaY > -iErrorRange and iErrorRange > iDeltaZ > -iErrorRange:
-            chassis.stop()
-        else:
-            if 0 > iDeltaX:
-                PA = Local2Angle(lAimPos) + 180
-            else:
-                PA = Local2Angle(lAimPos)
-            if 0 > iDeltaY:
-                PA = Local2Angle(lAimPos) - 180
-            AvoidObt(lAimPos[2],PA,(abs(iDeltaX) - abs(iDeltaY))/1.3)
+        pass
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
@@ -861,7 +643,7 @@ def AimBall(Ball) -> int:
 def GoBack():
     Pos2Pos(cfg.read("Position","Home"),False)
 
-def Offence():
+def Offence_O():
     lBallPos = GetBallPos()
     iBX,iBY = lBallPos[0],lBallPos[1]
     lPos = GetPos()
@@ -896,7 +678,122 @@ def Offence():
             iAimAngle = AimBall([iBX - 20,iBY - 10])
         
         chassis.GoA(0,iAimAngle,150)
+
+def Offence():
+    """
+    OP进攻逻辑
+    1. 默认在前半场，实时追球，首要目标是抢球。
+    2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
+    3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
+    4. 绝不进入己方禁区防守区域。
+    """
+    peripheral.DribbleBall()
+    Yaw = compass()
+    Identityswitch()
+    BallX, BallY = AbsBallPos()
+    LocalX, LocalY = GetPos()
+    # 中场
+    if [BallX,BallY] == [1024,1024]:   
+            peripheral.StopDribble()
+            Pos2Pos([0, -50, 0], False)
+    if ball_owner == my_id:
+        Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
+        # 球在己方半场，优先溜边
+        # 未整合
+        # if abs(BallX) > 50:
+        #     Slipsideshot()
+        #     return
+        # elif(abs(BallX) <= 50 and BallY < 0):
+        #     MacaoShot(300)
+        # elif(abs(BallX) <= 50 and BallY > 0):
+        #     if BallY > 50:
+        #         Angle = math.degrees(math.atan2(abs(LocalX),120-LocalY))
+        #         while True:
+        #             if abs(Yaw-Angle) < 10:
+        #                 chassis.stop()
+        #                 peripheral.ShootBall()
+        #                 break
+        #             elif LocalX > 0:
+        #                 chassis.GoZspeed(-150)
+        #             else:
+        #                 chassis.GoZspeed(150)
+        #     else:
+        #         Lockballslip()
+        # else:
+        #     Lockballslip()  
+    else: #无球权
+        if BallY < 0:
+            Pos2Pos([LocalX, 0, 0], False)
+        else:
+            Lockballslip()
+
+
+
+# def Offence(): #CODEGEEX希望做的修改
+#     if chassis.GetYaw is None:
+#         return False
+#     Yaw = chassis.GetYaw()
+
+#     # 获取球和自身位置
+#     lBallPos = GetBallPos()
+#     lPos = GetPos()
+#     iBX, iBY = lBallPos[0], lBallPos[1]
+#     iX, iY = lPos[0], lPos[1]
     
+#     # 计算球的绝对位置
+#     iAbsBX = iX + iBX
+#     iAbsBY = iY + iBY
+    
+#     # 球未检测到或位置异常，回到默认位置
+#     if (iBX == 0 and iBY == 0) or (iX < -60 or iX > 60) or (iY < -80 or iY > 80):
+#         peripheral.StopDribble()
+#         GoBack()
+#         return
+    
+#     # 有球权的进攻策略
+#     if ball_owner == my_id:
+#         logger.info("OP: 有球权，准备进攻")
+        
+#         # 根据位置选择射门方式
+#         if abs(iX) > 50:  # 靠近边线
+#             logger.info("OP: 选择溜边射门")
+#             if iX > 0:
+#                 Slipsideshot(60, iY)  # 右侧溜边
+#             else:
+#                 Slipsideshot(-60, iY)  # 左侧溜边
+#         elif iBY < 0:  # 球在己方半场
+#             logger.info("OP: 选择澳门射门")
+#             if iX > 0:
+#                 MacaoShot(20, -30, 300)  # 右侧澳门
+#             else:
+#                 MacaoShot(-20, -30, 300)  # 左侧澳门
+#         elif iBY > 50:  # 深入对方半场
+#             logger.info("OP: 选择直接射门")
+#             # 计算射门角度
+#             Angle = math.degrees(math.atan2(abs(iX), 120-iY))
+#             while True:
+#                 if abs(Yaw -Angle) < 10:
+#                     chassis.stop()
+#                     peripheral.ShootBall()
+#                     break
+#                 elif iX > 0:
+#                     chassis.GoZspeed(-150)
+#                 else:
+#                     chassis.GoZspeed(150)
+#         else:
+#             # 其他情况，控球并向前推进
+#             Lockballslip()
+#     else:  # 无球权的进攻策略
+#         logger.info("OP: 无球权，寻找球")
+        
+#         if iBY < 0:  # 球在己方半场
+#             # 回到适当位置，不要太靠后
+#             target_y = max(-30, iBY + 20)  # 保持在球前方一定距离
+#             Pos2Pos([iX, target_y, 0], False)
+#         else:  # 球在对方半场
+#             # 积极追球
+#             Lockballslip()
+        
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -981,59 +878,42 @@ def MacaoShot(x,y,z):
                     break
 
                     
-def Slipsideshot(): #溜边 10,-90
-    Yaw = compass()
+def Slipsideshot(Yaw,LocalPos,EnemyPos,GoalPos): #溜边 10,-90
+    '''
+    #### Yaw : 指南针 
+    ##### <code>Yaw: int | [0,360]</code>
+    #### LocalPos : 本地坐标 
+    ##### <code>LocalPos: list | [[-80,80],[-100,100],[0,360]]</code>
+    ### EnemyPos : 敌人坐标
+    ### GoalPos : 球门坐标
+    '''
     # peripheral.Dribble(True)
-    lLocal = GetPos()
-    iLocX = lLocal[0]
-    iLocY = lLocal[1]
-    ALocal = [0,0]
-    ALocX = ALocal[0]
-    ALocY = ALocal[1]
-    DoorLocal = [0, -100]
-    DoorY = DoorLocal[1]
-    iY = 80
-    if iLocX > 0:
-        iX = 30
+    LocalX,LocalY = LocalPos[0]
+    EnemyX,EnemyY = EnemyPos[0]
+    GoalPos = [0, 100]
+    GoalX,GoalY = GoalPos
+    GoalY = 80
+    if LocalX > 0:
+        pass
     else:
-        iX = -30
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY))-270) % 360
-    if Pos2Pos([iX,iY,Angle],False):
-        # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
-        # for _ in range(20):
-        #     Pos2Pos([0,80,0],False)
-        # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
+        GoalX = -GoalX
+    Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY))-270) % 360
+    if Pos2Pos([GoalX,GoalY,Angle],False):
+        DeltaY = GoalY - LocalY
+        DeltaX = LocalX
+        Theta = math.atan2(DeltaY, DeltaX)
+        Theta = math.degrees(Theta)
+        Compass = -(90 - Theta)
         for _ in range(20):
             if not AbsBallPos() == [1207, 1207]:
                 break
-            X,Y,_ = GetPos()
-            DeltaY = 100 - Y
-            DeltaX = X
-            Theta = math.atan2(DeltaY, DeltaX)
-            Theta = math.degrees(Theta)
-            Compass = -(90 - Theta)
             chassis.GoZ(Compass)
             time.sleep(0.03)
         peripheral.ShootBall()
-        logger.info("Ball is in possession, start shotting.")
-    # if abs(iLocX - iX) < 10 and abs(iLocY - iY) < 10:
-    #     while True:
-    #         AngleD  = 270 + math.degrees(math.atan2(iLocX, DoorY - iLocY))
-    #         Yaw = chassis.GetYaw()
-    #         if iLocX > 0:
-    #             chassis.GoZspeed(-100)
-    #             k = -180
-    #         else:
-    #             chassis.GoZspeed(100)
-    #             k = 180
-    #         if abs((Yaw - AngleD + 180 +k) % 360) < 15:
-    #                 chassis.stop()
-    #                 peripheral.ShootBall()
-    #                 time.sleep(0.3)
-    #                 break
-    #     return
+        logger.success("Ball is in possession, start shotting.")
 
 def OHMYBACK():
+    #正常
     Yaw = compass()
     peripheral.Dribble(True)
     lLocal = GetPos()
