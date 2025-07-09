@@ -689,8 +689,8 @@ def Offence():
     if [BallX,BallY] == [1024,1024]:   
         peripheral.StopDribble()
         Pos2Pos([0, -50, 0], False)
-    if ball_owner == my_id:
-        Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
+    # if ball_owner == my_id:
+    #     Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
     else: #无球权
         if BallY < 0:
             Pos2Pos([LocalX, 0, 0], False)
@@ -734,18 +734,18 @@ def MacaoShot(x,y,z):
     # # iLocY1 = lLocal[1]
     # # print((iLocX+iLocX1)/2,(iLocY+iLocY1)/2)
     Pos2Pos([x,y,0],False,200)
-    if abs(iLocX - x) < 10 and abs(iLocY - y) < 10:
+    logger.warning("Current Position: %s" % [iLocX,iLocY])
+    if abs(abs(iLocX) - abs(x)) < 10 and abs(abs(iLocY) - abs(y)) < 10:
         if iLocX > 0:
             target_angle1 = 110
             target_angle = 40
-            target_angle2 = 0 
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 chassis.GoZspeed(-50)
                 if abs(Yaw - target_angle1) < 8:
                     break
             chassis.GoZspeed(0)
-            time.sleep(0.3)
+            time.sleep(1)
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 speed = z
@@ -755,20 +755,20 @@ def MacaoShot(x,y,z):
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 chassis.GoZspeed(200)
-                if abs(Yaw - target_angle2 ) < 10:
+                if abs(Yaw) < 10:
                     break
             return
         else:
             target_angle1 = 250
             target_angle = 320
-            target_angle2 = 0 
+
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 chassis.GoZspeed(50)
                 if abs(Yaw - target_angle1) < 8:
                     break
             chassis.GoZspeed(0)
-            time.sleep(0.3)
+            time.sleep(1)
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 speed = z
@@ -778,7 +778,7 @@ def MacaoShot(x,y,z):
             while True:
                 Yaw = (chassis.GetYaw() + 180)%360
                 chassis.GoZspeed(-200)
-                if abs(Yaw - target_angle2 ) < 10:
+                if abs(Yaw) < 10:
                     break
             return
 
