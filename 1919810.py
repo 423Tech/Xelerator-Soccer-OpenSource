@@ -12,10 +12,11 @@ while True:
         # Lockballmove()
         # Offence()
         # OHMYBACK()
-        Slipsideshot()
+        Slipsideshot([0,0],[0,90])
+        # Pos2Pos([0,70,400])
+        # LockDoor()
         # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()
-        
         break
