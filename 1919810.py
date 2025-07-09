@@ -13,7 +13,7 @@ while True:
         # Offence()
         # OHMYBACK()
         Slipsideshot()
-        logger.debug(Bits.get_motor_encoder())
+        # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()
