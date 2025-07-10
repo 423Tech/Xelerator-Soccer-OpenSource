@@ -247,7 +247,6 @@ def GetPos(Fusion:bool | None = False) -> list[int,int]:
     # PosYCache = Y
     return [X/10,Y/10,compass()]
 
-
 def AbsBallPos():
     '''
     retrun a absolute position of the ball
@@ -429,8 +428,10 @@ def Cover2Start():
 
 def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
     InputX,InputY,InputZ = InputPos
-    OutX = (InputX%(cfg.read("Border","0")[0]))
-    OutY = (InputY%(cfg.read("Border","0")[1]))
+    if InputX > (cfg.read("Border","0")[0]):
+        OutX = InputX
+    if InputY > (cfg.read("Border","0")[1]):
+        OutY = InputY
     OutZ = InputZ%360
     # logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
     return [OutX,OutY,OutZ]
@@ -440,7 +441,6 @@ def AvoidObject():
     '''
     pass
     
-
 def Local2Angle(lAimPos:list[int,int]) -> int:
     '''
     lAimPos 一个坐标 示例：[0,0]
@@ -482,8 +482,20 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
     '''
     iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
     iLocX,iLocY,iLocZ = GetPos()
+    if iLocX < 0:
+        kX = -1
+    if iLocY < 0:
+        kY = -1
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
+
+    RestrictedX = cfg.read("Border","1")[0]
+    RestrictedY = cfg.read("Border","1")[1]
+    Slope = iDeltaX/iDeltaY
+    if Slope*RestrictedY > RestrictedX:
+        iAimX = (RestrictedX - 3)*kX
+    if Slope/RestrictedX > RestrictedY:
+        iAimY = (RestrictedY - 3)*kY
     iDeltaZ = iAimZ - iLocZ
     linear_map(iDeltaX,[0,300],[100,1000])
     linear_map(iDeltaY,[0,300],[100,1000])
