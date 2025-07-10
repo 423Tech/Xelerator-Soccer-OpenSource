@@ -1,6 +1,7 @@
 #### HEADER ####
 from ReasonData import QkJson, Positions
 from kits import *
+from OD import *
 import signal
 #### HEADER ####
 logger.info("Starting Xelerator")
@@ -10,7 +11,9 @@ while True:
     try:
         # peripheral.DribbleBall()
         # Lockballmove()
-        Offence()
+        # Offence()
+        # Defence()
+        Role()
         # OHMYBACK()
         # Slipsideshot([0,0],[0,90])
         # MacaoShot(30,90,100)
