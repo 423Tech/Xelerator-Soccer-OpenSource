@@ -7,8 +7,8 @@ cfg = QkJson()
 from chassis import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
 ArisuCam = ArisuIntelligence()
-from ReasonBeacon import BTBeacon
-Beacon = BTBeacon()
+from ReasonBeacon import MisakaNetwork
+Beacon = MisakaNetwork()
 if cfg.read("model","Bit") == "AB":
     from arisbit import ArisBit
     Bits = ArisBit()
@@ -684,7 +684,7 @@ def Offence():
     Yaw = compass()
     Identityswitch()
     BallX, BallY = AbsBallPos()
-    LocalX, LocalY = GetPos()
+    LocalX, LocalY,_ = GetPos()
     # 中场
     if [BallX,BallY] == [1024,1024]:   
         peripheral.StopDribble()

@@ -49,8 +49,17 @@ class QkJson:
                     "REMOTE" : "NONE",
                 },
                 "WIFI" : {
-                    "SSID" : "None",
-                    "PWD" : "",
+                    "Type": "Slave",
+                    "SelfIP" : "192.168.1.x",
+                    "RemoteIP" : "192.168.1.109",
+                    "Port" : 20001,
+                    "SSID" : "MisakaNetwork",
+                    "PWD" : "MisakaNetwork20001/",
+                },
+                "Debug": {
+                    "DebugWifi": "RoboCup",
+                    "DebugIP": "192.168.1.109",
+                    "DebugPSWD": "12345",
                 },
                 "Advanced": {
                     "Cover2Start": False,

@@ -1,146 +1,53 @@
-import bluetooth
-import subprocess
-import re
+import socket
+import os
 import threading
+import subprocess,re
+from ReasonData import logger,QkJson
 
-class BTBeacon:
-    def __init__(self, port=1):
-        from ReasonData import QkJson,logger
-        self.logger = logger
-        self.cfg = QkJson()
-        if not self.cfg.read("BLE", "Setup"):
-            try:
-                # 方法1: 使用hciconfig命令
-                result = subprocess.run(['hciconfig'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    # 查找BD Address
-                    match = re.search(r'BD Address: ([0-9A-Fa-f:]{17})', result.stdout)
-                    if match:
-                        logger.info(f"蓝牙地址: {match.group(1).upper()}")
-                        self.cfg.write("BLE", "MAC", match.group(1).upper())
-            except:
-                logger.error("蓝牙自动设置失败，请先配置蓝牙参数。")
-                raise RuntimeError("蓝牙自动设置失败，请先配置蓝牙参数。")
-        if self.cfg.read("BLE", "REMOTE") == "NONE":
-            logger.error("请先配置蓝牙远程设备地址。")
-        self.type = self.cfg.read("BLE", "Type")
-        self.port = port
-        self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        if self.type == "Slave":
-            self.server_address = self.cfg.read("BLE", "REMOTE")
-        else:
-            self.socket.bind(("", self.port))
-            self.socket.listen(1)
-        self.MessageCache = None
-        self.connected = False
-        self.CreateConnection()
-        
-    def StartServer(self):
-        """启动蓝牙服务器"""
-        while True:
-            try:
-                # 创建蓝牙套接字
-                self.logger.info(f"sub 蓝牙服务器启动，监听端口: {self.port}")
-                self.logger.info("等待客户端连接...")
-                # 等待客户端连接
-                self.socket, self.client_address = self.socket.accept()
-                self.logger.success(f"客户端已连接: {self.client_address}")
-                self.connected = True
-                # 启动接收消息的线程
-                receive_thread = threading.Thread(target=self.receive_messages)
-                receive_thread.daemon = True
-                receive_thread.start()
-                break
-            except Exception as e:
-                self.logger.error(f"服务器错误: {e}")
-                self.cleanup()
-    
-    def ConnectToServer(self):
-        """连接到蓝牙服务器"""
-        while True:
-            try:
-                self.logger.info(f"sub 正在连接到服务器: {self.server_address}")
-                # 连接到服务器
-                self.socket.connect((self.server_address, self.port))
-                self.logger.success("连接成功！")
-                self.connected = True
-                
-                # 启动接收消息的线程
-                self.receive_thread = threading.Thread(target=self.receive_messages)
-                self.receive_thread.daemon = True
-                self.receive_thread.start()
-                break
-            except Exception as e:
-                if "Host is down" in str(e):
-                    self.cleanup()
-                else:
-                    raise e
-                self.logger.error(f"连接错误: {e}")
-                # self.cleanup()
-
-
-    def CreateConnection(self):
-        if self.type == "Master":
-            self.receive_thread = threading.Thread(target=self.StartServer())
-            self.receive_thread.daemon = True
-            self.receive_thread.start()
-        else:
-            self.receive_thread = threading.Thread(target=self.ConnectToServer())
-            self.receive_thread.daemon = True
-            self.receive_thread.start()
-
-    def receive(self):
-        """接收消息的线程函数"""
-        while True:
-            if not self.connected:
-                self.logger.warning("未连接到服务器，等待连接中。")
-            try:
-                if self.socket:
-                    data = self.socket.recv(1024)
-                    if data:
-                        message = data.decode('utf-8')
-                        self.logger.success(f"收到消息: {message}")
-                        self.MessageCache = message
-            except bluetooth.btcommon.BluetoothError as e:
-                self.connected = False
-                self.logger.error(f"消息错误: {e}")
-                break
-            except Exception as e:
-                self.logger.error(f"接收消息错误: {e}")
-                self.connected = False
-                break
-    
-    def Send(self,message):
-        """发送消息"""
-        try:
-            if not self.connected:
-                self.logger.warning("未连接到服务器，等待连接中。")
-            else:
-                if self.socket:
-                    self.socket.send(message.encode('utf-8'))
-                    self.logger.success("发送成功")
-                    return True
-                else:
-                    self.logger.error("发送失败")
-                    return False
-        except bluetooth.btcommon.BluetoothError as e:
-            self.connected = False
-            self.cleanup()
-            self.logger.error(f"消息错误: {e}")
-        except Exception as e:
-            self.logger.error(f"发送消息错误: {e}")
-
-
-    def cleanup(self):
-        """清理资源"""
-        if self.socket:
-            self.socket.close()
-        self.logger.success("服务已关闭")
-        self.__init__()
-
-class SerialCommunicate:
+class MisakaNetwork:
     def __init__(self):
-        '''
-        TODO no code here
-        '''
-        pass
+        self.cfg = QkJson()
+        result = subprocess.run(['ifconfig','wlan0'], capture_output=True, text=True)
+        # if result.returncode == 0:
+            # 严格验证IP地址范围（0-255）
+        ip_pattern = r'inet ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))'
+        match = re.search(ip_pattern, result.stdout)
+        if match:
+            logger.info(f"IP地址: {match.group(1).upper()}")
+            self.cfg.write("WIFI", "SelfIP", match.group(1).upper())
+        self.LocalIP = match.group(1).upper()
+        self.RemoteIP = self.cfg.read("WIFI","RemoteIP")
+        self.Port = self.cfg.read("WIFI","Port")
+        self.ListeningPort = self.cfg.read("WIFI","Port")
+        self.MessageCache = None
+        self.ReceiveDataThread = threading.Thread(target=self.ReceiveData)
+        self.ReceiveDataThread.daemon = True  # 设置为守护线程，主线程结束时自动结束
+        self.ReceiveDataThread.start()
+
+
+    def Send(self,Data:str): #发送数据
+        ClientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ClientSocket.connect((self.RemoteIP,self.Port))
+        ClientSocket.sendall(Data.encode('utf-8'))
+        ClientSocket.close()
+
+    def ReceiveData(self): #接收数据
+        ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ServerSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        ServerSocket.bind((self.LocalIP,self.ListeningPort))
+        ServerSocket.listen(50)
+        while(1):
+            ClientSocket,ClientAddr = ServerSocket.accept()
+            while(1):
+                Data = ClientSocket.recv(1024)
+                if not Data:
+                    break
+                Data = Data.decode('UTF-8')
+                self.MessageCache = Data
+            ClientSocket.close()
+    
+    def GetReceivedData(self):
+        return self.MessageCache
+    
+if __name__ == "__main__":
+    a = MisakaNetwork()

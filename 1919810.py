@@ -10,10 +10,10 @@ while True:
     try:
         # peripheral.DribbleBall()
         # Lockballmove()
-        # Offence()
+        Offence()
         # OHMYBACK()
         # Slipsideshot([0,0],[0,90])
-        MacaoShot(30,90,100)
+        # MacaoShot(30,90,100)
         # Pos2Pos([0,70,400])
         # LockDoor()
         # logger.debug(Bits.get_motor_encoder())
