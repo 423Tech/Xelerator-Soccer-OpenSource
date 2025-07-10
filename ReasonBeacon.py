@@ -27,7 +27,11 @@ class MisakaNetwork:
 
     def Send(self,Data:str): #发送数据
         ClientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        ClientSocket.connect((self.RemoteIP,self.Port))
+        try:
+            ClientSocket.connect((self.RemoteIP,self.Port))
+        except ConnectionRefusedError:
+            print("CNNREFUSED")
+            return False
         ClientSocket.sendall(Data.encode('utf-8'))
         ClientSocket.close()
 
