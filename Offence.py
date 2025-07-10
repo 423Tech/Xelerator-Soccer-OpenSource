@@ -5,24 +5,31 @@ def NormalShoot():
     logger.debug("Current Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
-        Pos2Pos([0, -85, 0], False)
+        # Pos2Pos([0, -85, 0], False)
+        chassis.stop()
         peripheral.Dribble(False)
     elif -5 < BX < 5 and 0 < BY < 10:
         logger.info("Ball is in front")
-        for _ in range(20):
-            BX, BY = GetBallPos()
-            if not -5 < BX < 5 and 0 < BY < 10:
-                break
-            X,Y,_ = GetPos()
-            DeltaY = 100 - Y
-            DeltaX = X
-            Theta = math.atan2(DeltaY, DeltaX)
-            Theta = math.degrees(Theta)
-            Compass = -(90 - Theta)
-            # while True:
-            #     chassis.GoZ(Compass)
-            chassis.GoY(Compass,50)
-            time.sleep(0.03)
+        # BX, BY = GetBallPos()
+        # if not -5 < BX < 5 and 0 < BY < 10:
+        #     break
+        X,Y,_ = GetPos()
+        DeltaY = 100 - Y
+        DeltaX = X
+        Theta = math.atan2(DeltaY, DeltaX)
+        Theta = math.degrees(Theta)
+        Aim = -(90 - Theta)
+        Compass = compass()
+        Delta = abs(Aim - Compass)
+        # while True:
+        #     chassis.GoZ(Compass)
+        if Delta > 60:
+            chassis.Turn(Aim,0.2)
+        else:
+            for _ in range(20):
+                chassis.GoY(Aim,100,0.5)
+                time.sleep(0.03)
+        
         peripheral.ShootBall()
     else:
         peripheral.Dribble(True)

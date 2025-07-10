@@ -42,14 +42,18 @@ class Car:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         self.SetMotor(Speed1, Speed2, Speed3, Speed4)
     
-    def GoA(self,FacingAngle,MovingAngle,Speed):
+    def GoA(self,FacingAngle,MovingAngle,Speed,Kp=None):
         if self.GetYaw is None:
             return False
         Yaw = self.GetYaw()
         rad = math.radians(MovingAngle+360-Yaw)
         SpeedX = int(math.sin(rad) * Speed)
         SpeedY = int(math.cos(rad) * Speed)
-        self.GoV(SpeedX,SpeedY,FacingAngle)
+        if Kp is not None:
+            self.GoV(SpeedX,SpeedY,FacingAngle, Kp)
+        else:
+            self.GoV(SpeedX,SpeedY,FacingAngle)
+        
 
     def GoV(self,SpeedX,SpeedY,FacingAngle,Kp=None):
         '''
@@ -70,24 +74,24 @@ class Car:
             return False
         self.GoA(Angle,90,Speed)
    
-    def GoY(self,Angle,Speed):
+    def GoY(self,Angle,Speed,Kp=None):
         if self.GetYaw is None:
             return False
-        self.GoA(Angle,0,Speed)
+        self.GoA(Angle,0,Speed,Kp)
 
-    def GoZ(self,Angle):
+    def GoZ(self,Angle,Kp=None):
         if self.GetYaw is None:
             return False
-        self.GoA(Angle,0,0)
+        self.GoA(Angle,0,0,Kp)
 
     def GoZspeed(self,Speed): #自转
-        Speed1 = Speed
-        Speed2 = Speed
-        Speed3 = - Speed
-        Speed4 = - Speed
-        if self.SaveData:
-            self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
+        self.Go(0,0,Speed)
+    
+    def Turn(self,Angle,Kp=None):
+        while True:
+            self.GoZ(Angle,Kp)
+            if abs(self.GetYaw() - Angle) < 5:
+                break
 
     def stop(self):
         self.SetMotor(0,0,0,0)
