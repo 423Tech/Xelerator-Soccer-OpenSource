@@ -32,7 +32,6 @@ else:
 SelfIP = cfg.read("WIFI","SelfIP")
 peer_id = cfg.read("WIFI","RemoteIP") #Kei ID1 #Arisu ID
 role = "DP"    # OP攻 DP守
-ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
 PosXCache = 0
 PosYCache = 0
@@ -47,30 +46,26 @@ peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, No
 
 #Math Mod
 #####################################################################################################
-def Role():
-    Identityswitch()
-    Sendstatus()
-    Peerstatus()
-    print( ball_owner)
-
 def GetBallDistance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
     return (bx, by ,math.sqrt((bx - x) ** 2 + (by - y) ** 2))
 
+def Role():
+    if not PeerstatusThreadFuncStarted and not SendstatusThreadFuncStarted:
+        Sendstatus()
+        Peerstatus()
+    else:
+        pass
+
 def SendstatusThreadFunc(): # 发送身份和球权
     while (1):
+        SelfPosition = GetPos()
         try:
-            P2BallDirect = GetBallDistance()[2]
-            Pbx,Pby = GetBallDistance()[:2]
-            P_Pos =  GetPos()
-            # msg = f"ROLE:{role};OWNER:{ball_owner};P2Ball:{P2BallDirect:.2f};P_Pos:{P_Pos:.2f};Pbx:{Pbx:.2f};Pby:{Pby:.2f};"
-            msg = ("ROLE:%s;OWNER:%s;P2Ball:%s;P_Pos:%s;Pbx:%s;Pby:%s;"%(role,ball_owner,P2BallDirect,P_Pos,Pbx,Pby))
-            while True:
-                if Beacon.Send(msg):
-                    break
+            msg = ("BallFlag:%s;PositionX:%s;PositionY:%s"%(BallFlag,SelfPosition[0],SelfPosition[1]))
+            Beacon.Send(msg)
         except Exception as e:
-            logger.error(f"Failed to send status: {e}")
+            raise e
 
 def Sendstatus():
     global SendstatusThreadFuncStarted
@@ -79,28 +74,29 @@ def Sendstatus():
         SendstatusThread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         SendstatusThread.start()
         SendstatusThreadFuncStarted = True
+    return True
 
 def PeerstatusThreadFunc():
-    global peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby
+    global BallFlag,PeerPosition
     while (1):
-        msg = Beacon.MessageCache
-        if msg == None:
-            logger.error("No BlueTooth Message")
-        if msg:
+        MessageCache = Beacon.MessageCache
+        if MessageCache == None:
+            print("No BlueTooth Message")
+            time.sleep(1)
+        if MessageCache:
             try:
-                for part in msg.split(";"):
-                    if part.startswith("ROLE:"):
-                        peer_role = part.split(":")[1]
-                    if part.startswith("OWNER:"):
-                        peer_owner = int(part.split(":")[1])
-                    if part.startswith("P_Pos:"):
-                        P_Pos = float(part.split(":")[1])
-                    if part.startswith("P2Ball:"):
-                        P2BallDirect = float(part.split(":")[1])
+                for part in MessageCache.split(";"):
+                    if part.startswith("BallFlag:"):
+                        BallFlag = part.split(":")[1]
+                    if part.startswith("PositionX:"):
+                        PeerPositionX = int(part.split(":")[1])
+                    if part.startswith("PositionY:"):
+                        PeerPositionY = int(part.split(":")[1])
+                PeerPosition = [PeerPositionX,PeerPositionY]
             except Exception as e:
-                logger.error(f"Failed to send status: {e}")
-                time.sleep(3)
-        return peer_role, peer_owner, P2BallDirect, P_Pos , Pbx, Pby
+                BallFlag = False
+                PeerPosition = [1024,1024]
+                print(f"Failed to send status: {e}")
 
 def Peerstatus():# 解析对方身份球权距离
     global PeerstatusThreadFuncStarted
@@ -109,42 +105,6 @@ def Peerstatus():# 解析对方身份球权距离
         PeerstatusThread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         PeerstatusThread.start()
         PeerstatusThreadFuncStarted = True
-
-def Identityswitch(): #切换
-    global role, ball_owner,Dribblingdistance
-    lBallPos = AbsBallPos()
-    lPos = GetPos()
-    bx, by = lBallPos[0], lBallPos[1]
-    x, y = lPos[0], lPos[1]
-    My2Ball = math.sqrt((bx - x) ** 2 + (by - y) ** 2)
-    bluetooth_disconnected = (Beacon.MessageCache is None) or (Beacon.MessageCache == "")
-    # 球权
-    if [bx,by] == [1207, 1207]:
-        ball_owner = SelfIP
-    elif[Pbx,Pby] == [1207, 1207]:
-        ball_owner = peer_id
-    else:
-        ball_owner = 0
-    print("ball_owner:" + str(ball_owner))
-    # 攻防身份
-    if by > 0:
-        if bluetooth_disconnected:
-            role = "DP"
-        else:
-            if P2BallDirect is not None:
-                role = "OP" if My2Ball < P2BallDirect else "DP"
-            else:
-                role = "OP" 
-    elif by < 0:
-        if bluetooth_disconnected:
-            role = "DP"
-        else:
-            if P2BallDirect is not None and abs(My2Ball - P2BallDirect) < 5:
-                pass
-            else:
-                role = "DP" 
-    # 3. 球在己方半场且距离相等，先到先得（默认不变）
-    Sendstatus()
 
 
 ###################################################################################################
@@ -687,7 +647,6 @@ def Offence():
     3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
     4. 绝不进入己方禁区防守区域。
     """
-    Identityswitch()
     BallX, BallY = AbsBallPos()
     LocalX, LocalY,Yaw = GetPos()
     # 中场
