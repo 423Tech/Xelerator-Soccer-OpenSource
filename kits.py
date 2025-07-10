@@ -237,7 +237,7 @@ def AbsBallPos():
         ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
     except ZeroDivisionError:
         ballRltAngle =  0
-    BallAngleCache = ballRltAngle + compass()
+    BallAngleCache = ballRltAngle + SelfZ
     if BallAngleCache > 360:
         ballAbsAngle = BallAngleCache - 360
     else:
@@ -247,6 +247,67 @@ def AbsBallPos():
         ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
         ]
     return AbsBallPositon
+
+def AbsChassisPos():
+    ChassisRawList = ArisuCam.GetChassisPos()
+    SelfX,SelfY,SelfZ = GetPos()
+    OutputDistanceList = []
+    for c in ChassisRawList:
+        cDistance = math.sqrt(c[0]**2 + c[1]**2)
+        if c[1] == 0:
+            ChassisRltAngle = 0
+        try:
+            ChassisRltAngle =  -int(math.degrees(math.atan2(c[0],c[1])) - 90)
+        except ZeroDivisionError:
+            ChassisRltAngle =  0
+        ChassisAngleAngle = ChassisRltAngle + SelfZ
+        if ChassisAngleAngle > 360:
+            ChassisAbsAngle = ChassisAngleAngle - 360
+        else:
+            ChassisAbsAngle = ChassisAngleAngle
+        AbsChassisCache = [
+            cDistance * math.cos(math.radians(ChassisAbsAngle)) + SelfX,
+            cDistance * math.sin(math.radians(ChassisAbsAngle)) + SelfY,
+            c[2],
+            c[3]
+            ]
+        OutputDistanceList.append(AbsChassisCache)
+    return OutputDistanceList
+
+def getChassisAngle():
+    '''
+    ##### retrun a list of the relative angle of the chassis
+    #### output [a1,a2,a3,etc]
+    '''
+    ChassisRawList = ArisuCam.GetChassisPos()
+    ChassisAngleList = []
+    for c in ChassisRawList:
+        if c[1] == 0:
+            return 0
+        try:
+            if -int(math.degrees(math.atan2(c[1],c[0])) - 90) < 0:
+                ChassisRltAngle = -int(math.degrees(math.atan2(c[1],c[0])) - 90) + 360
+            else:
+                ChassisRltAngle = -int(math.degrees(math.atan2(c[1],c[0])) - 90)
+            ChassisAngleList.append(ChassisRltAngle)
+        except ZeroDivisionError:
+            ChassisAngleList.append(0)
+    return ChassisAngleList
+
+def AbsChassisAngle():
+    '''
+    ##### retrun a list of the absolute angles of the chassis
+    #### output [a1,a2,a3,etc]
+    '''
+    OutputAngles = []
+    CompassCache = compass()
+    for i in getChassisAngle():
+        ChassisAngleCache = i + CompassCache
+        if ChassisAngleCache > 360:
+            OutputAngles.append(int(ChassisAngleCache)%360)
+        else:
+            OutputAngles.append(int(ChassisAngleCache))
+    return OutputAngles
 
 ##################################################################################################################
 
@@ -258,14 +319,6 @@ def Lockballangle():#贝尔巴托夫转身
     Fangle = -(Angle - Compass)
     logger.debug("Ball Angle: %f" % Fangle)
     chassis.GoZ(Fangle)
-
-def Lockballangle():
-    lBallPos = GetBallPos()
-    iBX,iBY = lBallPos[0],lBallPos[1]
-    Compass = chassis.GetYaw()
-    Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-    Fangle = Angle + Compass
-    chassis.GoZ(Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def Lockballmove():
     lBallPos = GetBallPos()
@@ -349,6 +402,7 @@ def Cover2Start():
     else:
         bCovered = False
         return False
+    
 def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
     InputX,InputY,InputZ = InputPos
     if InputX > 0:
@@ -449,21 +503,43 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
     linear_map(iDeltaX,[0,300],[150,230])
     linear_map(iDeltaY,[0,300],[150,230])
     iErrorRange = cfg.read("Position","ErrorRange")/4
+    iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
     if A2O:
-        pass
-    else:
-        if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
-            chassis.stop()
-            return True
-        elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
-            chassis.GoZspeed(iDeltaZ)
-        else:
-            iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-            if Speed:
-                chassis.GoA(lAimPos[2],90-iMovedAngle,Speed)
+        DistanceCache = GetDistance()
+        if 0 < iMovedAngle%90 <= 1 :
+            if DistanceCache[0] >= DistanceCache[1]:
+                Anglek = 1
             else:
-                chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*1.5))
-            return False
+                AngleK = -1
+        elif 1 < iMovedAngle%90 <= 2 :
+            if DistanceCache[0] <= DistanceCache[1]:
+                Anglek = 1
+            else:
+                AngleK = -1
+        elif 2 < iMovedAngle%90 <= 3 :
+            if DistanceCache[4] >= DistanceCache[3]:
+                Anglek = 1
+            else:
+                AngleK = -1
+        elif 3 < iMovedAngle%90 <= 4 :
+            if DistanceCache[4] <= DistanceCache[2]:
+                Anglek = 1
+            else:
+                AngleK = -1
+        for a in AbsChassisAngle():
+            if a == iMovedAngle:
+                iMovedAngle = iMovedAngle + 5*Anglek
+    if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
+        chassis.stop()
+        return True
+    elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
+        chassis.GoZspeed(iDeltaZ)
+    else:
+        if Speed:
+            chassis.GoA(lAimPos[2],90-iMovedAngle,Speed)
+        else:
+            chassis.GoA(lAimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*1.5))
+        return False
 
 def Move2Path(Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
     iErrorRange = cfg.read("Position","ErrorRange")/2
