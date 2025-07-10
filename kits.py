@@ -243,8 +243,8 @@ def AbsBallPos():
     else:
         k = 1
     AbsBallPositon = [
-        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
-        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
+        ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfX,
+        ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfY
         ]
     return AbsBallPositon
 
