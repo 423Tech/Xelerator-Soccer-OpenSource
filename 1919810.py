@@ -3,6 +3,7 @@ from ReasonData import QkJson, Positions
 from kits import *
 from OD import *
 import signal
+from Defence_link import *
 #### HEADER ####
 logger.info("Starting Xelerator")
 
@@ -13,7 +14,7 @@ while True:
         # Lockballmove()
         # Offence()
         # Defence()
-        Role()
+        DefenceLink()
         # OHMYBACK()
         # Slipsideshot([0,0],[0,90])
         # MacaoShot(30,90,100)
