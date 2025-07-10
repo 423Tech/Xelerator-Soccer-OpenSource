@@ -312,7 +312,7 @@ def Lockballmove():
     iBX,iBY = lBallPos[0],lBallPos[1]
     chassis.GoV(iBX*4,iBY*4,0)
 
-def Lockballslip():
+def LockBallSlip():
     iBX,iBY = GetBallPos()
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
@@ -339,40 +339,18 @@ def Lockballslip():
     #     SpeedY = -300
     chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-def NormalShot():
-    BallFlag = False
-    x,y = AbsBallPos()
-    logger.debug("Current Position: %s" % [x,y])
-    if [x,y] == [1024, 1024]:
+def NormalShoot():
+    BX, BY = GetBallPos()
+    logger.debug("Current Position: %s" % [BX, BY])
+    if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
-        Pos2Pos([0, 0, 0], False)
-        peripheral.StopDribble()
-    elif [x,y] == [1207, 1207]:
-        peripheral.Dribble(True)
-        logger.success("Ball is at the Front, stopping chassis.")
-        BallFlag = True
-        # while not abs(compass()) <= 10:
-            # chassis.GoA(0, 100, 100)
-    else:
-        BallFlag = False
-        logger.info("Ball is in possession, finding.")
-        lBallPos = GetBallPos()
-        logger.warning(lBallPos)
-        iBX,iBY = lBallPos[0],lBallPos[1]
-        Compass = chassis.GetYaw()
-        Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-        Fangle = Angle + Compass
-        chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
-        peripheral.Dribble(True)
-    if BallFlag and GetPos()[1] > 70:
-        peripheral.Dribble(True)
-        logger.info("Ball is in possession, start shotting.")
-        # chassis.GoV(0,Pos2Angle(GetPos(), [0,90]),100)
-        # for _ in range(20):
-        #     Pos2Pos([0,80,0],False)
-        # Move2Path([80,0,Pos2Angle(GetPos(), [0,90])],False)
+        Pos2Pos([0, -85, 0], False)
+        peripheral.Dribble(False)
+    elif -5 < BX < 5 and 0 < BY < 10:
+        logger.info("Ball is in front")
         for _ in range(20):
-            if not [x,y] == [1207, 1207]:
+            BX, BY = GetBallPos()
+            if not -5 < BX < 5 and 0 < BY < 10:
                 break
             X,Y,_ = GetPos()
             DeltaY = 100 - Y
@@ -380,11 +358,14 @@ def NormalShot():
             Theta = math.atan2(DeltaY, DeltaX)
             Theta = math.degrees(Theta)
             Compass = -(90 - Theta)
-            chassis.GoZ(Compass)
+            # while True:
+            #     chassis.GoZ(Compass)
+            chassis.GoY(Compass,50)
             time.sleep(0.03)
-            # chassis.GoA(Compass, Compass, 100)
         peripheral.ShootBall()
-        BallFlag = False
+    else:
+        peripheral.Dribble(True)
+        LockBallSlip()
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -463,12 +444,17 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
     A2O 是否开启自动避障 默认True
     '''
-    iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
+    # iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
+    iAimX,iAimY,iAimZ = lAimPos
     iLocX,iLocY,iLocZ = GetPos()
     if iLocX < 0:
         kX = -1
+    else:
+        kX = 1
     if iLocY < 0:
         kY = -1
+    else:
+        kY = 1
     iDeltaX = iAimX - iLocX
     iDeltaY = iAimY - iLocY
 
@@ -715,7 +701,7 @@ def Offence():
         if BallY < 0:
             Pos2Pos([LocalX, 0, 0], False)
         else:
-            Lockballslip()
+            LockBallSlip()
     print(Yaw,BallX, BallY,LocalX, LocalY,ball_owner)
 
 
