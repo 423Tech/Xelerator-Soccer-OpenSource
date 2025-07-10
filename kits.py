@@ -37,6 +37,9 @@ Dribblingdistance = 9 # 控球距离
 PosXCache = 0
 PosYCache = 0
 
+# Warned Flags
+WarnedLidar = False
+
 # Values for COM
 SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
@@ -65,7 +68,6 @@ def SendstatusThreadFunc(): # 发送身份和球权
                     break
         except Exception as e:
             logger.error(f"Failed to send status: {e}")
-            time.sleep(3)
 
 def Sendstatus():
     global SendstatusThreadFuncStarted
@@ -226,11 +228,16 @@ def GetDistance() -> list[int,int,int]:
     return lidar.GetDists()
 
 def GetPos(Fusion:bool | None = False) -> list[int,int]:
+    global WarnedLidar
     Distance = GetDistance()
-    if Distance == [0,0,0,0]:
+    if Distance == [0,0,0,0] and not WarnedLidar:
+        WarnedLidar = True
         logger.error("Lidar Not Started")
         time.sleep(3)
         return [0,0,compass()]
+    if WarnedLidar and Distance != [0,0,0,0]:
+        WarnedLidar = False
+        logger.success("Lidar Started")
     k = 10
     if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 50)*k:
         if Distance[0] > Distance[2]:
