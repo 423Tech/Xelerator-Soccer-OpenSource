@@ -32,7 +32,7 @@ def Defence(): #bX有部分最好是改为AX（敌方坐标）
         return
     if bY > 0 :  
         print(2)
-        if ball_owner == my_id:
+        if ball_owner == SelfIP:
             return   #变成攻方
         elif ball_owner == peer_id:
             defend_x = - Peerstatus()[3][0]   # 横向适当跟随( 是跟随谁 不确定)
@@ -46,7 +46,7 @@ def Defence(): #bX有部分最好是改为AX（敌方坐标）
     else:
         print(3)
         ball_to_goal_dist = math.sqrt((bX - GOAL_POS[0])**2 + (bY - GOAL_POS[1])**2)
-        if ball_owner == my_id:
+        if ball_owner == SelfIP:
             return Offence()  #变成攻方
         elif ball_owner == peer_id:
             defend_x = - Peerstatus()[3][0]   # 各自站左右半场

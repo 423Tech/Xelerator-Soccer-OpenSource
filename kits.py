@@ -29,8 +29,8 @@ else:
     # breakpoint()
     raise ImportError("None Bit Model found.")
 
-my_id = 1 #Arisu ID
-peer_id = 2 #Kei ID
+SelfIP = cfg.read("model","SelfIP")
+peer_id = cfg.read("model","RemoteIP") #Kei ID1 #Arisu ID
 role = "DP"    # OP攻 DP守
 ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
@@ -48,10 +48,11 @@ peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, No
 #Math Mod
 #####################################################################################################
 def Role():
+    Identityswitch()
     Sendstatus()
     Peerstatus()
-    Identityswitch()
     print(Pbx, Pby, role, ball_owner, peer_role, peer_owner, P2BallDirect, P_Pos)
+
 def GetBallDistance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
@@ -119,7 +120,7 @@ def Identityswitch(): #切换
     bluetooth_disconnected = (Beacon.MessageCache is None) or (Beacon.MessageCache == "")
     # 球权
     if [bx,by] == [1207, 1207]:
-        ball_owner = my_id
+        ball_owner = SelfIP
     elif[Pbx,Pby] == [1207, 1207]:
         ball_owner = peer_id
     else:
@@ -687,7 +688,7 @@ def Offence():
     if [BallX,BallY] == [1024,1024]:   
         peripheral.StopDribble()
         Pos2Pos([0, -50, 0], False)
-    if ball_owner == my_id:
+    if ball_owner == SelfIP:
         peripheral.Dribble(True)
         Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
     else: #无球权
