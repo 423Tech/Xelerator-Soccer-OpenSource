@@ -13,22 +13,24 @@ def NormalShoot():
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
-        X,Y,_ = GetPos()
-        DeltaY = 100 - Y
-        DeltaX = X
-        Theta = math.atan2(DeltaY, DeltaX)
-        Theta = math.degrees(Theta)
-        Aim = -(90 - Theta)
-        Compass = compass()
-        Delta = abs(Aim - Compass)
+        for _ in range(20):
+            X,Y,_ = GetPos()
+            DeltaY = cfg.read("Position","Height")/2 - Y
+            DeltaX = X
+            Theta = math.atan2(DeltaY, DeltaX)
+            Theta = math.degrees(Theta)
+            Aim = 90 - Theta
+            Compass = compass()
+            Delta = abs(Aim - Compass)
         # while True:
         #     chassis.GoZ(Compass)
-        if Delta > 60:
-            chassis.Turn(Aim,0.2)
-        else:
-            for _ in range(20):
-                chassis.GoY(Aim,100,0.5)
-                time.sleep(0.03)
+            if Delta > 60:
+                chassis.Turn(Aim,25)
+                break
+            else:
+                chassis.GoA(Aim,0,100,0.8)
+            
+            time.sleep(0.03)
         
         peripheral.ShootBall()
     else:
