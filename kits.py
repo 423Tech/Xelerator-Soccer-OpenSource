@@ -349,15 +349,26 @@ def Cover2Start():
     else:
         bCovered = False
         return False
-
 def AvoidOutOfRange(InputPos:list[int,int,int]) -> list[int,int,int]:
     InputX,InputY,InputZ = InputPos
-    if InputX > (cfg.read("Border","0")[0]):
+    if InputX > 0:
+        kX = 1
+    else:
+        kX = -1
+    if InputY > 0:
+        kY = 1
+    else:
+        kY = -1
+    if abs(InputX) > (cfg.read("Border","0")[0]):
+        OutX = (cfg.read("Border","0")[0])*kX
+    else:
         OutX = InputX
-    if InputY > (cfg.read("Border","0")[1]):
+    if abs(InputY) > (cfg.read("Border","0")[1]):
+        OutY = (cfg.read("Border","0")[1])*kY
+    else:
         OutY = InputY
-    OutZ = InputZ%360
-    # logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
+    OutZ = abs(InputZ%360)
+    logger.success("Fixed Position: [%s,%s,%s]"%(OutX,OutY,OutZ))
     return [OutX,OutY,OutZ]
 
 def AvoidObject():
@@ -404,8 +415,7 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
     lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
     A2O 是否开启自动避障 默认True
     '''
-    # iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
-    iAimX,iAimY,iAimZ = lAimPos
+    iAimX,iAimY,iAimZ = AvoidOutOfRange(lAimPos)
     iLocX,iLocY,iLocZ = GetPos()
     if iLocX < 0:
         kX = -1
@@ -415,27 +425,37 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
         kY = -1
     else:
         kY = 1
-    iDeltaX = iAimX - iLocX
-    iDeltaY = iAimY - iLocY
-
+    iDeltaX = (iAimX) - (iLocX)
+    iDeltaY = (iAimY) - (iLocY)
     RestrictedX = cfg.read("Border","1")[0]
     RestrictedY = cfg.read("Border","1")[1]
-    Slope = iDeltaX/iDeltaY
-    if Slope*RestrictedY > RestrictedX:
-        iAimX = (RestrictedX - 3)*kX
-    if Slope/RestrictedX > RestrictedY:
-        iAimY = (RestrictedY - 3)*kY
-    iDeltaZ = iAimZ - iLocZ
-    linear_map(iDeltaX,[0,300],[100,1000])
-    linear_map(iDeltaY,[0,300],[100,1000])
-    iErrorRange = cfg.read("Position","ErrorRange")/2
+    try:
+        try:
+            Slope = iDeltaX/iDeltaY
+        except ZeroDivisionError:
+            Slope = 1
+        if Slope*RestrictedY > RestrictedX:
+            iAimX = (RestrictedX - 3)*kX
+        if Slope/RestrictedX > RestrictedY:
+            iAimY = (RestrictedY - 3)*kY
+    except:
+        iAimX,iAimY,iAimZ = lAimPos
+    logger.info([iAimX,iAimY,iAimZ])
+    if iLocZ > 180:
+        iDeltaZ = 360 - abs(iAimZ) - abs(iLocZ)
+    else:
+        iDeltaZ = (abs(iAimZ) - abs(iLocZ))
+    logger.debug([iDeltaX,iDeltaY,iDeltaZ])
+    linear_map(iDeltaX,[0,300],[150,230])
+    linear_map(iDeltaY,[0,300],[150,230])
+    iErrorRange = cfg.read("Position","ErrorRange")/4
     if A2O:
         pass
     else:
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
             return True
-        elif not abs(iErrorRange) > abs(iDeltaZ):
+        elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
             chassis.GoZspeed(iDeltaZ)
         else:
             iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
