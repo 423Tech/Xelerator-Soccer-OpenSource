@@ -84,15 +84,27 @@ class Car:
             return False
         self.GoA(Angle,0,0,Kp)
 
-    def GoZspeed(self,Speed): #自转
+    def GoZSpeed(self,Speed): #自转
         self.Go(0,0,Speed)
     
-    def Turn(self,Angle,Kp=None):
-        while True:
-            self.GoZ(Angle,Kp)
-            if abs(self.GetYaw() - Angle) < 5:
-                break
+    def Turn(self,Angle,AimSpeed,Kp=None):
 
+        while True:
+            Error = self.GetYaw() - Angle
+            Error = (Error + 180) % 360 - 180
+
+            Speed = AimSpeed
+            
+            if Error < -5:
+                self.GoZSpeed(Speed)
+            elif Error > 5:
+                Speed = -Speed
+                self.GoZSpeed(Speed)
+            else:
+                break
+            print(Error,Speed)
+            time.sleep(0.03)
+            
     def stop(self):
         self.SetMotor(0,0,0,0)
 
