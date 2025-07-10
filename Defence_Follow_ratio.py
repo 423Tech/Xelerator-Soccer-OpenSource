@@ -2,8 +2,7 @@ from kits import *
 def FollowPRatio():
     lPos = GetPos()
     iX= lPos[0]
-    PeerX = Peerstatus()[3][0]
-    PeerY = Peerstatus()[3][1]
+    PeerX, PeerY = PeerPosition[0], PeerPosition[1]
     if abs(iX) <= 60:
         defend_x = PeerX   
         defend_y = -40 + PeerY * 0.5  # 等比前移
