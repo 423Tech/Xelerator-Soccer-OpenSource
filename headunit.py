@@ -253,9 +253,9 @@ class ArisuIntelligence:
 
         time.sleep(2)
 
-        # self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
-        # self.VideoRecordThread.daemon = True
-        # self.VideoRecordThread.start()
+        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        self.VideoRecordThread.daemon = True
+        self.VideoRecordThread.start()
 
         self.FindBallThread = threading.Thread(target=self.FindBall)
         self.FindBallThread.daemon = True
@@ -480,7 +480,7 @@ class ArisuIntelligence:
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=100, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
