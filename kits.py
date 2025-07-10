@@ -29,8 +29,8 @@ else:
     # breakpoint()
     raise ImportError("None Bit Model found.")
 
-SelfIP = cfg.read("model","SelfIP")
-peer_id = cfg.read("model","RemoteIP") #Kei ID1 #Arisu ID
+SelfIP = cfg.read("WIFI","SelfIP")
+peer_id = cfg.read("WIFI","RemoteIP") #Kei ID1 #Arisu ID
 role = "DP"    # OP攻 DP守
 ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
@@ -51,7 +51,7 @@ def Role():
     Identityswitch()
     Sendstatus()
     Peerstatus()
-    print(Pbx, Pby, role, ball_owner, peer_role, peer_owner, P2BallDirect, P_Pos)
+    print( ball_owner)
 
 def GetBallDistance():
     bx, by = GetBallPos()
@@ -125,7 +125,7 @@ def Identityswitch(): #切换
         ball_owner = peer_id
     else:
         ball_owner = 0
-    print("ball_owner" + str(ball_owner))
+    print("ball_owner:" + str(ball_owner))
     # 攻防身份
     if by > 0:
         if bluetooth_disconnected:
