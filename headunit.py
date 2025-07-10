@@ -226,7 +226,7 @@ class ArisuIntelligence:
         self.P2CHB = []
         self.P2CVB = []
 
-        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
+        self.OrangeThreshold = (5, 15, 100, 255, 200, 255)
         self.BallPos = [0,0]
 
         self.InitCam(self.CamPorts)
@@ -235,6 +235,7 @@ class ArisuIntelligence:
 
         self.ChassisList = []
         self.ChassisQueue = queue.Queue(maxsize=1)
+        self.BallQueue = queue.Queue(maxsize=1)
 
         for i in range(4):
             NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
@@ -251,7 +252,7 @@ class ArisuIntelligence:
         self.ReadCamsThread.daemon = True
         self.ReadCamsThread.start()
 
-        time.sleep(2)
+        time.sleep(3)
 
         self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
         self.VideoRecordThread.daemon = True
@@ -278,6 +279,10 @@ class ArisuIntelligence:
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
         self.ChassisDetectionThread.start()
+
+        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
+        self.BallDetectionThread.daemon = True
+        self.BallDetectionThread.start()
 
         
         
@@ -414,6 +419,17 @@ class ArisuIntelligence:
 
     def GetChassisPos(self):
         return self.ChassisList
+    
+    def BallDetection(self):
+        while True:
+            OutputBuffer = self.ChassisQueue.get()
+            Balls = []
+            for i in range(4):
+                List = OutputBuffer[i][0]
+                if List.shape[0] > 0:
+                    Balls.append(List)
+            # print(Balls)
+
 
 
     
@@ -480,7 +496,7 @@ class ArisuIntelligence:
 
 
 
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=1, Exposure=100, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=100, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
