@@ -239,7 +239,7 @@ def AbsBallPos():
         ballRltAngle =  0
     BallAngleCache = ballRltAngle + SelfZ
     if BallAngleCache > 360:
-        ballAbsAngle = BallAngleCache - 360
+        ballAbsAngle = BallAngleCache%360
     else:
         ballAbsAngle = BallAngleCache
     AbsBallPositon = [
@@ -507,33 +507,33 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
     if A2O:
         DistanceCache = GetDistance()
         if 0 < iMovedAngle%90 <= 1 :
-            if DistanceCache[0] >= DistanceCache[1]:
-                Anglek = 1
-            else:
-                AngleK = -1
-        elif 1 < iMovedAngle%90 <= 2 :
             if DistanceCache[0] <= DistanceCache[1]:
                 Anglek = 1
             else:
                 AngleK = -1
+        elif 1 < iMovedAngle%90 <= 2 :
+            if DistanceCache[0] >= DistanceCache[3]:
+                Anglek = 1
+            else:
+                AngleK = -1
         elif 2 < iMovedAngle%90 <= 3 :
-            if DistanceCache[4] >= DistanceCache[3]:
+            if DistanceCache[3] >= DistanceCache[2]:
                 Anglek = 1
             else:
                 AngleK = -1
         elif 3 < iMovedAngle%90 <= 4 :
-            if DistanceCache[4] <= DistanceCache[2]:
+            if DistanceCache[2] >= DistanceCache[1]:
                 Anglek = 1
             else:
                 AngleK = -1
         for a in AbsChassisAngle():
             if a == iMovedAngle:
-                iMovedAngle = iMovedAngle + 5*Anglek
+                iMovedAngle = iMovedAngle + int((abs(iDeltaX)+abs(iDeltaY))*1.5)*-Anglek
     if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
         chassis.stop()
         return True
     elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
-        chassis.GoZspeed(iDeltaZ)
+        chassis.GoZSpeed(iDeltaZ)
     else:
         if Speed:
             chassis.GoA(lAimPos[2],90-iMovedAngle,Speed)
