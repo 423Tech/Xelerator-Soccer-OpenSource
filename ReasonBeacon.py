@@ -23,14 +23,18 @@ class MisakaNetwork:
         self.ReceiveDataThread = threading.Thread(target=self.ReceiveData)
         self.ReceiveDataThread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         self.ReceiveDataThread.start()
+        self.warned = False
 
 
     def Send(self,Data:str): #发送数据
         ClientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             ClientSocket.connect((self.RemoteIP,self.Port))
-        except ConnectionRefusedError:
-            print("CNNREFUSED")
+            self.warned = False
+        except ConnectionRefusedError as e:
+            if not self.warned:
+                self.warned = True
+                logger.warning(e)
             return False
         ClientSocket.sendall(Data.encode('utf-8'))
         ClientSocket.close()
