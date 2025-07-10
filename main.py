@@ -6,7 +6,6 @@ from OD import *
 from Defence_link import *
 #### HEADER ####
 logger.info("Starting Xelerator")
-
 while True:
     # Stop the chassis
     try:

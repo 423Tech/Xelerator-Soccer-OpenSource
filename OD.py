@@ -1,6 +1,6 @@
 
 from kits import *
-ArisuCam = ArisuIntelligence()
+# ArisuCam = ArisuIntelligence()
 
 #Math Mod
 ###################################################################################################
