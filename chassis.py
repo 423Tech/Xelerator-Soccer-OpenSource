@@ -8,7 +8,7 @@ class Car:
         self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
 
-        self.Kp = 1
+        self.Kp = 0.8
         
         self.cfg = QkJson()
         self.SaveData = self.cfg.read("Advanced","Database")
@@ -51,7 +51,7 @@ class Car:
         SpeedY = int(math.cos(rad) * Speed)
         self.GoV(SpeedX,SpeedY,FacingAngle)
 
-    def GoV(self,SpeedX,SpeedY,FacingAngle):
+    def GoV(self,SpeedX,SpeedY,FacingAngle,Kp=None):
         '''
         stand for a vector movement (SpeedX,SpeedY,SpeedZ)
         '''
@@ -60,7 +60,9 @@ class Car:
         Yaw = self.GetYaw()
         Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
-        SpeedZ = - Error * 0.8
+        if Kp is None:
+            Kp = self.Kp
+        SpeedZ = - Error * Kp
         self.Go(SpeedX, SpeedY, SpeedZ)
     
     def GoX(self,Angle,Speed):

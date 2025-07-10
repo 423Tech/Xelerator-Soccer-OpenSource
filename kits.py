@@ -317,7 +317,27 @@ def Lockballslip():
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
-    chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+    if iBX > 75 or iBY > 75:
+        Kp = 2
+        KpZ = 0.3
+    elif 25 < iBX <= 75 or 25 < iBY <= 75:
+        Kp = 3
+        KpZ = 0.5
+    else:
+        Kp = 4
+        KpZ = 0.9
+
+    SpeedX = iBX * Kp
+    SpeedY = iBY * Kp
+    # if SpeedX > 300:
+    #     SpeedX = 300
+    # if SpeedY > 300:
+    #     SpeedY = 300
+    # if SpeedX < -300:
+    #     SpeedX = -300
+    # if SpeedY < -300:
+    #     SpeedY = -300
+    chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def NormalShot():
     BallFlag = False
