@@ -6,13 +6,14 @@ def DefenceLink():
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
     bX, bY = AbsBallPos()
-    logger.debug("ABSx"+str(ABSx)+"bX"+str(bX)+" bY"+str(bY))
+    logger.debug("bX"+str(bX)+" bY"+str(bY))
     # GOAL_POS = [0, -100]
     if [bX,bY] == [1024,1024]:
         defend_x = 0
         defend_y = -80
     else:
         ABSx = bX / (100+bY) * 20
+        print(ABSx)
         if abs(ABSx) <= 35:
             defend_x = ABSx
             defend_y = -80

@@ -4,6 +4,9 @@ from kits import *
 from OD import *
 import signal
 from Defence_link import *
+from Defence_Follow_panning import*
+from Defence_Follow_ratio import*
+
 #### HEADER ####
 logger.info("Starting Xelerator")
 
@@ -13,8 +16,8 @@ while True:
         # peripheral.DribbleBall()
         # Lockballmove()
         # Offence()
-        # Defence()
-        DefenceLink()
+        FollowPRatio()
+        # DefenceLink()
         # OHMYBACK()
         # Slipsideshot([0,0],[0,90])
         # MacaoShot(30,90,100)
