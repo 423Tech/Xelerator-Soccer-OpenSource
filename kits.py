@@ -29,8 +29,8 @@ else:
     # breakpoint()
     raise ImportError("None Bit Model found.")
 
-my_id = 2 #Kei ID
-peer_id = 1 #Arisu ID
+my_id = 1 #Arisu ID
+peer_id = 2 #Kei ID
 role = "DP"    # OP攻 DP守
 ball_owner = 0 # 0无球权 1，2对应机器有球权
 Dribblingdistance = 9 # 控球距离
@@ -44,12 +44,14 @@ WarnedLidar = False
 SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
 peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
+
 #Math Mod
 #####################################################################################################
 def Role():
     Sendstatus()
     Peerstatus()
     Identityswitch()
+    print(Pbx, Pby, role, ball_owner, peer_role, peer_owner, P2BallDirect, P_Pos)
 def GetBallDistance():
     bx, by = GetBallPos()
     x, y, *_ = GetPos()
