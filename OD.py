@@ -20,20 +20,20 @@ def Defence(): #bX有部分最好是改为AX（敌方坐标）
     bX, bY = lBallPos[0], lBallPos[1]
     HOMEPOS = [0, -80, 0]
     if peer_role == "DP" and role == "DP":
-        HOMEPOS = [20, -80, 0]
+        HOMEPOS = [-20, -80, 0]
     else:
         pass
     GOAL_POS = [0, 90]
     BLOCK_DIST = 50
     print(role,peer_role)
-    if ball_owner == 0 or peer_role == None:
+    if ball_owner == 0 or peer_role == None:  # 我方未检测到球权
         Pos2Pos(HOMEPOS, False,200)
         print(1)
         return
-    if bY > 0 :
-        print(2)  
+    if bY > 0 :  
+        print(2)
         if ball_owner == my_id:
-            return Offence()  #变成攻方
+            return   #变成攻方
         elif ball_owner == peer_id:
             defend_x = - Peerstatus()[3][0]   # 横向适当跟随( 是跟随谁 不确定)
             defend_y = -40 + Peerstatus()[3][1] * 0.5  # 等比前移

@@ -2,6 +2,7 @@
 from ReasonData import QkJson, Positions
 from kits import *
 import signal
+from OD import *
 #### HEADER ####
 logger.info("Starting Xelerator")
 
@@ -16,7 +17,7 @@ while True:
         logger.debug("Current Position: %s" % [x,y])
         if [x,y] == [1024, 1024]:
             logger.info("Ball not found, stopping chassis.")
-            Pos2Pos([0, 0, 0], False, 400)
+            Pos2Pos([0, 0, 0], False, 200)
             peripheral.StopDribble()
         elif [x,y] == [1207, 1207]:
             peripheral.Dribble(True)
@@ -33,7 +34,7 @@ while True:
             Compass = chassis.GetYaw()
             Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
             Fangle = Angle + Compass
-            chassis.GoV(iBX*5,iBY*5,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+            chassis.GoV(iBX*4,iBY*4,Fangle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
             peripheral.Dribble(True)
         if BallFlag and GetPos()[1] > 70:
             peripheral.Dribble(True)
@@ -59,7 +60,7 @@ while True:
         elif BallFlag:
             peripheral.Dribble(True)
             logger.info("Ball is not in possession, moving chassis.")
-            chassis.GoA(0,0, 70)
+            chassis.GoA(0,0,70)
         # if BallFlag and AbsBallPos() == [1207, 1207] and GetPos()[1] < 80:
         #     peripheral.ShootBall()
         # Defence()
