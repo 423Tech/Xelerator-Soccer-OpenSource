@@ -32,14 +32,14 @@ class QkJson:
                     "AutoExpose" : 0,  # 0: Manual, 1: Auto
                 },
                 "Border" : {
-                    "0": [60,95],
-                    "1": [40,85],
+                    "0": [75,95],
+                    "1": [35,85],
                 },
                 "Position" : {
                     "DomainID": 99,  # Default Domain ID
                     "ErrorRange": 15,
-                    "Width": 180,
-                    "Height": 240,
+                    "Width": 200,
+                    "Height": 260,
                     "Home": [0,-70,0],
                 },
                 "BLE" : {

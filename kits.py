@@ -202,18 +202,18 @@ def GetPos(Fusion:bool | None = False) -> list[int,int]:
         WarnedLidar = False
         logger.success("Lidar Started")
     k = 10
-    if Distance[0]+Distance[2] < (cfg.read("Position","Height") - 50)*k:
+    if Distance[0]+Distance[2] < (cfg.read("Position","Height"))*k:
         if Distance[0] > Distance[2]:
             Y = cfg.read("Position","Height")*k/2 - Distance[0]
         else:
-            Y = Distance[2] - cfg.read("Position","Height")*k/2 -100
+            Y = Distance[2] - cfg.read("Position","Height")*k/2
     else:
         Y = ((cfg.read("Position","Height")*k/2 - Distance[0]) + (Distance[2] - cfg.read("Position","Height")*k/2))/2
     if Distance[1]+Distance[3] < (cfg.read("Position","Width") - 50)*k:
         if Distance[1] > Distance[3]:
-            X = -(cfg.read("Position","Width")*k/2 - Distance[1]) - 50
+            X = -(cfg.read("Position","Width")*k/2 - Distance[1])
         else:
-            X = -(Distance[3] - cfg.read("Position","Width")*k/2) + 50
+            X = -(Distance[3] - cfg.read("Position","Width")*k/2)
     else:
         X = -((cfg.read("Position","Width")*k/2 - Distance[1]) + (Distance[3] - cfg.read("Position","Width")*k/2))/2
     # PosXCache = X
@@ -237,11 +237,11 @@ def AbsBallPos():
         ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
     except ZeroDivisionError:
         ballRltAngle =  0
-    BallAngleCache = ballRltAngle + SelfZ
-    if BallAngleCache > 360:
-        ballAbsAngle = BallAngleCache%360
+    ballAbsAngle = (ballRltAngle + SelfZ)%360
+    if ballAbsAngle > 180:
+        k = -1
     else:
-        ballAbsAngle = BallAngleCache
+        k = 1
     AbsBallPositon = [
         ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
         ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
