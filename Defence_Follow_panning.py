@@ -12,7 +12,6 @@ def FollowPPanning(x):
     bX,bY= AbsBallPos()
     iX= lPos[0]
     if x == 1:
-
         PeerX = PeerPosition[0]
         ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
         if [bX,bY] == [1024,1024]:
