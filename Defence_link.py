@@ -11,6 +11,8 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
     bX, bY = AbsBallPos()
     logger.debug("bX"+str(bX)+" bY"+str(bY))
     if x == 1:
+        defend_x = 0
+        defend_y = 0
         ChassisX = AbsChassisPos()[0]
         ChassisY = AbsChassisPos()[1]
         if [bX,bY] == [1024,1024]: #没有扫描到球 那就锁定车辆位置
@@ -20,7 +22,6 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
                 ABSx = ChassisX  * 10
             else:
                 ABSx = ChassisX / (95+ChassisY) * 10
-
             print(ABSx)
             if abs(ABSx) <= 35:
                 defend_x = ABSx
@@ -55,10 +56,12 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
                 defend_y = -95 + (85+bY)/abs(bX) * 45
         Pos2Pos([defend_x, defend_y, Fangle], False,150)
     else:
-        if [bX,bY] == [1024,1024]: #没有扫描到球 那就锁定车辆位置
+        defend_x = 0
+        defend_y = 0
+        if [bX,bY] == [1024,1024]: 
             peripheral.StopDribble()
             Fangle = 0
-        else: #有球锁球
+        else: 
             peripheral.DribbleBall()
             if bY == -95:
                 ABSx = bX  * 10

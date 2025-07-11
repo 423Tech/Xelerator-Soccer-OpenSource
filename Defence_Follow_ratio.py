@@ -9,10 +9,10 @@ def FollowPRatio(x):
     Fangle = Angle + Compass
     defend_x = 0
     defend_y = 0
+    bX,bY= AbsBallPos()
+    lPos = GetPos()
+    iX= lPos[0]
     if x == 1:
-        lPos = GetPos()
-        bX,bY= AbsBallPos()
-        iX= lPos[0]
         PeerX, PeerY = PeerPosition[0], PeerPosition[1]
         ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
         if [bX,bY] == [1024,1024]:

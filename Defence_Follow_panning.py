@@ -8,10 +8,11 @@ def FollowPPanning(x):
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
     defend_x = 0
+    lPos = GetPos()
+    bX,bY= AbsBallPos()
+    iX= lPos[0]
     if x == 1:
-        lPos = GetPos()
-        bX,bY= AbsBallPos()
-        iX= lPos[0]
+
         PeerX = PeerPosition[0]
         ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
         if [bX,bY] == [1024,1024]:
@@ -32,13 +33,13 @@ def FollowPPanning(x):
         if [bX,bY] == [1024,1024]:
             peripheral.DribbleBall()
             if abs(iX) <= 60:
-                defend_x = ChassisX 
+                defend_x = bX
             else:
                 defend_x = 0    
         else:
             peripheral.DribbleBall()
             if abs(iX) <= 60:
-                defend_x = -PeerX
+                defend_x = -bX
             else:
                 defend_x = 0    
                 Pos2Pos([defend_x, -85, Fangle], False)
