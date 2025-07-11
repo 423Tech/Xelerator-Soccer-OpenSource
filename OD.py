@@ -11,14 +11,17 @@ from Offence_Back import *
 ###################################################################################################
 
 def OD(): 
-    iX = GetPos()[0]
     iY = GetPos()[1]
     bx,by = AbsBallPos()
-    ChassisX = AbsChassisPos()[0]
-    ChassisY = AbsChassisPos()[1]
+    result = AbsChassisPos()
+    if result:
+        ChassisX = result[0]
+    else:
+        ChassisX = None
+        ChassisY = None
     if [bx,by] == [1204,1204]:
-        if ChassisX > 0: #对方车辆位于对方半场
-            if PeerPosition[1]> iY and PeerPosition[1] == None:
+        if ChassisX > 0 or ChassisX == None: #对方车辆位于对方半场
+            if PeerPosition[1]> iY :
                 DefenceBack()
             else:
                 OffenceBack()
@@ -52,3 +55,20 @@ def Offence():
         OHMYBACK()
     else:
         NormalShoot()
+
+def OffDenfence():
+    bx,by = AbsBallPos()
+    if [bx,by] == [1204,1204]:
+        DefenceBack()
+    else:
+        if [bx,by] == [1207,1207]:
+            Offence()
+        else:
+            if by > -20:
+                LockBallSlip()
+            else:
+                if bx > -50:
+                    FollowPRatio(0)
+                else:
+                    DefenceLink(0)
+

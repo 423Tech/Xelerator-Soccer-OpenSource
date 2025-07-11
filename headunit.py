@@ -226,7 +226,7 @@ class ArisuIntelligence:
         self.P2CHB = []
         self.P2CVB = []
 
-        self.OrangeThreshold = (5, 15, 100, 255, 200, 255)
+        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
         self.BallPos = [0,0]
 
         self.InitCam(self.CamPorts)

@@ -1,5 +1,5 @@
 from kits import *
-def FollowPPanning():
+def FollowPPanning(x):
     # 无法执行？
     time.sleep(0.03)
     lBallPos = GetBallPos()
@@ -7,24 +7,38 @@ def FollowPPanning():
     Compass = compass()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     Fangle = Angle + Compass
-
     defend_x = 0
-    lPos = GetPos()
-    bX,bY= AbsBallPos()
-    iX= lPos[0]
-    PeerX = PeerPosition[0]
-    ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
-    if [bX,bY] == [1024,1024]:
+    if x == 1:
+        lPos = GetPos()
+        bX,bY= AbsBallPos()
+        iX= lPos[0]
+        PeerX = PeerPosition[0]
+        ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
+        if [bX,bY] == [1024,1024]:
+                peripheral.DribbleBall()
+                Fangle = AbsChassisAngle()
+                if abs(iX) <= 60:
+                    defend_x = ChassisX 
+                else:
+                    defend_x = 0    
+        else:
             peripheral.DribbleBall()
-            Fangle = AbsChassisAngle()
+            if abs(iX) <= 60:
+                defend_x = -PeerX
+            else:
+                defend_x = 0    
+                Pos2Pos([defend_x, -85, Fangle], False)
+    else:
+        if [bX,bY] == [1024,1024]:
+            peripheral.DribbleBall()
             if abs(iX) <= 60:
                 defend_x = ChassisX 
             else:
                 defend_x = 0    
-    else:
-        peripheral.DribbleBall()
-        if abs(iX) <= 60:
-            defend_x = -PeerX
         else:
-            defend_x = 0    
-            Pos2Pos([defend_x, -85, Fangle], False)
+            peripheral.DribbleBall()
+            if abs(iX) <= 60:
+                defend_x = -PeerX
+            else:
+                defend_x = 0    
+                Pos2Pos([defend_x, -85, Fangle], False)

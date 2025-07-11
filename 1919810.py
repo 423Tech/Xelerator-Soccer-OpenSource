@@ -18,8 +18,9 @@ while True:
         # Offence()
         # FollowPRatio()
         # FollowPPanning()
-        OD()
-        # DefenceLink()
+        # OD()
+        # OffDenfence()
+        DefenceLink(0)
         # OHMYBACK()
         # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
