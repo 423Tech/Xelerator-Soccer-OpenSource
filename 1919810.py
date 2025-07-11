@@ -16,12 +16,18 @@ while True:
         # peripheral.DribbleBall()
         # Lockballmove()
         # Offence()
+<<<<<<< HEAD
         FollowPRatio(0)
         # FollowPPanning()
         # OD()
         # OffDenfence()
         # FollowPPanning(0)
         # DefenceLink(0)
+=======
+        # FollowPRatio()?
+        OD()
+        # DefenceLink()
+>>>>>>> 8c40b55 (1234)
         # OHMYBACK()
         # logger.debug(Bits.get_motor_encoder())
     except KeyboardInterrupt:
