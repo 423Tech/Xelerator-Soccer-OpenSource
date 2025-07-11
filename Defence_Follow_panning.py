@@ -12,8 +12,7 @@ def FollowPPanning():
     lPos = GetPos()
     bX,bY= AbsBallPos()
     iX= lPos[0]
-    # PeerX = PeerPosition[0]
-    PeerX = bX
+    PeerX = PeerPosition[0]
     if [bX,bY] == [1024,1024]:
         defend_x = 0
         Fangle = 0
