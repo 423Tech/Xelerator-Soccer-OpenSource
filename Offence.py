@@ -13,6 +13,7 @@ def NormalShoot():
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
+        peripheral.Dribble(True)
         for _ in range(20):
             X,Y,_ = GetPos()
             DeltaY = cfg.read("Position","Height")/2 - Y
