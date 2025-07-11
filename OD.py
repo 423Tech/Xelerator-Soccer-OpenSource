@@ -18,7 +18,7 @@ def OD():
     ChassisY = AbsChassisPos()[1]
     if [bx,by] == [1204,1204]:
         if ChassisX > 0: #对方车辆位于对方半场
-            if PeerPosition[1]> iY:
+            if PeerPosition[1]> iY and PeerPosition[1] == None:
                 DefenceBack()
             else:
                 OffenceBack()
