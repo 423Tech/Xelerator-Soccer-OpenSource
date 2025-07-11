@@ -888,11 +888,15 @@ def OHMYBACK():
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
-    ALocal = [0,0]
+    ALocal = AbsChassisPos()
     ALocX = ALocal[0]
     ALocY = ALocal[1]
     Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)-270)) % 360
-    Pos2Pos([0,70,Angle],False)
+    if iLocX >0:
+        ShootX = 55
+    else:
+        ShootX = -55
+    Pos2Pos([ShootX,-85,Angle],False)
 
 def LockDoor():
     #正常
