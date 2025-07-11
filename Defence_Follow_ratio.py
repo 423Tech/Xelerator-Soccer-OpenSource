@@ -18,7 +18,9 @@ def FollowPRatio():
         defend_x = 0
         defend_y = -85
         Fangle = 0
+        peripheral.StopDribble()
     else:
+        peripheral.DribbleBall()
         if abs(iX) <= 60:
             defend_x = PeerX  
             defend_y = -40 + PeerY * 0.47  # 等比前移

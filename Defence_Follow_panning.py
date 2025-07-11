@@ -16,7 +16,9 @@ def FollowPPanning():
     if [bX,bY] == [1024,1024]:
         defend_x = 0
         Fangle = 0
+        peripheral.StopDribble()
     else:
+        peripheral.DribbleBall()
         if abs(iX) <= 60:
             defend_x = PeerX
         else:

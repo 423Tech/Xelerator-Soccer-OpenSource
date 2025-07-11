@@ -14,7 +14,9 @@ def DefenceLink():#"0":[75,95],"1":[35,85]
         defend_x = 0
         defend_y = -85
         Fangle = 0
+        peripheral.StopDribble()
     else:
+        peripheral.DribbleBall()
         if bY == -95:
             ABSx = bX  * 10
         else:
