@@ -1,5 +1,6 @@
 from kits import *
 def DefenceLink():#"0":[75,95],"1":[35,85]
+    #Comlpeted
     time.sleep(0.03)
     lBallPos = GetBallPos()
     iBX,iBY = lBallPos[0],lBallPos[1]
@@ -12,6 +13,7 @@ def DefenceLink():#"0":[75,95],"1":[35,85]
     if [bX,bY] == [1024,1024]:
         defend_x = 0
         defend_y = -85
+        Fangle = 0
     else:
         if bY == -95:
             ABSx = bX  * 10
@@ -25,9 +27,9 @@ def DefenceLink():#"0":[75,95],"1":[35,85]
             defend_x = ABSx
             defend_y = -85 - (abs(ABSx)-35)
         else:
-            if ABSx > 0:
+            if bX > 0:
                 defend_x = 42
             else:
                 defend_x = -42
             defend_y = -95 + (85+bY)/abs(bX) * 45
-    Pos2Pos([defend_x, defend_y, Fangle], False,80)
+    Pos2Pos([defend_x, defend_y, Fangle], False,150)
