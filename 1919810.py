@@ -13,7 +13,7 @@ logger.info("Starting Xelerator")
 while True:
     # Stop the chassis
     try:
-        Ballowner()
+        print(CEnemyPos())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

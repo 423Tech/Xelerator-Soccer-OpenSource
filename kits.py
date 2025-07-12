@@ -44,6 +44,8 @@ SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
 peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
 BallFlag = [0,0]
+PeerPosition = [1024,1024]
+
 #Math Mod
 #####################################################################################################
 def GetBallDistance():
@@ -76,6 +78,40 @@ def SendstatusThreadFunc(): # 发送身份和球权
             Beacon.Send(msg)
         except Exception as e:
             raise e
+
+
+def CEnemyPos():# 获取最近敌人位置
+    EPos = EnemyPos()
+    if len(EPos) < 1:
+        return []
+    else:
+        min_distance = 10000
+        for i in range(len(EPos)):
+            x1, y1 = EPos[i][:2]
+            distance = math.sqrt((x1) ** 2 + (y1) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                EPos = EPos[i][:2]
+                print(EPos)
+                return EPos
+    
+def EnemyPos():
+    P_Pos = PeerPosition
+    Px = P_Pos[0]
+    CPos = ArisuCam.GetChassisPos()
+    EPos = []
+    if len(CPos) >= 1:
+        for i in range(len(CPos)):
+            x = CPos[i][0]
+            rrX = abs(Px-x)
+            if rrX < 5 :
+                del CPos[i]
+            EPos = CPos
+        print (EPos)
+        return EPos
+    else:
+        print("NO Enemy")
+        return []
 
 def Sendstatus():
     global SendstatusThreadFuncStarted
