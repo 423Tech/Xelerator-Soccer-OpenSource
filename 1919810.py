@@ -10,11 +10,16 @@ from Defence_Follow_ratio import*
 #### HEADER ####
 logger.info("Starting Xelerator")
 
+Role()
+
 while True:
-    # Stop the chassis
+    if Bits.GetKey():
+        break
+    time.sleep(0.01)
+
+while True:
     try:
         DefenceLink(1)
-        # logger.info(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

@@ -57,8 +57,8 @@ def NormalShoot(x=1):
 while True:
     try:
         # Lockballslip()
-        NormalShoot()
-        # OHMYBACK()
+        # NormalShoot()
+        OHMYBACK()
         print(GetBallPos())
         time.sleep(.03)
     except KeyboardInterrupt:

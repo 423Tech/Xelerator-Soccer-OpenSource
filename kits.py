@@ -53,12 +53,7 @@ def GetBallDistance():
     x, y, *_ = GetPos()
     return (bx, by ,math.sqrt((bx - x) ** 2 + (by - y) ** 2))
 
-def Role():
-    if not PeerstatusThreadFuncStarted and not SendstatusThreadFuncStarted:
-        Sendstatus()
-        Peerstatus()
-    else:
-        pass
+
 
 def Ballowner():#############KEI
     global BallFlag
@@ -74,9 +69,17 @@ def SendstatusThreadFunc(): # 发送身份和球权
     while (1):
         SelfPosition = GetPos()
         try:
-            msg = ("BallSelf:%s;BallRemote:%s;PositionX:%s;PositionY:%s"%(BallFlag[0],BallFlag[1],SelfPosition[0],SelfPosition[1]))
+            # 确保所有值都是整数
+            ball_self = int(BallFlag[0]) if isinstance(BallFlag[0], (int, float, str)) else 0
+            ball_remote = int(BallFlag[1]) if isinstance(BallFlag[1], (int, float, str)) else 0
+            pos_x = int(SelfPosition[0])
+            pos_y = int(SelfPosition[1])
+            
+            msg = f"BallSelf:{ball_self};BallRemote:{ball_remote};PositionX:{pos_x};PositionY:{pos_y}"
             Beacon.Send(msg)
+            print(f"Sent: {msg}")  # 调试信息
         except Exception as e:
+            print(f"Send error: {e}")
             raise e
         time.sleep(0.02)
 
@@ -132,20 +135,21 @@ def PeerstatusThreadFunc():
             time.sleep(1)
         if MessageCache:
             try:
+                PeerPositionX, PeerPositionY = 1024, 1024  # 默认值
                 for part in MessageCache.split(";"):
                     if part.startswith("BallSelf:"):
-                        BallFlag[1] = part.split(":")[1]
+                        BallFlag[1] = int(part.split(":")[1])  # 转换为整数
                     if part.startswith("BallRemote:"):
-                        BallFlag[0] = part.split(":")[1]
+                        BallFlag[0] = int(part.split(":")[1])  # 转换为整数
                     if part.startswith("PositionX:"):
-                        PeerPositionX = int(part.split(":")[1])
+                        PeerPositionX = int(float(part.split(":")[1]))  # 处理浮点数
                     if part.startswith("PositionY:"):
-                        PeerPositionY = int(part.split(":")[1])
-                PeerPosition = [PeerPositionX,PeerPositionY]
+                        PeerPositionY = int(float(part.split(":")[1]))  # 处理浮点数
+                PeerPosition = [PeerPositionX, PeerPositionY]
             except Exception as e:
-                BallFlag = False
-                PeerPosition = [1024,1024]
-                print(f"Failed to send status: {e}")
+                BallFlag = [0, 0]
+                PeerPosition = [1024, 1024]
+                print(f"Failed to parse message '{MessageCache}': {e}")
         time.sleep(0.02)
 
 def Peerstatus():# 解析对方身份球权距离
@@ -156,6 +160,12 @@ def Peerstatus():# 解析对方身份球权距离
         PeerstatusThread.start()
         PeerstatusThreadFuncStarted = True
 
+def Role():
+    if not PeerstatusThreadFuncStarted and not SendstatusThreadFuncStarted:
+        Sendstatus()
+        Peerstatus()
+    else:
+        pass
 
 ###################################################################################################
 def roundThresholdJudger(iValue, iRound, iMiddleValue, iOffset):
@@ -956,17 +966,22 @@ def OHMYBACK():
         else:
             ShootX = -65
         if abs(ShootX - iLocX) < 5 :
-            if abs(iLocY - 85) < 5:
-                GoalPos = [0, 90]
-                _ ,GoalY = GoalPos
-                DeltaY = iLocY - GoalY
-                DeltaX = iLocX
-                Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 
-                deltaT = abs(Theta - compass())
+            if abs(iLocY - 75) < 5:
+                X,Y,_ = GetPos()
+                DeltaY = cfg.read("Position","Height")/2 - Y
+                DeltaX = X
+                Theta = math.atan2(DeltaY, DeltaX)
+                Theta = math.degrees(Theta)
+                Aim = Theta - 90
+                Compass = compass()
+                deltaT = abs(Aim - Compass)
                 if deltaT < 8:
                     peripheral.ShootBall()
                 else:
-                    chassis.Turn(Theta,50)
+                    chassis.stop()
+                    time.sleep(0.5)
+                    chassis.Turn(Aim,50)
+                    peripheral.ShootBall()
                 
             else:
                 Pos2Pos([ShootX,85,Angle],False,50)

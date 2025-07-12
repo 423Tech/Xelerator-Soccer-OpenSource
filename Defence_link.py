@@ -13,10 +13,10 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
     IY = GetPos()[1]
     if x == 1:
         defend_x = 0
-        defend_y = -85
+        defend_y = -80
         if [bX,bY] == [1024,1024]: #没有扫描到球 那就锁定车辆位置
             defend_x = 0
-            defend_y = -85
+            defend_y = -80
             Cx = CEnemyPos()[0]
             Cy = CEnemyPos()[1]
             defend_y = 0
@@ -30,46 +30,42 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
             peripheral.StopDribble()
             if ChassisY == -95 :
                 ABSx = ChassisX  * 10
-            elif ChassisY < -85:
+            elif ChassisY < -80:
                 ABSx = ChassisX 
             else:
-                ABSx = ChassisX / (95+ChassisY) * 10
+                ABSx = ChassisX / (95+ChassisY) * 15
             
-            if abs(ABSx) <= 33:
+            if abs(ABSx) <= 35:
                 defend_x = ABSx
-                defend_y = -85
-            elif abs(ABSx) > 33 and abs(ABSx) < 39:
+                defend_y = -80
+            elif abs(ABSx) > 35 and abs(ABSx) < 42:
                 defend_x = ABSx
-                defend_y = -85 - (abs(ABSx)-35)
+                defend_y = -80 - (abs(ABSx)-35)
             else:
                 if ChassisX > 0:
                     defend_x = 42
                 else:
                     defend_x = -42
-                defend_y = -95 + (85+ChassisY)/abs(ChassisX) * 45
+                defend_y = -95 + (80+ChassisY)/abs(ChassisX) * 45
         else: #有球锁球
             peripheral.DribbleBall()
             if bY == -95:
                 ABSx = bX  * 10
-            elif bY <= -85:
-                ABSx = bX
             else:
                 ABSx = bX / (95+bY) * 10
             print(ABSx)
-            if abs(ABSx) <= 33:
+            if abs(ABSx) <= 35:
                 defend_x = ABSx
-                defend_y = -85
-            elif abs(ABSx) > 33 and abs(ABSx) < 39:
+                defend_y = -80
+            elif abs(ABSx) > 35 and abs(ABSx) < 42:
                 defend_x = ABSx
-                defend_y = -85 - (abs(ABSx)-35)
+                defend_y = -80 - (abs(ABSx)-35)
             else:
                 if bX > 0:
                     defend_x = 42
-                    print(4444444444444444444444444444)
                 else:
                     defend_x = -42
-                    print(333333333333333333333333333333333333333333333333333333333333333333333333333333333333)
-                defend_y = -95 + (85+bY)/abs(bX) * 45
+                defend_y = -95 + (80+bY)/abs(bX) * 45
                 logger.debug("DX"+str(defend_x)+" DY"+str(defend_y))
     else:
         defend_x = 0
@@ -88,10 +84,10 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
             else:
                 ABSx = bX / (95+bY) * 10
             print(ABSx)
-            if abs(ABSx) <= 33:
+            if abs(ABSx) <= 35:
                 defend_x = ABSx
                 defend_y = -85
-            elif abs(ABSx) > 33 and abs(ABSx) < 39:
+            elif abs(ABSx) > 35 and abs(ABSx) < 42:
                 defend_x = ABSx
                 defend_y = -85 - (abs(ABSx)-35)
             else:
@@ -105,4 +101,4 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
         chassis.stop()
         chassis.GoZ(Fangle)
     else:
-        Pos2Pos([defend_x, defend_y, Fangle], False,150)
+        Pos2Pos([defend_x, defend_y, Fangle], False,200)
