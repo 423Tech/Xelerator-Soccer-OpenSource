@@ -12,14 +12,14 @@ logger.info("Starting Xelerator")
 
 Role()
 
-while True:
-    if Bits.GetKey():
-        break
-    time.sleep(0.01)
+# while True:
+#     if Bits.GetKey():
+#         break
+#     time.sleep(0.01)
 
 while True:
     try:
-        DefenceLink(1)
+        print(EnemyPos())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

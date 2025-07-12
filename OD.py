@@ -37,16 +37,31 @@ def OD():
 
     else:
         if PeerPosition == [1024,1024]:
-            if BallFlag == [1,0]:
-                print(4)
-                Offence()
+            if [bx,by] == [1024,1024]:
+                if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
+                    if PeerPosition[1]> iY :
+                        print(2)
+                        Pos2Pos([0,-40,0],False,100)
+                    else:
+                        Pos2Pos([0,-85,0],False,100)
+                else: #有可能是背身持球 没有扫描到球，锁车
+                    if ChassisY > -50:
+                        print(3.25)
+                        FollowPRatio(1)
+                    else:
+                        print(3.75)
+                        DefenceLink(1)
             else:
-                if bx > -50:
-                    print(8)
-                    FollowPRatio(1)
+                if BallFlag == [1,0]:
+                    print(4)
+                    Offence()
                 else:
-                    print(9)
-                    DefenceLink(1)
+                    if bx > -50:
+                        print(8)
+                        FollowPRatio(1)
+                    else:
+                        print(9)
+                        DefenceLink(1)
         else:
             if [bx,by] == [1024,1024]:
                 if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
@@ -95,3 +110,21 @@ def Offence():
         OHMYBACK()
     else:
         NormalShoot()
+
+def OffDenfence():
+    bx,by = AbsBallPos()
+    if [bx,by] == [1024,1024]:
+        DefenceBack()
+    else:
+        if [bx,by] == [1207,1207]:
+            Offence()
+        else:
+            if by > -20:
+                LockBallSlip()
+            else:
+                if bx > -50:
+                    FollowPRatio(0)
+                else:
+                    DefenceLink(0)
+
+

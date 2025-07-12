@@ -102,16 +102,27 @@ def CEnemyPos():# 获取最近敌人位置
 def EnemyPos():
     P_Pos = PeerPosition
     Px = P_Pos[0]
+    iX,iY = GetPos()[0],GetPos()[1]
     CPos = ArisuCam.GetChassisPos()
     EPos = []
     if len(CPos) >= 1:
         for i in range(len(CPos)):
-            x = CPos[i][0]
-            rrX = abs(Px-x)
-            if rrX < 5 :
+            Cx = CPos[i][0]
+            Cy = CPos[i][1]
+            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+            CDistance = math.sqrt(Cx**2 + Cy**2)
+            ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
+            ChassisX = CDistance * math.sin(math.radians(Fangle))+iX
+            rrX = abs(Px-ChassisX)
+            rry = abs(P_Pos[1]-ChassisY)
+            if rrX < 15 and rry < 15 :
                 del CPos[i]
             EPos = CPos
-        return EPos
+            if EPos == []:
+                print("NO Enemy")
+                return [1024,1024]
+            else:
+                return EPos
     else:
         print("NO Enemy")
         return [1024,1024]
