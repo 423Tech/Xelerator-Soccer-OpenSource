@@ -13,14 +13,12 @@ from Offence_Back import *
 def OD(): 
     iY = GetPos()[1]
     bx,by = AbsBallPos()
-    IY = GetPos()[1]
     Cx = CEnemyPos()[0]
     Cy = CEnemyPos()[1]
     Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
     CDistance = math.sqrt(Cx**2 + Cy**2)
-    ChassisY = CDistance * math.cos(math.radians(Fangle))+IY
-
-    if [bx,by] == [1204,1204]:
+    ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
+    if [bx,by] == [1024,1024]:
         if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
             if PeerPosition[1]> iY :
                 DefenceBack()
@@ -33,16 +31,16 @@ def OD():
                 DefenceLink()
     else:
         if by > 0:
-            if BallFlag == [0,1]:#ARISU要改【1,0】
+            if BallFlag == [1,0]:#ARISU要改【1,0】
                 Offence()
-            elif BallFlag == [1,0]:
+            elif BallFlag == [0,1]:
                 FollowPRatio()
             else:
                 LockBallSlip()
         else:
-            if BallFlag == [0,1]:
+            if BallFlag == [1,0]:
                 Offence()
-            elif BallFlag == [1,0]:
+            elif BallFlag == [0,1]:
                 if bx > -50:
                     FollowPRatio()
                 else:
