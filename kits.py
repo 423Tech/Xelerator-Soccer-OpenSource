@@ -60,8 +60,8 @@ def Role():
     else:
         pass
 
-def Ballowner():#############KEI
-    '''KEI和ARISU不同'''
+def Ballowner():
+    global BallFlag
     bx, by = GetBallPos()
     if [bx,by] == [1024,1024]:
         BallFlag[0] = 1
