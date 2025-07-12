@@ -43,7 +43,7 @@ WarnedLidar = False
 SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
 peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
-BallFlag = []
+BallFlag = [0,0]
 #Math Mod
 #####################################################################################################
 def GetBallDistance():
@@ -70,10 +70,9 @@ def Ballowner():#############KEI
 
 def SendstatusThreadFunc(): # 发送身份和球权
     while (1):
-        Ballowner()
         SelfPosition = GetPos()
         try:
-            msg = ("BallFlag:%s;PositionX:%s;PositionY:%s"%(BallFlag,SelfPosition[0],SelfPosition[1]))
+            msg = ("BallSelf:%s;BallRemote:%s;PositionX:%s;PositionY:%s"%(BallFlag[0],BallFlag[1],SelfPosition[0],SelfPosition[1]))
             Beacon.Send(msg)
         except Exception as e:
             raise e
@@ -98,8 +97,10 @@ def PeerstatusThreadFunc():
         if MessageCache:
             try:
                 for part in MessageCache.split(";"):
-                    if part.startswith("BallFlag:"):
-                        BallFlag = part.split(":")[1]
+                    if part.startswith("BallSelf:"):
+                        BallFlag[1] = part.split(":")[1]
+                    if part.startswith("BallRemote:"):
+                        BallFlag[0] = part.split(":")[1]
                     if part.startswith("PositionX:"):
                         PeerPositionX = int(part.split(":")[1])
                     if part.startswith("PositionY:"):
