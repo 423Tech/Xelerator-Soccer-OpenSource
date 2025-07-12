@@ -15,7 +15,7 @@ def OD():
     bx,by = AbsBallPos()
     result = AbsChassisPos()
     if result:
-        ChassisX = result[0]
+        ChassisX = result[0][0]
     else:
         ChassisX = None
         ChassisY = None

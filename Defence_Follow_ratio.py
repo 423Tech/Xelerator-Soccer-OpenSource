@@ -14,7 +14,7 @@ def FollowPRatio(x):
     iX= lPos[0]
     if x == 1:
         PeerX, PeerY = PeerPosition[0], PeerPosition[1]
-        ChassisX, ChassisY = AbsChassisPos()[0], AbsChassisPos()[1]
+        ChassisX, ChassisY = AbsChassisPos()[0][0], AbsChassisPos()[0][1]
         if [bX,bY] == [1024,1024]:
                 peripheral.DribbleBall()
                 if abs(iX) <= 60:
