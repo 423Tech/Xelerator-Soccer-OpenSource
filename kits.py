@@ -278,7 +278,7 @@ def AbsBallPos():
     ballX,ballY = ArisuCam.GetBallPos()
     if [ballX,ballY] == [0,0]:
         return [1024,1024] #找不到球 特征值为1024，1024
-    if ballX == 0 and ballY == 10:
+    if ballX == 0 and ballY <= 10:
         return [1207,1207] #持球状态下 特征值为12071207
     SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
@@ -899,11 +899,17 @@ def OHMYBACK():
         iLocX,iLocY,_ = GetPos()
         Cx = CEnemyPos()[0]
         Cy = CEnemyPos()[1]
-        Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
-        CDistance = math.sqrt(Cx**2 + Cy**2)
-        ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
-        ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
-        Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
+        if CEnemyPos() == [1204,1204]:
+            if iLocX > 0:
+                Angle = 90
+            else:
+                Angle = 270
+        else:
+            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+            CDistance = math.sqrt(Cx**2 + Cy**2)
+            ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
+            ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
+            Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
         if iLocX > 0:
             ShootX = 55
         else:
@@ -924,7 +930,7 @@ def OHMYBACK():
             else:
                 Pos2Pos([ShootX,85,Angle],False,90)
         else:
-            Pos2Pos([ShootX,85,Angle],False,90)
+            Pos2Pos([ShootX,85,Angle],False,50)
     else:
         NormalShoot(0)
         
