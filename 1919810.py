@@ -13,7 +13,8 @@ logger.info("Starting Xelerator")
 while True:
     # Stop the chassis
     try:
-        DefenceLink(1)
+        OHMYBACK()
+        # logger.info(Bits.get_motor_encoder())
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()

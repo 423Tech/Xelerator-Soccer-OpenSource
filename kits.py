@@ -403,22 +403,25 @@ def LockBallSlip():
     #     SpeedY = -300
     chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-def NormalShoot():
+def NormalShoot(x=1):
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
         # Pos2Pos([0, -85, 0], False)
-        chassis.stop()
+        # chassis.stop()
+        Pos2Pos([0, -85, 0])
         peripheral.Dribble(False)
-    elif BX == 0 and BY <= 10:
+    elif BX == 0 and 5 < (BY) <= 10:
         time.sleep(0.03)
         logger.info("Ball is in front")
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
+        if x == 0:
+            return True
         for _ in range(20):
             BX,BY = GetBallPos()
             if not BX == 0 and BY <= 10:
@@ -440,13 +443,10 @@ def NormalShoot():
                 chassis.GoA(Aim,0,50,0.8)
             
             time.sleep(0.03)
-        
-        peripheral.ShootBall()
+
     else:
         peripheral.Dribble(True)
         LockBallSlip()
-
-
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -912,63 +912,44 @@ def MacaoShot(x,y,z):
                     break
             return
 
-                    
-def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
-    '''
-    #### Yaw : 指南针 
-    ##### <code>Yaw: int | [0,360]</code>
-    #### LocalPos : 本地坐标 
-    ##### <code>LocalPos: list | [[-80,80],[-100,100],[0,360]]</code>
-    ### EnemyPos : 敌人坐标
-    ### GoalPos : 球门坐标
-    '''
-    # peripheral.Dribble(True)
-    LocalPos = GetPos()
-    LocalX,LocalY,_ = LocalPos
-    EnemyX,EnemyY = EnemyPos
-    _ , GoalY = GoalPos
-    GoalY = 80
-    AimX  = 40
-    AimY  = 80
-    if LocalX > 0:
-        k = 45
-    else:
-        AimX = -AimX
-        k = -45
-    Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY)-270)) % 360
-    Pos2Pos([AimX,AimY,Angle],False,200)
-    if abs(AimX-LocalX)+abs(AimX-LocalX) < 5:
-        DeltaY = LocalY - GoalY
-        DeltaX = LocalX
-        Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 +k
-        Compass = Theta
-        for _ in range(20):
-            # if not AbsBallPos() == [1207, 1207]:
-            #     break
-            chassis.GoZ(Compass)
-            time.sleep(0.03)
-        peripheral.ShootBall()
-        logger.success("Ball is in possession, start shotting.")
 
 def OHMYBACK():
     #正常
-    peripheral.Dribble(True)
-    lLocal = GetPos()
-    iLocX = lLocal[0]
-    iLocY = lLocal[1]
-    Cx = CEnemyPos()[0]
-    Cy = CEnemyPos()[1]
-    defend_y = 0
-    Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
-    CDistance = math.sqrt(Cx**2 + Cy**2)
-    ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
-    ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
-    Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
-    if iLocX >0:
-        ShootX = 55
+    if AbsBallPos() == [1207, 1207]:
+        peripheral.Dribble(True)
+        iLocX,iLocY,_ = GetPos()
+        Cx = CEnemyPos()[0]
+        Cy = CEnemyPos()[1]
+        Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+        CDistance = math.sqrt(Cx**2 + Cy**2)
+        ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
+        ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
+        Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
+        if iLocX >0:
+            ShootX = 55
+        else:
+            ShootX = -55
+        if abs(ShootX - iLocX) < 5 :
+            if abs(iLocY - 85) < 5:
+                GoalPos = [0, 90]
+                _ ,GoalY = GoalPos
+                DeltaY = iLocY - GoalY
+                DeltaX = iLocX
+                Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 
+                deltaT = abs(Theta - compass())
+                if deltaT < 8:
+                    peripheral.ShootBall()
+                else:
+                    chassis.GoZ(Theta)
+                
+            else:
+                Pos2Pos([ShootX,85,Angle],False,100)
+        else:
+            Pos2Pos([ShootX,85,Angle],False,100)
     else:
-        ShootX = -55
-    Pos2Pos([ShootX,85,Angle],False,100)
+        NormalShoot(0)
+        
+
 
 def LockDoor():
     #正常
