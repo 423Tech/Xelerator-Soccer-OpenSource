@@ -278,7 +278,7 @@ def AbsBallPos():
     ballX,ballY = ArisuCam.GetBallPos()
     if [ballX,ballY] == [0,0]:
         return [1024,1024] #找不到球 特征值为1024，1024
-    if abs(ballY-9) < 2 and abs(ballX) < 3:
+    if ballX == 0 and ballY == 10:
         return [1207,1207] #持球状态下 特征值为12071207
     SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
