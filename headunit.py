@@ -500,6 +500,9 @@ class ArisuIntelligence:
                         Width = XMax - XMin
                         Height = YMax - YMin
 
+                        if Ball[0] > 150 or Ball[1] > 150:
+                            continue
+
                         Confidence = Ball[4]
                         BallTuple = (BX, BY, Width, Height, Confidence)
                         

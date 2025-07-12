@@ -21,9 +21,9 @@ def OD():
     if BallFlag == [0,0]:
         if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
             if PeerPosition[1]> iY :
-                DefenceBack()
+                Pos2Pos(0,-40,0,False,100)
             else:
-                OffenceBack()
+                Pos2Pos(0,-85,0,False,100)
         else: #有可能是背身持球 没有扫描到球，锁车
             if ChassisY > -50:
                 FollowPRatio()

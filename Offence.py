@@ -55,7 +55,7 @@ def NormalShoot():
 while True:
     try:
         # Lockballslip()
-        NormalShoot(1)
+        NormalShoot()
         # OHMYBACK()
         print(GetBallPos())
         time.sleep(.03)

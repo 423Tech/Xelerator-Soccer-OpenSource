@@ -61,7 +61,7 @@ def Role():
         pass
 
 def Ballowner():#############KEI
-    '''KEI和ARISU不同'''
+    global BallFlag
     bx, by = GetBallPos()
     if [bx,by] == [1024,1024]:
         BallFlag[0] = 1
@@ -388,7 +388,7 @@ def LockBallSlip():
         KpZ = 0.5
     else:
         Kp = 4
-        KpZ = 0.8
+        KpZ = 0.9
 
     SpeedX = iBX * Kp
     SpeedY = iBY * Kp
@@ -409,16 +409,23 @@ def NormalShoot():
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
         # Pos2Pos([0, -85, 0], False)
-        chassis.stop()
+        # chassis.stop()
+        Pos2Pos([0, -85, 0])
         peripheral.Dribble(False)
-    elif BX == 0 and BY <= 10:
+    elif BX == 0 and 5 < (BY) <= 10:
+        # for _ in range(3):
+        #     LockBallSlip()
+        #     BX, BY = GetBallPos()
+        #     if not BX == 0 and BY <= 10:
+        #         break
+
         time.sleep(0.03)
         logger.info("Ball is in front")
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
-        for _ in range(20):
+        for _ in range(10):
             BX,BY = GetBallPos()
             if not BX == 0 and BY <= 10:
                 break
@@ -802,31 +809,6 @@ def Offence_O():
         
         chassis.GoA(0,iAimAngle,150)
 
-def Offence():
-    """
-    OP进攻逻辑
-    1. 默认在前半场，实时追球，首要目标是抢球。
-    2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
-    3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
-    4. 绝不进入己方禁区防守区域。
-    """
-    BallX, BallY = AbsBallPos()
-    LocalX, LocalY,Yaw = GetPos()
-    # 中场
-    if [BallX,BallY] == [1024,1024]:   
-        peripheral.StopDribble()
-        Pos2Pos([0, -50, 0], False)
-    if ball_owner == SelfIP:
-        peripheral.Dribble(True)
-        Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
-    else: #无球权
-        if BallY < 0:
-            Pos2Pos([LocalX, 0, 0], False)
-        else:
-            LockBallSlip()
-    print(Yaw,BallX, BallY,LocalX, LocalY,ball_owner)
-
-
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
         [origin[0]+((r**2)/((1+math.tan(angle)**2)))**0.5,
@@ -951,23 +933,47 @@ def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
 
 def OHMYBACK():
     #正常
-    peripheral.Dribble(True)
-    lLocal = GetPos()
-    iLocX = lLocal[0]
-    iLocY = lLocal[1]
-    Cx = CEnemyPos()[0]
-    Cy = CEnemyPos()[1]
-    defend_y = 0
-    Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
-    CDistance = math.sqrt(Cx**2 + Cy**2)
-    ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
-    ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
-    Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
-    if iLocX >0:
-        ShootX = 55
+    if AbsBallPos() == [1207, 1207]:
+        peripheral.Dribble(True)
+        iLocX,iLocY,_ = GetPos()
+        Cx = CEnemyPos()[0]
+        Cy = CEnemyPos()[1]
+        if CEnemyPos() == [1204,1204]:
+            if iLocX > 0:
+                Angle = 90
+            else:
+                Angle = 270
+        else:
+            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+            CDistance = math.sqrt(Cx**2 + Cy**2)
+            ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
+            ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
+            Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
+        if iLocX > 0:
+            ShootX = 55
+        else:
+            ShootX = -55
+        if abs(ShootX - iLocX) < 5 :
+            if abs(iLocY - 85) < 5:
+                GoalPos = [0, 90]
+                _ ,GoalY = GoalPos
+                DeltaY = iLocY - GoalY
+                DeltaX = iLocX
+                Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 
+                deltaT = abs(Theta - compass())
+                if deltaT < 8:
+                    peripheral.ShootBall()
+                else:
+                    chassis.GoZ(Theta)
+                
+            else:
+                Pos2Pos([ShootX,85,Angle],False,90)
+        else:
+            Pos2Pos([ShootX,85,Angle],False,50)
     else:
-        ShootX = -55
-    Pos2Pos([ShootX,85,Angle],False,100)
+        NormalShoot(0)
+        
+
 
 def LockDoor():
     #正常
