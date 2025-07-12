@@ -62,7 +62,7 @@ def OD():
 def Offence():
     iX = GetPos()[0]
     iY = GetPos()[1]
-    if abs(iX) > 35 and abs(iY) > -35:
+    if abs(iX) > 35:
         OHMYBACK()
     else:
         NormalShoot()
