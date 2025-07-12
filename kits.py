@@ -389,7 +389,7 @@ def LockBallSlip():
         KpZ = 0.5
     else:
         Kp = 4
-        KpZ = 0.8
+        KpZ = 0.9
 
     SpeedX = iBX * Kp
     SpeedY = iBY * Kp
