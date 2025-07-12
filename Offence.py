@@ -1,6 +1,6 @@
 from kits import *
 
-def NormalShoot(x):
+def NormalShoot():
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
@@ -11,15 +11,19 @@ def NormalShoot(x):
         Pos2Pos([0, -85, 0])
         peripheral.Dribble(False)
     elif BX == 0 and 5 < (BY) <= 10:
+        # for _ in range(3):
+        #     LockBallSlip()
+        #     BX, BY = GetBallPos()
+        #     if not BX == 0 and BY <= 10:
+        #         break
+
         time.sleep(0.03)
         logger.info("Ball is in front")
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
-        if x == 0:
-            return True
-        for _ in range(20):
+        for _ in range(10):
             BX,BY = GetBallPos()
             if not BX == 0 and BY <= 10:
                 break

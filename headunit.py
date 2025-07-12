@@ -93,7 +93,7 @@ class YDLidarParser(Node):
         NumRanges = len(Ranges)
         for i in range(NumRanges):
             Angle = AngleMin + i * AngleIncrement
-            lRanges.append((math.degrees(Angle)+180, Ranges[i]))
+            lRanges.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
 
 #        print(lRanges)
 
@@ -476,10 +476,10 @@ class ArisuIntelligence:
                     for Ball in List:
                         if Ball[4] < 0.4:
                             continue
-                        YMin = int(Ball[0] * 640) - 80 + 20
-                        XMin = int(Ball[1] * 640) + 20
-                        YMax = int(Ball[2] * 640) - 80 - 20
-                        XMax = int(Ball[3] * 640) - 20
+                        YMin = int(Ball[0] * 640) - 80 + 15
+                        XMin = int(Ball[1] * 640) + 15
+                        YMax = int(Ball[2] * 640) - 80 - 15
+                        XMax = int(Ball[3] * 640) - 15
                         BottomY = YMax
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)

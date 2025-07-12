@@ -18,7 +18,7 @@ def OD():
     Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
     CDistance = math.sqrt(Cx**2 + Cy**2)
     ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
-    if [bx,by] == [1024,1024]:
+    if BallFlag == [0,0]:
         if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
             if PeerPosition[1]> iY :
                 DefenceBack()

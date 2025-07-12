@@ -60,8 +60,8 @@ def Role():
     else:
         pass
 
-def Ballowner():
-    global BallFlag
+def Ballowner():#############KEI
+    '''KEI和ARISU不同'''
     bx, by = GetBallPos()
     if [bx,by] == [1024,1024]:
         BallFlag[0] = 1
@@ -79,7 +79,6 @@ def SendstatusThreadFunc(): # 发送身份和球权
         except Exception as e:
             raise e
         time.sleep(0.02)
-
 
 
 def CEnemyPos():# 获取最近敌人位置
@@ -278,7 +277,7 @@ def AbsBallPos():
     ballX,ballY = ArisuCam.GetBallPos()
     if [ballX,ballY] == [0,0]:
         return [1024,1024] #找不到球 特征值为1024，1024
-    if ballX == 0 and ballY <= 10:
+    if abs(ballY-9) < 2 and abs(ballX) < 3:
         return [1207,1207] #持球状态下 特征值为12071207
     SelfX,SelfY,SelfZ = GetPos()
     ballDistance = math.sqrt(ballX**2 + ballY**2)
@@ -389,7 +388,7 @@ def LockBallSlip():
         KpZ = 0.5
     else:
         Kp = 4
-        KpZ = 0.9
+        KpZ = 0.8
 
     SpeedX = iBX * Kp
     SpeedY = iBY * Kp
@@ -403,25 +402,22 @@ def LockBallSlip():
     #     SpeedY = -300
     chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-def NormalShoot(x):
+def NormalShoot():
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
         # Pos2Pos([0, -85, 0], False)
-        # chassis.stop()
-        Pos2Pos([0, -85, 0])
+        chassis.stop()
         peripheral.Dribble(False)
-    elif BX == 0 and 5 < (BY) <= 10:
+    elif BX == 0 and BY <= 10:
         time.sleep(0.03)
         logger.info("Ball is in front")
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
-        if x == 0:
-            return True
         for _ in range(20):
             BX,BY = GetBallPos()
             if not BX == 0 and BY <= 10:
@@ -448,6 +444,8 @@ def NormalShoot(x):
     else:
         peripheral.Dribble(True)
         LockBallSlip()
+
+
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -804,7 +802,29 @@ def Offence_O():
         
         chassis.GoA(0,iAimAngle,150)
 
-
+def Offence():
+    """
+    OP进攻逻辑
+    1. 默认在前半场，实时追球，首要目标是抢球。
+    2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
+    3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
+    4. 绝不进入己方禁区防守区域。
+    """
+    BallX, BallY = AbsBallPos()
+    LocalX, LocalY,Yaw = GetPos()
+    # 中场
+    if [BallX,BallY] == [1024,1024]:   
+        peripheral.StopDribble()
+        Pos2Pos([0, -50, 0], False)
+    if ball_owner == SelfIP:
+        peripheral.Dribble(True)
+        Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
+    else: #无球权
+        if BallY < 0:
+            Pos2Pos([LocalX, 0, 0], False)
+        else:
+            LockBallSlip()
+    print(Yaw,BallX, BallY,LocalX, LocalY,ball_owner)
 
 
 def Circle(origin:list[int,int],angle:int,r:int):
@@ -891,50 +911,63 @@ def MacaoShot(x,y,z):
                     break
             return
 
+                    
+def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
+    '''
+    #### Yaw : 指南针 
+    ##### <code>Yaw: int | [0,360]</code>
+    #### LocalPos : 本地坐标 
+    ##### <code>LocalPos: list | [[-80,80],[-100,100],[0,360]]</code>
+    ### EnemyPos : 敌人坐标
+    ### GoalPos : 球门坐标
+    '''
+    # peripheral.Dribble(True)
+    LocalPos = GetPos()
+    LocalX,LocalY,_ = LocalPos
+    EnemyX,EnemyY = EnemyPos
+    _ , GoalY = GoalPos
+    GoalY = 80
+    AimX  = 40
+    AimY  = 80
+    if LocalX > 0:
+        k = 45
+    else:
+        AimX = -AimX
+        k = -45
+    Angle = (math.degrees(math.atan2(LocalX - EnemyX, LocalY - EnemyY)-270)) % 360
+    Pos2Pos([AimX,AimY,Angle],False,200)
+    if abs(AimX-LocalX)+abs(AimX-LocalX) < 5:
+        DeltaY = LocalY - GoalY
+        DeltaX = LocalX
+        Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 +k
+        Compass = Theta
+        for _ in range(20):
+            # if not AbsBallPos() == [1207, 1207]:
+            #     break
+            chassis.GoZ(Compass)
+            time.sleep(0.03)
+        peripheral.ShootBall()
+        logger.success("Ball is in possession, start shotting.")
 
 def OHMYBACK():
     #正常
-    if AbsBallPos() == [1207, 1207]:
-        peripheral.Dribble(True)
-        iLocX,iLocY,_ = GetPos()
-        Cx = CEnemyPos()[0]
-        Cy = CEnemyPos()[1]
-        if CEnemyPos() == [1204,1204]:
-            if iLocX > 0:
-                Angle = 90
-            else:
-                Angle = 270
-        else:
-            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
-            CDistance = math.sqrt(Cx**2 + Cy**2)
-            ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
-            ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
-            Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
-        if iLocX > 0:
-            ShootX = 55
-        else:
-            ShootX = -55
-        if abs(ShootX - iLocX) < 5 :
-            if abs(iLocY - 85) < 5:
-                GoalPos = [0, 90]
-                _ ,GoalY = GoalPos
-                DeltaY = iLocY - GoalY
-                DeltaX = iLocX
-                Theta =((math.degrees(math.atan2(DeltaX, DeltaY)-270)) % 360) + 180 
-                deltaT = abs(Theta - compass())
-                if deltaT < 8:
-                    peripheral.ShootBall()
-                else:
-                    chassis.GoZ(Theta)
-                
-            else:
-                Pos2Pos([ShootX,85,Angle],False,90)
-        else:
-            Pos2Pos([ShootX,85,Angle],False,50)
+    peripheral.Dribble(True)
+    lLocal = GetPos()
+    iLocX = lLocal[0]
+    iLocY = lLocal[1]
+    Cx = CEnemyPos()[0]
+    Cy = CEnemyPos()[1]
+    defend_y = 0
+    Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+    CDistance = math.sqrt(Cx**2 + Cy**2)
+    ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
+    ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
+    Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
+    if iLocX >0:
+        ShootX = 55
     else:
-        NormalShoot(0)
-        
-
+        ShootX = -55
+    Pos2Pos([ShootX,85,Angle],False,100)
 
 def LockDoor():
     #正常
