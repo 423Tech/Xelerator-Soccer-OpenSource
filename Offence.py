@@ -1,6 +1,6 @@
 from kits import *
 
-def NormalShoot():
+def NormalShoot(x):
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
@@ -17,6 +17,8 @@ def NormalShoot():
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
+        if x == 0:
+            return True
         for _ in range(20):
             BX,BY = GetBallPos()
             if not BX == 0 and BY <= 10:

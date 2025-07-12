@@ -403,7 +403,7 @@ def LockBallSlip():
     #     SpeedY = -300
     chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-def NormalShoot(x=1):
+def NormalShoot(x):
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
@@ -443,7 +443,8 @@ def NormalShoot(x=1):
                 chassis.GoA(Aim,0,50,0.8)
             
             time.sleep(0.03)
-
+        
+        peripheral.ShootBall()
     else:
         peripheral.Dribble(True)
         LockBallSlip()
