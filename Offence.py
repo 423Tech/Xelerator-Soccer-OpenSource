@@ -10,7 +10,7 @@ def NormalShoot():
         # chassis.stop()
         Pos2Pos([0, -85, 0])
         peripheral.Dribble(False)
-    elif BX == 0 and 5 < (BY) <= 10:
+    elif BX == 0 and 5 < (BY) <= 9:
         # for _ in range(3):
         #     LockBallSlip()
         #     BX, BY = GetBallPos()
@@ -25,7 +25,7 @@ def NormalShoot():
         peripheral.Dribble(True)
         for _ in range(10):
             BX,BY = GetBallPos()
-            if not BX == 0 and BY <= 10:
+            if not BX == 0 and BY <= 9:
                 break
             X,Y,_ = GetPos()
             DeltaY = cfg.read("Position","Height")/2 - Y
