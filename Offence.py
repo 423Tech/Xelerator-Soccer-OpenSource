@@ -3,33 +3,39 @@ from kits import *
 def NormalShoot():
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
+    logger.debug("Ball Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
         # Pos2Pos([0, -85, 0], False)
-        chassis.stop()
+        # chassis.stop()
+        Pos2Pos([0, -85, 0])
         peripheral.Dribble(False)
-    elif -5 < BX < 5 and 0 < BY < 10:
+    elif BX == 0 and 5 < (BY) <= 10:
+        time.sleep(0.03)
         logger.info("Ball is in front")
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
         peripheral.Dribble(True)
         for _ in range(20):
+            BX,BY = GetBallPos()
+            if not BX == 0 and BY <= 10:
+                break
             X,Y,_ = GetPos()
             DeltaY = cfg.read("Position","Height")/2 - Y
             DeltaX = X
             Theta = math.atan2(DeltaY, DeltaX)
             Theta = math.degrees(Theta)
-            Aim = 90 - Theta
+            Aim = Theta - 90
             Compass = compass()
             Delta = abs(Aim - Compass)
         # while True:
         #     chassis.GoZ(Compass)
             if Delta > 60:
-                chassis.Turn(Aim,25)
+                chassis.Turn(Aim,50)
                 break
             else:
-                chassis.GoA(Aim,0,100,0.8)
+                chassis.GoA(Aim,0,50,0.8)
             
             time.sleep(0.03)
         
@@ -44,9 +50,11 @@ while True:
     try:
         # Lockballslip()
         NormalShoot()
+        # OHMYBACK()
         print(GetBallPos())
         time.sleep(.03)
     except KeyboardInterrupt:
         print("Exiting...")
         chassis.stop()
+        peripheral.Dribble(False)
         break
