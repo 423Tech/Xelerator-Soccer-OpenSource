@@ -35,12 +35,12 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
             else:
                 ABSx = ChassisX / (95+ChassisY) * 10
             
-            if abs(ABSx) <= 35:
+            if abs(ABSx) <= 33:
                 defend_x = ABSx
                 defend_y = -85
-            elif abs(ABSx) > 35 and abs(ABSx) < 42:
+            elif abs(ABSx) > 33 and abs(ABSx) < 40:
                 defend_x = ABSx
-                defend_y = -85 - (abs(ABSx)-35)
+                defend_y = -95 - (abs(ABSx)-35)
             else:
                 if ChassisX > 0:
                     defend_x = 42
@@ -54,17 +54,19 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
             else:
                 ABSx = bX / (95+bY) * 10
             print(ABSx)
-            if abs(ABSx) <= 35:
+            if abs(ABSx) <= 33:
                 defend_x = ABSx
                 defend_y = -85
-            elif abs(ABSx) > 35 and abs(ABSx) < 42:
+            elif abs(ABSx) > 33 and abs(ABSx) < 40:
                 defend_x = ABSx
-                defend_y = -85 - (abs(ABSx)-35)
+                defend_y = -95 - (abs(ABSx)-35)
             else:
                 if bX > 0:
                     defend_x = 42
+                    print(4444444444444444444444444444)
                 else:
                     defend_x = -42
+                    print(333333333333333333333333333333333333333333333333333333333333333333333333333333333333)
                 defend_y = -95 + (85+bY)/abs(bX) * 45
                 logger.debug("DX"+str(defend_x)+" DY"+str(defend_y))
     else:
@@ -84,10 +86,10 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
             else:
                 ABSx = bX / (95+bY) * 10
             print(ABSx)
-            if abs(ABSx) <= 35:
+            if abs(ABSx) <= 33:
                 defend_x = ABSx
                 defend_y = -85
-            elif abs(ABSx) > 35 and abs(ABSx) < 42:
+            elif abs(ABSx) > 33 and abs(ABSx) < 40:
                 defend_x = ABSx
                 defend_y = -85 - (abs(ABSx)-35)
             else:
@@ -95,6 +97,7 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
                     defend_x = 42
                 else:
                     defend_x = -42
+                    print(333333333333333333333333333333333333333333333333333333333333333333333333333333333333)
                 defend_y = -95 + (85+bY)/abs(bX) * 45
 
     if abs(defend_x - IX) <10 and abs(defend_y - IY)<10:

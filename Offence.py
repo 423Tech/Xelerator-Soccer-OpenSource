@@ -1,6 +1,6 @@
 from kits import *
 
-def NormalShoot():
+def NormalShoot(x=1):
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
@@ -19,6 +19,8 @@ def NormalShoot():
 
         time.sleep(0.03)
         logger.info("Ball is in front")
+        if x == 0:
+            return True
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
