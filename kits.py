@@ -922,9 +922,9 @@ def OHMYBACK():
                     chassis.GoZ(Theta)
                 
             else:
-                Pos2Pos([ShootX,85,Angle],False,100)
+                Pos2Pos([ShootX,85,Angle],False,90)
         else:
-            Pos2Pos([ShootX,85,Angle],False,100)
+            Pos2Pos([ShootX,85,Angle],False,90)
     else:
         NormalShoot(0)
         
