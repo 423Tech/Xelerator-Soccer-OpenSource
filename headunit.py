@@ -233,7 +233,7 @@ class ArisuIntelligence:
 
         self.YOLOQueue = queue.Queue(maxsize=2)
 
-        self.ChassisList = []
+        self.MergedChassisList = []
         self.ChassisQueue = queue.Queue(maxsize=1)
         self.BallQueue = queue.Queue(maxsize=1)
 
@@ -380,7 +380,8 @@ class ArisuIntelligence:
     def ChassisDetection(self):
         while True:
             OutputBuffer = self.ChassisQueue.get()
-            self.ChassisList = []
+            self.MergedChassisList = []
+            ChassisList = []
             # Process ChassisList
             for i in range(4):
                 List = OutputBuffer[i][3]
@@ -415,11 +416,31 @@ class ArisuIntelligence:
                         Confidence = Chassis[4]
                         ChassisTuple = (CX, CY, Width, Height, Confidence)
                         
-                        self.ChassisList.append(ChassisTuple)
-            # print(self.ChassisList)
+                        # self.MergedChassisList.append(ChassisTuple)
+                        ChassisList.append(ChassisTuple)
+            if ChassisList:
+                for i in range(len(ChassisList)-1):
+                    ChassisX = ChassisList[i][0]
+                    ChassisY = ChassisList[i][1]
+                    NextChassisX = ChassisList[i+1][0]
+                    NextChassisY = ChassisList[i+1][1]
+                    if abs(ChassisX - NextChassisX) < 20 and abs(ChassisY - NextChassisY) < 20:
+                        CX = (ChassisX + NextChassisX) / 2
+                        CY = (ChassisY + NextChassisY) / 2
+                        CW = (ChassisList[i][2] + ChassisList[i+1][2]) / 2
+                        CH = (ChassisList[i][3] + ChassisList[i+1][2]) / 2
+                        Confidence = (ChassisList[i][4] + ChassisList[i+1][4]) / 2
+                        Chassis = (CX, CY, CW, CH, Confidence)
+                        self.MergedChassisList.append(Chassis)
+                    else:
+                        Chassis = ChassisList[i]
+                        self.MergedChassisList.append(Chassis)
+                    
+
+            # print(self.MergedChassisList)
 
     def GetChassisPos(self):
-        return self.ChassisList
+        return self.MergedChassisList
     
     def BallDetection(self):
         while True:
