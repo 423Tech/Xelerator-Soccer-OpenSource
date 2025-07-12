@@ -258,9 +258,10 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-        self.FindBallThread = threading.Thread(target=self.FindBall)
-        self.FindBallThread.daemon = True
-        self.FindBallThread.start()
+        # self.FindBallThread = threading.Thread(target=self.FindBall)
+        # self.FindBallThread.daemon = True
+        # self.FindBallThread.start()
+        # 弃用
 
         self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
         self.InitConfiguredModelThread.daemon = True
@@ -427,76 +428,50 @@ class ArisuIntelligence:
             for i in range(4):
                 List = OutputBuffer[i][0]
                 if List.shape[0] > 0:
-                    Balls.append(List)
-            print(Balls)
+                    for Ball in List:
+                        if Ball[4] < 0.5:
+                            continue
+                        YMin = int(Ball[0] * 640) - 80
+                        XMin = int(Ball[1] * 640)
+                        YMax = int(Ball[2] * 640) - 80
+                        XMax = int(Ball[3] * 640)
+                        BottomY = YMax
+                        CenterX = int((XMin + XMax) / 2)
+                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        # X,Y = CenterX, BottomY
+                        if i == 0:
+                            BX = X
+                            BY = Y
+                        elif i == 1:
+                            BY = -X
+                            BX = Y
+                        elif i == 2:
+                            BX = -X
+                            BY = -Y
+                        elif i == 3:
+                            BY = X
+                            BX = -Y
+
+                        Width = XMax - XMin
+                        Height = YMax - YMin
+
+                        Confidence = Ball[4]
+                        BallTuple = (BX, BY, Width, Height, Confidence)
+                        
+                        Balls.append(BallTuple)
+            if Balls:
+                Balls = sorted(Balls, key=lambda x: x[4], reverse=True)
+                Ball = Balls[0]
+                BX = Ball[0]
+                BY = Ball[1]
+                self.BallPos = [BX, BY]
+            else:
+                self.BallPos = [0, 0]
 
 
+            
 
-    
-    # def YOLOProcess(self):
-    #     FrameCount = 0
-    #     LastTime = time.time()
-    #     with VDevice(self.HailoParams) as Hat:
-    #         InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
-    #         InferModel.set_batch_size(4)
-
-    #         InputShape = InferModel.input().shape
-    #         OutputShape = InferModel.output().shape
-    #         print(InputShape, OutputShape)
-    #         with InferModel.configure() as ConfiguredInferModel:
-    #             # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
-                
-    #             while True:
-
-    #                 FrameCount += 1
-    #                 CurrentTime = time.time()
-    #                 if CurrentTime - LastTime >= 1.0:
-    #                     print(f"FPS: {FrameCount}")
-    #                     FrameCount = 0
-    #                     LastTime = CurrentTime
-                    
-    #                 BindingsList = []
-    #                 # BindingsList = [ConfiguredInferModel.create_bindings() for _ in range(4)]
-    #                 # OutputBuffers = [np.empty(OutputShape, dtype=np.float32) for _ in range(4)]
-                    
-
-                    
-    #                 for i in range(4):
-    #                     Bindings = ConfiguredInferModel.create_bindings()
-    #                     OutputBuffer = np.empty(OutputShape, dtype=np.float32)
-    #                     Frame = self.Frames[i]
-    #                     if Frame is not None:
-    #                         Frame = self.Resize(Frame, (640, 640))
-    #                         Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-    #                         # Frame = Frame.astype(np.uint8)
-    #                         # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
-    #                         # print(Frame.shape)
-    #                         Bindings.input().set_buffer(Frame)
-    #                         Bindings.output().set_buffer(OutputBuffer)
-
-    #                         BindingsList.append(Bindings)
-    #                 while True:
-    #                     FrameCount += 1
-    #                     CurrentTime = time.time()
-    #                     if CurrentTime - LastTime >= 1.0:
-    #                         print(f"FPS: {FrameCount}")
-    #                         FrameCount = 0
-    #                         LastTime = CurrentTime
-
-    #                     ConfiguredInferModel.run(BindingsList,1000)
-    #                 # ConfiguredInferModel.run_async(BindingsList)
-
-
-
-    #                 Output0 = BindingsList[0].output().get_buffer()
-    #                 # print(Output0)
-
-    #                 # time.sleep(0.01)
-                
-
-
-
-    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=300, Brightness=0, Contrast=32, Saturation=64):
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
             Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
             Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))

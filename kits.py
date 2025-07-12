@@ -58,8 +58,19 @@ def Role():
     else:
         pass
 
+def Ballowner():#############KEI
+    '''KEI和ARISU不同'''
+    bx, by = GetBallPos()
+    if [bx,by] == [1024,1024]:
+        BallFlag[0] = 1
+    else:
+        BallFlag[0] = 0
+    print(BallFlag)
+
+
 def SendstatusThreadFunc(): # 发送身份和球权
     while (1):
+        Ballowner()
         SelfPosition = GetPos()
         try:
             msg = ("BallFlag:%s;PositionX:%s;PositionY:%s"%(BallFlag,SelfPosition[0],SelfPosition[1]))
@@ -77,6 +88,7 @@ def Sendstatus():
     return True
 
 def PeerstatusThreadFunc():
+    Ballowner()
     global BallFlag,PeerPosition
     while (1):
         MessageCache = Beacon.MessageCache
