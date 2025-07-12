@@ -903,7 +903,7 @@ def OHMYBACK():
         ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
         ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
         Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
-        if iLocX >0:
+        if iLocX > 0:
             ShootX = 55
         else:
             ShootX = -55
@@ -923,7 +923,7 @@ def OHMYBACK():
             else:
                 Pos2Pos([ShootX,85,Angle],False,100)
         else:
-            Pos2Pos([ShootX,iLocY,Angle],False,100)
+            Pos2Pos([ShootX,85,Angle],False,100)
     else:
         NormalShoot(0)
         
