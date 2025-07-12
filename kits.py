@@ -78,6 +78,8 @@ def SendstatusThreadFunc(): # 发送身份和球权
             Beacon.Send(msg)
         except Exception as e:
             raise e
+        time.sleep(0.02)
+
 
 
 def CEnemyPos():# 获取最近敌人位置
@@ -145,6 +147,7 @@ def PeerstatusThreadFunc():
                 BallFlag = False
                 PeerPosition = [1024,1024]
                 print(f"Failed to send status: {e}")
+        time.sleep(0.02)
 
 def Peerstatus():# 解析对方身份球权距离
     global PeerstatusThreadFuncStarted
@@ -386,7 +389,7 @@ def LockBallSlip():
         KpZ = 0.5
     else:
         Kp = 4
-        KpZ = 0.9
+        KpZ = 0.8
 
     SpeedX = iBX * Kp
     SpeedY = iBY * Kp
@@ -403,30 +406,47 @@ def LockBallSlip():
 def NormalShoot():
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
+    logger.debug("Ball Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
         logger.info("Ball not found, stopping chassis.")
-        Pos2Pos([0, -85, 0], False)
+        # Pos2Pos([0, -85, 0], False)
+        chassis.stop()
         peripheral.Dribble(False)
-    elif -5 < BX < 5 and 0 < BY < 10:
+    elif BX == 0 and BY <= 10:
+        time.sleep(0.03)
         logger.info("Ball is in front")
+        # BX, BY = GetBallPos()
+        # if not -5 < BX < 5 and 0 < BY < 10:
+        #     break
+        peripheral.Dribble(True)
         for _ in range(20):
-            BX, BY = GetBallPos()
-            if not -5 < BX < 5 and 0 < BY < 10:
+            BX,BY = GetBallPos()
+            if not BX == 0 and BY <= 10:
                 break
             X,Y,_ = GetPos()
-            DeltaY = 100 - Y
+            DeltaY = cfg.read("Position","Height")/2 - Y
             DeltaX = X
             Theta = math.atan2(DeltaY, DeltaX)
             Theta = math.degrees(Theta)
-            Compass = -(90 - Theta)
-            # while True:
-            #     chassis.GoZ(Compass)
-            chassis.GoY(Compass,50)
+            Aim = Theta - 90
+            Compass = compass()
+            Delta = abs(Aim - Compass)
+        # while True:
+        #     chassis.GoZ(Compass)
+            if Delta > 60:
+                chassis.Turn(Aim,50)
+                break
+            else:
+                chassis.GoA(Aim,0,50,0.8)
+            
             time.sleep(0.03)
+        
         peripheral.ShootBall()
     else:
         peripheral.Dribble(True)
         LockBallSlip()
+
+
 
 def Circle(origin:list[int,int],angle:int,r:int):
     Pos2Pos(
@@ -675,9 +695,9 @@ def AutoFetch(bStop = True):
             break
 
 def Move2Pos(lPos):
-    while Pos2Pos(lPos,False):
-        chassis.stop()
-        break
+    while not Pos2Pos(lPos,False,150):
+        pass
+    chassis.stop()
     # for _ in range(3):
     #     chassis.SetMotor(0,0,0,0)
 
@@ -936,15 +956,19 @@ def OHMYBACK():
     lLocal = GetPos()
     iLocX = lLocal[0]
     iLocY = lLocal[1]
-    ALocal = AbsChassisPos()
-    ALocX = ALocal[0]
-    ALocY = ALocal[1]
-    Angle = (math.degrees(math.atan2(iLocX - ALocX, iLocY - ALocY)-270)) % 360
+    Cx = CEnemyPos()[0]
+    Cy = CEnemyPos()[1]
+    defend_y = 0
+    Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+    CDistance = math.sqrt(Cx**2 + Cy**2)
+    ChassisX = CDistance * math.sin(math.radians(Fangle))+iLocX
+    ChassisY = CDistance * math.cos(math.radians(Fangle))+iLocY
+    Angle = (math.degrees(math.atan2(iLocX - ChassisX, iLocY - ChassisY)-270)) % 360
     if iLocX >0:
         ShootX = 55
     else:
         ShootX = -55
-    Pos2Pos([ShootX,-85,Angle],False)
+    Pos2Pos([ShootX,85,Angle],False,100)
 
 def LockDoor():
     #正常

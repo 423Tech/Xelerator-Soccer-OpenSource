@@ -231,7 +231,12 @@ class ArisuIntelligence:
 
         self.InitCam(self.CamPorts)
 
-        self.YOLOQueue = queue.Queue(maxsize=2)
+        self.ReadCamTF = 0
+        self.PreProcessTF = 0
+        self.InferTF = 0
+        self.PostProcessTF = 0
+
+        self.YOLOQueue = queue.Queue(maxsize=1)
 
         self.MergedChassisList = []
         self.ChassisQueue = queue.Queue(maxsize=1)
@@ -334,6 +339,7 @@ class ArisuIntelligence:
     
     def ModelPreProcess(self):
         while(1):
+            
             BindingsList = []
             for i in range(4):
                 Bindings = self.ConfiguredInferModel.create_bindings()
@@ -349,7 +355,12 @@ class ArisuIntelligence:
                     Bindings.input().set_buffer(Frame)
                     Bindings.output().set_buffer(OutputBuffer)
                     BindingsList.append(Bindings)
-            self.YOLOQueue.put(BindingsList)
+            if self.YOLOQueue.full():
+                continue
+            else:
+                self.PreProcessTF = self.PreProcessTF + 1
+                self.YOLOQueue.put(BindingsList)
+            time.sleep(0.01)
                 
     def ModelInfer(self):
         FrameCount = 0
@@ -362,7 +373,8 @@ class ArisuIntelligence:
                 FrameCount = 0
                 LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
-            self.ConfiguredInferModel.run(BindingsList, 1000)
+            self.InferTF = self.InferTF + 1
+            self.ConfiguredInferModel.run(BindingsList, 500)
             Outputs = []
             ChassisList = []
             for Bindings in BindingsList:
@@ -372,6 +384,7 @@ class ArisuIntelligence:
 
             
             self.ChassisQueue.put(Outputs)
+            self.BallQueue.put(Outputs)
             # print(ChassisList)
         
             # print(Output0)
@@ -380,6 +393,7 @@ class ArisuIntelligence:
     def ChassisDetection(self):
         while True:
             OutputBuffer = self.ChassisQueue.get()
+            self.PostProcessTF = self.PostProcessTF + 1
             self.MergedChassisList = []
             ChassisList = []
             # Process ChassisList
@@ -416,25 +430,35 @@ class ArisuIntelligence:
                         Confidence = Chassis[4]
                         ChassisTuple = (CX, CY, Width, Height, Confidence)
                         
-                        # self.MergedChassisList.append(ChassisTuple)
-                        ChassisList.append(ChassisTuple)
-            if ChassisList:
-                for i in range(len(ChassisList)-1):
-                    ChassisX = ChassisList[i][0]
-                    ChassisY = ChassisList[i][1]
-                    NextChassisX = ChassisList[i+1][0]
-                    NextChassisY = ChassisList[i+1][1]
-                    if abs(ChassisX - NextChassisX) < 20 and abs(ChassisY - NextChassisY) < 20:
-                        CX = (ChassisX + NextChassisX) / 2
-                        CY = (ChassisY + NextChassisY) / 2
-                        CW = (ChassisList[i][2] + ChassisList[i+1][2]) / 2
-                        CH = (ChassisList[i][3] + ChassisList[i+1][2]) / 2
-                        Confidence = (ChassisList[i][4] + ChassisList[i+1][4]) / 2
-                        Chassis = (CX, CY, CW, CH, Confidence)
-                        self.MergedChassisList.append(Chassis)
-                    else:
-                        Chassis = ChassisList[i]
-                        self.MergedChassisList.append(Chassis)
+                        self.MergedChassisList.append(ChassisTuple)
+                        # ChassisList.append(ChassisTuple)
+            # if ChassisList:
+            #     ChassisList = sorted(ChassisList, key=lambda x: x[0], reverse=False)
+            #     LastMerged = False
+            #     for i in range(len(ChassisList)):
+            #         if not i == len(ChassisList) - 1:
+            #             ChassisX = ChassisList[i][0]
+            #             ChassisY = ChassisList[i][1]
+            #             NextChassisX = ChassisList[i+1][0]
+            #             NextChassisY = ChassisList[i+1][1]
+
+            #         if LastMerged:
+            #             Chassis = ChassisList[len(ChassisList) - 1]
+            #             self.MergedChassisList.append(Chassis)
+
+            #         elif abs(ChassisX - NextChassisX) < 20 and abs(ChassisY - NextChassisY) < 20:
+            #             CX = (ChassisX + NextChassisX) / 2
+            #             CY = (ChassisY + NextChassisY) / 2
+            #             CW = (ChassisList[i][2] + ChassisList[i+1][2]) / 2
+            #             CH = (ChassisList[i][3] + ChassisList[i+1][2]) / 2
+            #             Confidence = (ChassisList[i][4] + ChassisList[i+1][4]) / 2
+            #             Chassis = (CX, CY, CW, CH, Confidence)
+            #             self.MergedChassisList.append(Chassis)
+            #             if i == len(ChassisList) - 2:
+            #                 LastMerged = True
+            #         else:
+            #             Chassis = ChassisList[i]
+            #             self.MergedChassisList.append(Chassis)
                     
 
             # print(self.MergedChassisList)
@@ -444,18 +468,18 @@ class ArisuIntelligence:
     
     def BallDetection(self):
         while True:
-            OutputBuffer = self.ChassisQueue.get()
+            OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
                 List = OutputBuffer[i][0]
                 if List.shape[0] > 0:
                     for Ball in List:
-                        if Ball[4] < 0.5:
+                        if Ball[4] < 0.4:
                             continue
-                        YMin = int(Ball[0] * 640) - 80
-                        XMin = int(Ball[1] * 640)
-                        YMax = int(Ball[2] * 640) - 80
-                        XMax = int(Ball[3] * 640)
+                        YMin = int(Ball[0] * 640) - 80 + 20
+                        XMin = int(Ball[1] * 640) + 20
+                        YMax = int(Ball[2] * 640) - 80 - 20
+                        XMax = int(Ball[3] * 640) - 20
                         BottomY = YMax
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
@@ -481,7 +505,6 @@ class ArisuIntelligence:
                         
                         Balls.append(BallTuple)
             if Balls:
-                Balls = sorted(Balls, key=lambda x: x[4], reverse=True)
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
@@ -521,6 +544,7 @@ class ArisuIntelligence:
                 # print(f"FPS: {FrameCount}")
                 FrameCount = 0
                 LastTime = CurrentTime
+            self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
         Point = np.array([X, Y, 1], dtype=np.float64)
