@@ -803,29 +803,7 @@ def Offence_O():
         
         chassis.GoA(0,iAimAngle,150)
 
-def Offence():
-    """
-    OP进攻逻辑
-    1. 默认在前半场，实时追球，首要目标是抢球。
-    2. 得到球权时，判断位置，有则溜边/弹射/澳门射等，无则找球。
-    3. 若未检测到球 退至中场线与己方半场交界处或回防转DP。
-    4. 绝不进入己方禁区防守区域。
-    """
-    BallX, BallY = AbsBallPos()
-    LocalX, LocalY,Yaw = GetPos()
-    # 中场
-    if [BallX,BallY] == [1024,1024]:   
-        peripheral.StopDribble()
-        Pos2Pos([0, -50, 0], False)
-    if ball_owner == SelfIP:
-        peripheral.Dribble(True)
-        Slipsideshot(Yaw,[LocalX,LocalY],[0,0],[0,100])
-    else: #无球权
-        if BallY < 0:
-            Pos2Pos([LocalX, 0, 0], False)
-        else:
-            LockBallSlip()
-    print(Yaw,BallX, BallY,LocalX, LocalY,ball_owner)
+
 
 
 def Circle(origin:list[int,int],angle:int,r:int):
@@ -945,7 +923,7 @@ def OHMYBACK():
             else:
                 Pos2Pos([ShootX,85,Angle],False,100)
         else:
-            Pos2Pos([ShootX,85,Angle],False,100)
+            Pos2Pos([ShootX,iLocY,Angle],False,100)
     else:
         NormalShoot(0)
         
