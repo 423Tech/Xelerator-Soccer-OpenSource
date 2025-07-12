@@ -82,8 +82,8 @@ def SendstatusThreadFunc(): # 发送身份和球权
 
 def CEnemyPos():# 获取最近敌人位置
     EPos = EnemyPos()
-    if len(EPos) < 1:
-        return []
+    if len(EPos) < 1 or EPos == [1024,1024]:
+        return [1024,1024]
     else:
         min_distance = 10000
         for i in range(len(EPos)):
@@ -107,11 +107,10 @@ def EnemyPos():
             if rrX < 5 :
                 del CPos[i]
             EPos = CPos
-        print (EPos)
         return EPos
     else:
         print("NO Enemy")
-        return []
+        return [1024,1024]
 
 def Sendstatus():
     global SendstatusThreadFuncStarted

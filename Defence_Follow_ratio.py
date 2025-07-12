@@ -12,19 +12,29 @@ def FollowPRatio(x):
     bX,bY= AbsBallPos()
     lPos = GetPos()
     iX= lPos[0]
+    iY= lPos[1]
     if x == 1:
         PeerX, PeerY = PeerPosition[0], PeerPosition[1]
-        ChassisX, ChassisY = AbsChassisPos()[0][0], AbsChassisPos()[0][1]
+        ChassisX, ChassisY = CEnemyPos()[0],CEnemyPos()[1]
         if [bX,bY] == [1024,1024]:
-                peripheral.DribbleBall()
-                if abs(iX) <= 60:
-                    defend_x = ChassisX 
-                    defend_y = -40 + ChassisY * 0.47  # 等比前移
-                    defend_y = max(-85, min(0, defend_y))
-                else:
-                    defend_x = 0    
-                    defend_y = -40 + ChassisY * 0.47  # 等比前移
-                    defend_y = max(-85, min(0, defend_y))
+            defend_x = 0
+            defend_y = -85
+            Cx = CEnemyPos()[0]
+            Cy = CEnemyPos()[1]
+            defend_y = 0
+            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+            CDistance = math.sqrt(Cx**2 + Cy**2)
+            ChassisX = CDistance * math.sin(math.radians(Fangle))+iX
+            ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
+            peripheral.DribbleBall()
+            if abs(iX) <= 60:
+                defend_x = ChassisX 
+                defend_y = -40 + ChassisY * 0.47  # 等比前移
+                defend_y = max(-85, min(0, defend_y))
+            else:
+                defend_x = 0    
+                defend_y = -40 + ChassisY * 0.47  # 等比前移
+                defend_y = max(-85, min(0, defend_y))
         else:
             peripheral.DribbleBall()
             if abs(iX) <= 60:

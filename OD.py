@@ -13,21 +13,22 @@ from Offence_Back import *
 def OD(): 
     iY = GetPos()[1]
     bx,by = AbsBallPos()
-    result = AbsChassisPos()
-    if result:
-        ChassisX,ChassisY = result[0][0],result[0][1]
-    else:
-        ChassisX = None
-        ChassisY = None
+    IY = GetPos()[1]
+    Cx = CEnemyPos()[0]
+    Cy = CEnemyPos()[1]
+    Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
+    CDistance = math.sqrt(Cx**2 + Cy**2)
+    ChassisY = CDistance * math.cos(math.radians(Fangle))+IY
+
     if [bx,by] == [1204,1204]:
-        if ChassisX > 0 or ChassisX == None: #对方车辆位于对方半场
+        if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
             if PeerPosition[1]> iY :
                 DefenceBack()
             else:
                 OffenceBack()
         else: #有可能是背身持球 没有扫描到球，锁车
-            if ChassisX > -50:
-                FollowPPanning()
+            if ChassisY > -50:
+                FollowPRatio()
             else:
                 DefenceLink()
     else:
@@ -43,7 +44,7 @@ def OD():
                 Offence()
             elif BallFlag == [1,0]:
                 if bx > -50:
-                    FollowPPanning()
+                    FollowPRatio()
                 else:
                     DefenceLink()
             else:
