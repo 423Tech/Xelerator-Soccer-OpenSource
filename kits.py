@@ -966,7 +966,7 @@ def OHMYBACK():
                 if deltaT < 8:
                     peripheral.ShootBall()
                 else:
-                    chassis.GoZ(Theta)
+                    chassis.Turn(Theta,50)
                 
             else:
                 Pos2Pos([ShootX,85,Angle],False,50)
