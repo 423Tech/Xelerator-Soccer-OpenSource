@@ -43,7 +43,7 @@ WarnedLidar = False
 SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
 peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
-
+BallFlag = []
 #Math Mod
 #####################################################################################################
 def GetBallDistance():

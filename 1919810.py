@@ -13,28 +13,7 @@ logger.info("Starting Xelerator")
 while True:
     # Stop the chassis
     try:
-        # peripheral.DribbleBall()
-        # Lockballmove()
-        # Offence()
-<<<<<<< HEAD
-        # FollowPRatio(0)
-        FollowPPanning(0)
-=======
-<<<<<<< HEAD
-        FollowPRatio(0)
-        # FollowPPanning()
->>>>>>> 31a0be6555a3bbafca5ba023048a4f2123bbb101
-        # OD()
-        # OffDenfence()
-        # FollowPPanning(0)
-        # DefenceLink(0)
-=======
-        # FollowPRatio()?
-        OD()
-        # DefenceLink()
->>>>>>> 8c40b55 (1234)
-        # OHMYBACK()
-        # logger.debug(Bits.get_motor_encoder())
+        Ballowner()
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()
