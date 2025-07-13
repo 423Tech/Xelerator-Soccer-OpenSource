@@ -339,8 +339,8 @@ def AbsChassisPos():
         AbsChassisCache = [
             cDistance * math.cos(math.radians(ChassisAbsAngle)) + SelfX,
             cDistance * math.sin(math.radians(ChassisAbsAngle)) + SelfY,
-            c[2],
-            c[3]
+            cDistance,
+            ChassisAbsAngle
             ]
         OutputDistanceList.append(AbsChassisCache)
     return OutputDistanceList
@@ -607,25 +607,25 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
             if DistanceCache[0] <= DistanceCache[1]:
                 Anglek = 1
             else:
-                AngleK = -1
+                Anglek = -1
         elif 1 < iMovedAngle%90 <= 2 :
             if DistanceCache[0] >= DistanceCache[3]:
                 Anglek = 1
             else:
-                AngleK = -1
+                Anglek = -1
         elif 2 < iMovedAngle%90 <= 3 :
             if DistanceCache[3] >= DistanceCache[2]:
                 Anglek = 1
             else:
-                AngleK = -1
+                Anglek = -1
         elif 3 < iMovedAngle%90 <= 4 :
             if DistanceCache[2] >= DistanceCache[1]:
                 Anglek = 1
             else:
-                AngleK = -1
+                Anglek = -1
         for a in AbsChassisAngle():
-            if a == iMovedAngle:
-                iMovedAngle = iMovedAngle + int((abs(iDeltaX)+abs(iDeltaY))*1.5)*-Anglek
+            if a[2] <= 20 and a[3] == iMovedAngle:
+                iMovedAngle = iMovedAngle + int((abs(iDeltaX)+abs(iDeltaY))*1.5)*(-Anglek)*a[3]/3
     if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
         chassis.stop()
         return True
