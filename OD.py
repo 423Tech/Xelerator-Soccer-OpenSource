@@ -47,7 +47,7 @@ def OD():
                 else: #有可能是背身持球 没有扫描到球，锁车
                     if ChassisY > -50:
                         print(3.25)
-                        FollowPRatio(1)
+                        FollowPRatio(0)
                     else:
                         print(3.75)
                         DefenceLink(1)
@@ -58,7 +58,7 @@ def OD():
                 else:
                     if bx > -50:
                         print(8)
-                        FollowPRatio(1)
+                        FollowPRatio(0)
                     else:
                         print(9)
                         DefenceLink(1)
@@ -67,9 +67,9 @@ def OD():
                 if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
                     if PeerPosition[1]> iY :
                         print(2)
-                        Pos2Pos([0,-40,0],False,100)
-                    else:
                         Pos2Pos([0,-85,0],False,100)
+                    else:
+                        Pos2Pos([0,-40,0],False,100)
                 else: #有可能是背身持球 没有扫描到球，锁车
                     if ChassisY > -50:
                         print(3.25)

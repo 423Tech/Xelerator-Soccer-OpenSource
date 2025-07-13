@@ -102,27 +102,16 @@ def CEnemyPos():# 获取最近敌人位置
 def EnemyPos():
     P_Pos = PeerPosition
     Px = P_Pos[0]
-    iX,iY = GetPos()[0],GetPos()[1]
     CPos = ArisuCam.GetChassisPos()
     EPos = []
     if len(CPos) >= 1:
         for i in range(len(CPos)):
-            Cx = CPos[i][0]
-            Cy = CPos[i][1]
-            Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
-            CDistance = math.sqrt(Cx**2 + Cy**2)
-            ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
-            ChassisX = CDistance * math.sin(math.radians(Fangle))+iX
-            rrX = abs(Px-ChassisX)
-            rry = abs(P_Pos[1]-ChassisY)
-            if rrX < 15 and rry < 15 :
+            x = CPos[i][0]
+            rrX = abs(Px-x)
+            if rrX < 5 :
                 del CPos[i]
             EPos = CPos
-            if EPos == []:
-                print("NO Enemy")
-                return [1024,1024]
-            else:
-                return EPos
+        return EPos
     else:
         print("NO Enemy")
         return [1024,1024]
@@ -339,8 +328,8 @@ def AbsChassisPos():
         AbsChassisCache = [
             cDistance * math.cos(math.radians(ChassisAbsAngle)) + SelfX,
             cDistance * math.sin(math.radians(ChassisAbsAngle)) + SelfY,
-            cDistance,
-            ChassisAbsAngle
+            c[2],
+            c[3]
             ]
         OutputDistanceList.append(AbsChassisCache)
     return OutputDistanceList
@@ -607,25 +596,25 @@ def Pos2Pos(lAimPos:list[int,int,int], A2O:bool | None = False, Speed:int | None
             if DistanceCache[0] <= DistanceCache[1]:
                 Anglek = 1
             else:
-                Anglek = -1
+                AngleK = -1
         elif 1 < iMovedAngle%90 <= 2 :
             if DistanceCache[0] >= DistanceCache[3]:
                 Anglek = 1
             else:
-                Anglek = -1
+                AngleK = -1
         elif 2 < iMovedAngle%90 <= 3 :
             if DistanceCache[3] >= DistanceCache[2]:
                 Anglek = 1
             else:
-                Anglek = -1
+                AngleK = -1
         elif 3 < iMovedAngle%90 <= 4 :
             if DistanceCache[2] >= DistanceCache[1]:
                 Anglek = 1
             else:
-                Anglek = -1
+                AngleK = -1
         for a in AbsChassisAngle():
-            if a[2] <= 20 and a[3] == iMovedAngle:
-                iMovedAngle = iMovedAngle + int((abs(iDeltaX)+abs(iDeltaY))*1.5)*(-Anglek)*a[3]/3
+            if a == iMovedAngle:
+                iMovedAngle = iMovedAngle + int((abs(iDeltaX)+abs(iDeltaY))*1.5)*-Anglek
     if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
         chassis.stop()
         return True
