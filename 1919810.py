@@ -10,6 +10,25 @@ from Defence_Follow_ratio import*
 #### HEADER ####
 logger.info("Starting Xelerator")
 
+def KeyEvent():
+    KeyCount = 0
+    LastPressed = False
+    while True:
+        if LastPressed == True:
+            if Bits.GetKey():
+                KeyCount = KeyCount + 1
+            else:
+                LastPressed = False
+        else:
+            if Bits.GetKey():
+                LastPressed = True
+                KeyCount = KeyCount + 1
+
+KeyEventThread = threading.Thread(target=KeyEvent)
+KeyEventThread.daemon = True
+KeyEventThread.start()
+
+
 Role()
 
 while True:
