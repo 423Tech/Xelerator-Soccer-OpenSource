@@ -17,8 +17,8 @@ def DefenceLink(x):#"0":[75,95],"1":[35,85]
         if [bX,bY] == [1024,1024]: #没有扫描到球 那就锁定车辆位置
             defend_x = 0
             defend_y = -80
-            Cx = CEnemyPos()[0]
-            Cy = CEnemyPos()[1]
+            Cx = GetEnemyPos()[0]
+            Cy = GetEnemyPos()[1]
             defend_y = 0
             Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
             CDistance = math.sqrt(Cx**2 + Cy**2)

@@ -12,8 +12,8 @@ from Offence_Back import *
 def OD(): 
     iX,iY = GetPos()[0],GetPos()[1]
     bx,by = AbsBallPos()
-    Cx = CEnemyPos()[0]
-    Cy = CEnemyPos()[1]
+    Cx = GetEnemyPos()[0]
+    Cy = GetEnemyPos()[1]
     Fangle =(-int(math.degrees(math.atan2(Cy,Cx)) - 90)+ compass())%360
     CDistance = math.sqrt(Cx**2 + Cy**2)
     ChassisY = CDistance * math.cos(math.radians(Fangle))+iY
@@ -38,7 +38,7 @@ def OD():
     else:
         if PeerPosition == [1024,1024]:
             if [bx,by] == [1024,1024]:
-                if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
+                if ChassisY > 0 or GetEnemyPos() == [1204,1204]: #对方车辆位于对方半场
                     if PeerPosition[1]> iY :
                         print(2)
                         Pos2Pos([0,-40,0],False,100)
@@ -64,7 +64,7 @@ def OD():
                         DefenceLink(1)
         else:
             if [bx,by] == [1024,1024]:
-                if ChassisY > 0 or CEnemyPos() == [1204,1204]: #对方车辆位于对方半场
+                if ChassisY > 0 or GetEnemyPos() == [1204,1204]: #对方车辆位于对方半场
                     if PeerPosition[1]> iY :
                         print(2)
                         Pos2Pos([0,-85,0],False,100)

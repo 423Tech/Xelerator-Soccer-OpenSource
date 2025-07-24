@@ -1,12 +1,15 @@
 from . import setup
-from .config import QkJson
+from .config import QkJson,Preference
 from .data import Positions, Date
 
-__version__ = '0.0.1'
+__version__ = '0.2.0'
+# ReasonData 0.2.0(20250722A) Updated Preference instead QKjson
 
-
-from loguru import logger
-from pathlib import Path
+try:
+    from loguru import logger
+    from pathlib import Path
+except ImportError:
+    raise
 
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
@@ -14,12 +17,12 @@ LOG_FILE = DATA_DIR / f"{Date}.log"
 logger.add(
     LOG_FILE,
     rotation="1 MB",
-    retention="10 days",
+    retention="1 days",
     encoding="utf-8",
     backtrace=True,
     diagnose=True,
     enqueue=True,
     catch=True)
-logger.info("ReasonData loaded.")
+logger.info("ReasonData(%s) loaded."%__version__)
 
 __all__ = ['config', 'Positions', 'setup']

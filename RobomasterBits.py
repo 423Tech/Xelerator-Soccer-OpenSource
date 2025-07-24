@@ -1,6 +1,6 @@
 from ReasonData import config
 
-class command:
+class RobomasterBits:
     def __init__(self):
         import serial
         self.ser = serial.Serial()
@@ -24,40 +24,24 @@ class command:
         self.ser.close()
         return recv
 
-
-class motor:
-    def __init__(self):
-        self.cmd = command()
-
-    def RPM(self, w1:int, w2:int, w3:int, w4:int):
-        recv = self.cmd.send("chassis wheel w1%s w2 %s w3 %s w4 %s",(w1,w2,w3,w4))
+    def SetMotor(self, w1:int, w2:int, w3:int, w4:int):
+        recv = self.send("chassis wheel w1%s w2 %s w3 %s w4 %s",(w1,w2,w3,w4))
         return recv
-    
-class batt:
-    def __init__(self):
-        self.cmd = command()
-    
-    def get(self):
-        return self.cmd("robot battery ?")
-    
-class pos:
-    def __init__(self):
-        self.cmd = command()
 
-    def move(self, x:int, y:int):
-        return self.cmd("chassis move x %s y %s",(x,y))
+    def GetBatt(self):
+        return self.send("robot battery ?")
     
-    def get(self):
-        return self.cmd("chassis position ?")
+    def GetMovedDistance(self, x:int, y:int):
+        return self.send("chassis move x %s y %s",(x,y))
     
-class compass:
-    def __init__(self):
-        self.cmd = command()
+    def GetMovedPos(self):
+        return self.send("chassis position ?")
     
-    def get(self):
+    def GetYaw(self):
         #TODO GetAngle
-        recv = self.cmd("chassis attitude ?")
+        recv = self.send("chassis attitude ?")
         return recv
     
     
+
 
