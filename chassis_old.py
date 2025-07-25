@@ -8,6 +8,7 @@ class Car:
         self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
         self.MotorEncoder = MotorEncoder
+
         self.Kp = 0.8
         self.cfg = Preference()
         self.SaveData = self.cfg.read("Debug","Database")
@@ -19,38 +20,26 @@ class Car:
             from ReasonData import logger
             self.logger = logger
     
-    def SetMotor(self,speedCache:list[int,int,int,int]):
-        LeftFrontNumber = self.cfg.read("Ports","LeftFront")
-        LeftBackNumber = self.cfg.read("Ports","LeftBack")
-        RightFrontNumber = self.cfg.read("Ports","RightFront")
-        RightBackNumber = self.cfg.read("Ports","RightBack")
-        number = [LeftFrontNumber,LeftBackNumber,RightFrontNumber,RightBackNumber]
-        number = [1,2,3,4]
-        speed = [0,0,0,0]
-        for n in number:
-            speed[n-1] = int(speedCache[n])
+    def SetMotor(self,Speed1,Speed2,Speed3,Speed4):
         if self.SaveLog:
             if self.MotorEncoder:
-                EncoderCache = self.MotorEncoder()
-                Encoder =[0,0,0,0]
-                for n in number:
-                    Encoder[n-1] = int(EncoderCache[n])
-                self.logger.debug("SetMotorVals: (%s, %s, %s, %s) | With feedbackVals %s" %
-                                   (speed[0], speed[1], speed[2], speed[3],Encoder)
+                Decode1,Decode2,Decode3,Decode4 = self.MotorEncoder()
+                self.logger.debug("SetMotorVals: (%s, %s, %s, %s) | With feedbackVals (%s,%s,%s,%s)" %
+                                   (Speed1, Speed2, Speed3, Speed4,Decode1,Decode2,Decode3,Decode4)
                                    )
             else:
-                self.logger.debug("SetMotorVals: %s, %s, %s, %s" % (speed[0], speed[1], speed[2], speed[3]))
-        self.SetMotorFunc(speed[0], speed[1], speed[2], speed[3])
+                self.logger.debug("SetMotorVals: %s, %s, %s, %s" % (Speed1, Speed2, Speed3, Speed4))
+        self.SetMotorFunc(int(Speed1), int(Speed2), int(Speed3), int(Speed4))
     
     def SetKp(self,Kp):
         self.Kp = Kp
     
     def Compass(self):
-        return self.GetYaw()
+        return self.GetYaw() if self.GetYaw is not None else None
 
-    def RelMoveVetor(self,SpeedX,SpeedY,SpeedZ):
+    def Go(self,SpeedX,SpeedY,SpeedZ):
         '''
-        a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
+        stand for a vector movement (SpeedX,SpeedY,SpeedZ)
         '''
         Speed1 = SpeedX + SpeedY + SpeedZ
         Speed2 = SpeedY - SpeedX + SpeedZ
@@ -60,19 +49,22 @@ class Car:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         self.SetMotor(Speed1, Speed2, Speed3, Speed4)
     
-    def AbsMoveAngle(self,FacingAngle,MovingAngle,Speed,Kp:float|None = None):
-        '''
-        angle movement (FacingAngle,MovingAngle,speed) with YawCorrect
-        '''
+    def GoA(self,FacingAngle,MovingAngle,Speed,Kp=None):
+        if self.GetYaw is None:
+            return False
         Yaw = self.GetYaw()
         rad = math.radians(MovingAngle+360-Yaw)
         SpeedX = int(math.sin(rad) * Speed)
         SpeedY = int(math.cos(rad) * Speed)
-        self.AbsMoveVetor(SpeedX,SpeedY,FacingAngle,Kp)
+        if Kp is not None:
+            self.GoV(SpeedX,SpeedY,FacingAngle, Kp)
+        else:
+            self.GoV(SpeedX,SpeedY,FacingAngle)
         
-    def AbsMoveVetor(self,SpeedX,SpeedY,FacingAngle,Kp:float|None = None):
+
+    def GoV(self,SpeedX,SpeedY,FacingAngle,Kp:float|None = None):
         '''
-        vector movement (SpeedX,SpeedY,SpeedZ) with YawCorrect
+        stand for a vector movement (SpeedX,SpeedY,SpeedZ)
         '''
         Yaw = self.GetYaw()
         Error = Yaw - FacingAngle
@@ -80,23 +72,26 @@ class Car:
         if not Kp:
             Kp = self.Kp
         SpeedZ = - Error * Kp
-        self.RelMoveVetor(SpeedX, SpeedY, SpeedZ)
+        self.Go(SpeedX, SpeedY, SpeedZ)
     
-    def RelXMove(self,Angle,Speed):
-        self.RelMoveVetor(Angle,90,Speed)
+    def GoX(self,Angle,Speed):
+        self.GoA(Angle,90,Speed)
    
-    def RelYMove(self,Angle,Speed,Kp=None):
-        self.AbsMoveAngle(Angle,0,Speed,Kp)
-
-    def AbsTurn(self,Angle,Kp=None):
+    def GoY(self,Angle,Speed,Kp=None):
         if self.GetYaw is None:
             return False
-        self.AbsMoveAngle(Angle,0,0,Kp)
+        self.GoA(Angle,0,Speed,Kp)
 
-    def RelTurn(self,Speed): #自转
-        self.RelMoveVetor(0,0,Speed)
+    def GoZ(self,Angle,Kp=None):
+        if self.GetYaw is None:
+            return False
+        self.GoA(Angle,0,0,Kp)
+
+    def GoZSpeed(self,Speed): #自转
+        self.Go(0,0,Speed)
     
-    def TurnTo(self,Angle,AimSpeed,Kp=None):
+    def Turn(self,Angle,AimSpeed,Kp=None):
+
         while True:
             Error = self.GetYaw() - Angle
             Error = (Error + 180) % 360 - 180
@@ -104,12 +99,13 @@ class Car:
             Speed = AimSpeed
             
             if Error < -5:
-                self.TurnSpeed(Speed)
+                self.GoZSpeed(Speed)
             elif Error > 5:
                 Speed = -Speed
-                self.TurnSpeed(Speed)
+                self.GoZSpeed(Speed)
             else:
                 break
+            print(Error,Speed)
             time.sleep(0.03)
             
     def stop(self):
@@ -119,15 +115,13 @@ class Car:
 class Peripherals:
     def __init__(self,IOFunc):
         self.SetIO = IOFunc
-        from ReasonData import Preference
-        self.cfg = Preference()
+        from ReasonData import QkJson
+        self.cfg = QkJson()
         from ReasonData import logger
         self.logger = logger
         self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
         self.DribbleIO = self.cfg.read("Ports","Dribble")
         self.SetIO(self.ElecMagnetIO,1)
-        # Val for log
-        self.DribbleStatus = False
 
     def ShootBall(self):
         self.SetIO(self.ElecMagnetIO,0)
@@ -135,13 +129,23 @@ class Peripherals:
         self.SetIO(self.ElecMagnetIO,1)
         self.logger.info("Used ElecMagnet")
 
+    def DribbleBall(self):
+        '''
+        Warning: This function will be unused.
+        '''
+        self.SetIO(self.DribbleIO,1)
+        # self.logger.info("Start Dribble")
+
+    def StopDribble(self):
+        '''
+        Warning: This function will be unused.
+        '''
+        self.SetIO(self.DribbleIO,0)
+        # self.logger.info("Stop Dribble")
+
     def Dribble(self,Status:bool):
-        if self.DribbleStatus == Status:
-            pass
+        if Status:
+            self.SetIO(self.DribbleIO,1)
         else:
-            if Status:
-                self.SetIO(self.DribbleIO,1)
-            else:
-                self.SetIO(self.DribbleIO,0)
-            self.DribbleStatus = Status
-            self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))
+            self.SetIO(self.DribbleIO,0)
+        self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))

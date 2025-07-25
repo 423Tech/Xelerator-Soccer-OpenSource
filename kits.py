@@ -5,25 +5,27 @@ import threading
 from ReasonData import QkJson, logger
 cfg = QkJson()
 
-from chassis import Car,Peripherals
+from chassis_old import Car,Peripherals
 from headunit import Lidar,ArisuIntelligence
 ArisuCam = ArisuIntelligence()
 from ReasonBeacon import MisakaNetwork
-Beacon = MisakaNetwork()
+Transmission = MisakaNetwork()
 if cfg.read("model","Bit") == "AB":
     from arisbit import ArisBit
     Bits = ArisBit()
     lidar = Lidar(Bits.GetYaw)
-    chassis = Car(Bits.SetMotor,Bits.GetYaw)
+    chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
-# elif cfg.read("model","Bit") == "RB":
-    # from ReasonBit import motor
-    # from ReasonBit import compass
-    # from ReasonBit import batt
-    # chassis = Car(motor.RPM,compass.get)
-    # logger.info("RoboMaster Bit loaded.")
+elif cfg.read("model","Bit") == "RB":
+    from RobomasterBits import motor
+    from RobomasterBits import compass
+    from RobomasterBits import batt
+    chassis = Car(motor.RPM,compass.get)
+    logger.info("RoboMaster Bit loaded.")
+elif cfg.read("model","Bit") == "ZUS":
+    logger.info("ZUES Bit loaded.")
 else:
     logger.error("None Bit Model found.")
     # breakpoint()
@@ -31,29 +33,20 @@ else:
 
 SelfIP = cfg.read("WIFI","SelfIP")
 peer_id = cfg.read("WIFI","RemoteIP") #Kei ID1 #Arisu ID
-role = "DP"    # OP攻 DP守
 Dribblingdistance = 9 # 控球距离
-PosXCache = 0
-PosYCache = 0
 
 # Warned Flags
 WarnedLidar = False
 
-# Values for COM
+# Values for Transmision
 SendstatusThreadFuncStarted = False
 PeerstatusThreadFuncStarted = False
-peer_role, peer_owner, P2BallDirect, P_Pos, Pbx, Pby= None, None, None, None, None, None
+
 BallFlag = [0,0]
 PeerPosition = [1024,1024]
 
 #Math Mod
 #####################################################################################################
-def GetBallDistance():
-    bx, by = GetBallPos()
-    x, y, *_ = GetPos()
-    return (bx, by ,math.sqrt((bx - x) ** 2 + (by - y) ** 2))
-
-
 
 def Ballowner():#############KEI
     global BallFlag
@@ -64,57 +57,21 @@ def Ballowner():#############KEI
         BallFlag[0] = 0
     print(BallFlag)
 
-
 def SendstatusThreadFunc(): # 发送身份和球权
     while (1):
         SelfPosition = GetPos()
         try:
             # 确保所有值都是整数
-            ball_self = int(BallFlag[0]) if isinstance(BallFlag[0], (int, float, str)) else 0
-            ball_remote = int(BallFlag[1]) if isinstance(BallFlag[1], (int, float, str)) else 0
-            pos_x = int(SelfPosition[0])
-            pos_y = int(SelfPosition[1])
-            
-            msg = f"BallSelf:{ball_self};BallRemote:{ball_remote};PositionX:{pos_x};PositionY:{pos_y}"
-            Beacon.Send(msg)
+            SelfBall = int(BallFlag[0]) if isinstance(BallFlag[0], (int, float, str)) else 0
+            SelfPositionX = int(SelfPosition[0])
+            SelfPositionY = int(SelfPosition[1])
+            msg = f"BallSelf:{SelfBall};PositionX:{SelfPositionX};PositionY:{SelfPositionY}"
+            Transmission.Send(msg)
             print(f"Sent: {msg}")  # 调试信息
         except Exception as e:
             print(f"Send error: {e}")
             raise e
         time.sleep(0.02)
-
-
-def CEnemyPos():# 获取最近敌人位置
-    EPos = EnemyPos()
-    if len(EPos) < 1 or EPos == [1024,1024]:
-        return [1024,1024]
-    else:
-        min_distance = 10000
-        for i in range(len(EPos)):
-            x1, y1 = EPos[i][:2]
-            distance = math.sqrt((x1) ** 2 + (y1) ** 2)
-            if distance < min_distance:
-                min_distance = distance
-                EPos = EPos[i][:2]
-                print(EPos)
-                return EPos
-    
-def EnemyPos():
-    P_Pos = PeerPosition
-    Px = P_Pos[0]
-    CPos = ArisuCam.GetChassisPos()
-    EPos = []
-    if len(CPos) >= 1:
-        for i in range(len(CPos)):
-            x = CPos[i][0]
-            rrX = abs(Px-x)
-            if rrX < 5 :
-                del CPos[i]
-            EPos = CPos
-        return EPos
-    else:
-        print("NO Enemy")
-        return [1024,1024]
 
 def Sendstatus():
     global SendstatusThreadFuncStarted
@@ -129,7 +86,7 @@ def PeerstatusThreadFunc():
     Ballowner()
     global BallFlag,PeerPosition
     while (1):
-        MessageCache = Beacon.MessageCache
+        MessageCache = Transmission.MessageCache
         if MessageCache == None:
             BallFlag = [0, 0]
             PeerPosition = [1024, 1024]
@@ -140,12 +97,10 @@ def PeerstatusThreadFunc():
                 for part in MessageCache.split(";"):
                     if part.startswith("BallSelf:"):
                         BallFlag[1] = int(part.split(":")[1])  # 转换为整数
-                    if part.startswith("BallRemote:"):
-                        BallFlag[0] = int(part.split(":")[1])  # 转换为整数
                     if part.startswith("PositionX:"):
-                        PeerPositionX = int(float(part.split(":")[1]))  # 处理浮点数
+                        PeerPositionX = (float(part.split(":")[1]))  # 处理浮点数
                     if part.startswith("PositionY:"):
-                        PeerPositionY = int(float(part.split(":")[1]))  # 处理浮点数
+                        PeerPositionY = (float(part.split(":")[1]))  # 处理浮点数
                 PeerPosition = [PeerPositionX, PeerPositionY]
             except Exception as e:
                 BallFlag = [0, 0]
@@ -371,6 +326,38 @@ def AbsChassisAngle():
     return OutputAngles
 
 ##################################################################################################################
+
+def GetEnemyPos():# 获取最近敌人位置
+    EPos = EnemyPos()
+    if len(EPos) < 1 or EPos == [1024,1024]:
+        return [1024,1024]
+    else:
+        min_distance = 10000
+        for i in range(len(EPos)):
+            x1, y1 = EPos[i][:2]
+            distance = math.sqrt((x1) ** 2 + (y1) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                EPos = EPos[i][:2]
+                print(EPos)
+                return EPos
+    
+def EnemyPos():
+    P_Pos = PeerPosition
+    Px = P_Pos[0]
+    CPos = ArisuCam.GetChassisPos()
+    EPos = []
+    if len(CPos) >= 1:
+        for i in range(len(CPos)):
+            x = CPos[i][0]
+            rrX = abs(Px-x)
+            if rrX < 5 :
+                del CPos[i]
+            EPos = CPos
+        return EPos
+    else:
+        print("NO Enemy")
+        return [1024,1024]
 
 def Lockballangle():#贝尔巴托夫转身
     lBallPos = GetBallPos()#获取球的位置
@@ -952,9 +939,9 @@ def OHMYBACK(HomePos=[0,-20,0]):
     if AbsBallPos() == [1207, 1207]:
         peripheral.Dribble(True)
         iLocX,iLocY,_ = GetPos()
-        Cx = CEnemyPos()[0]
-        Cy = CEnemyPos()[1]
-        if CEnemyPos() == [1024,1024]:
+        Cx = GetEnemyPos()[0]
+        Cy = GetEnemyPos()[1]
+        if GetEnemyPos() == [1024,1024]:
             if iLocX > 0:
                 Angle = 90
             else:
