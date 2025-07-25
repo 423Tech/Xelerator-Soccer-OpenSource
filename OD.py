@@ -103,13 +103,20 @@ def OD():
                         print(10)
                         NormalShoot(0)
 
-def Offence():
-    iX = GetPos()[0]
-    iY = GetPos()[1]
-    if abs(iX) > 35:
+def OffenceNew():
+    AbsBX,AbsBY = AbsBallPos()
+    if abs(AbsBX) > 50:
         OHMYBACK()
     else:
         NormalShoot()
+
+def Offence(HomePos):
+    iX = GetPos()[0]
+    iY = GetPos()[1]
+    if abs(iX) > 35:
+        OHMYBACK(HomePos)
+    else:
+        NormalShoot(HomePos)
 
 def OffDenfence():
     bx,by = AbsBallPos()

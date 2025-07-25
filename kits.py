@@ -131,8 +131,9 @@ def PeerstatusThreadFunc():
     while (1):
         MessageCache = Beacon.MessageCache
         if MessageCache == None:
+            BallFlag = [0, 0]
+            PeerPosition = [1024, 1024]
             print("No BlueTooth Message")
-            time.sleep(1)
         if MessageCache:
             try:
                 PeerPositionX, PeerPositionY = 1024, 1024  # 默认值
@@ -412,7 +413,7 @@ def LockBallSlip():
     #     SpeedY = -300
     chassis.GoV(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
-def NormalShoot(x=1):
+def NormalShoot(x=1,HomePos=[0,-20,0]):
     BX, BY = GetBallPos()
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
@@ -420,7 +421,7 @@ def NormalShoot(x=1):
         logger.info("Ball not found, stopping chassis.")
         # Pos2Pos([0, -85, 0], False)
         # chassis.stop()
-        Pos2Pos([0, -85, 0])
+        Pos2Pos(HomePos)
         peripheral.Dribble(False)
     elif BX == 0 and 5 < (BY) <= 9:
         # for _ in range(3):
@@ -436,6 +437,9 @@ def NormalShoot(x=1):
         # BX, BY = GetBallPos()
         # if not -5 < BX < 5 and 0 < BY < 10:
         #     break
+        for _ in range(3):
+            NormalShoot(0)
+            time.sleep(0.03)
         peripheral.Dribble(True)
         for _ in range(10):
             BX,BY = GetBallPos()
@@ -943,7 +947,7 @@ def Slipsideshot(EnemyPos,GoalPos): #溜边 10,-90
         peripheral.ShootBall()
         logger.success("Ball is in possession, start shotting.")
 
-def OHMYBACK():
+def OHMYBACK(HomePos=[0,-20,0]):
     #正常
     if AbsBallPos() == [1207, 1207]:
         peripheral.Dribble(True)
@@ -988,7 +992,7 @@ def OHMYBACK():
         else:
             Pos2Pos([ShootX,85,Angle],False,50)
     else:
-        NormalShoot(0)
+        NormalShoot(x=0,HomePos=HomePos)
         
 
 

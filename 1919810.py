@@ -10,31 +10,47 @@ from Defence_Follow_ratio import*
 #### HEADER ####
 logger.info("Starting Xelerator")
 
-def KeyEvent():
-    KeyCount = 0
-    LastPressed = False
-    while True:
-        if LastPressed == True:
-            if Bits.GetKey():
-                KeyCount = KeyCount + 1
+
+class Key:
+    def __init__(self,GetKeyFunc):
+        self.KeyCount = 0
+        self.LastPressed = False
+        
+        self.GetKey = GetKeyFunc
+
+        self.KeyEventThread = threading.Thread(target=self.KeyEvent)
+        self.KeyEventThread.daemon = True
+        self.KeyEventThread.start()
+    
+    def KeyEvent(self):
+        while True:
+            if self.LastPressed == True:
+                if self.GetKey():
+                    self.KeyCount = self.KeyCount + 1
+                else:
+                    self.LastPressed = False
             else:
-                LastPressed = False
+                if self.GetKey():
+                    self.LastPressed = True
+                    self.KeyCount = self.KeyCount + 1
+            time.sleep(0.01)
+    
+    def LongPress(self):
+        if self.KeyCount >= 500:
+            return True
         else:
-            if Bits.GetKey():
-                LastPressed = True
-                KeyCount = KeyCount + 1
+            return False
+    
+    def Press(self):
+        return self.GetKey()
 
-KeyEventThread = threading.Thread(target=KeyEvent)
-KeyEventThread.daemon = True
-KeyEventThread.start()
-
+Key = Key(Bits.GetKey)
 
 Role()
 
 while True:
-    if Bits.GetKey():
+    if Key.Press():
         break
-    time.sleep(0.01)
 
 while True:
     try:

@@ -1,5 +1,5 @@
 [Unit]
-Description=Lidar Service
+Description=Xelerator Service
 After=network.target nss-lookup.target
 Wants=network.target
 
@@ -11,8 +11,8 @@ LimitAS=infinity
 LimitRSS=infinity
 LimitCORE=infinity
 LimitNOFILE=999999
-WorkingDirectory=/root
-ExecStart=/bin/bash -c "source ~/.bashrc && export ROS_DOMAIN_ID=99 && ros2 launch /root/rplidar_ws/launch/rplidar_s1_launch.py"
+WorkingDirectory=/xel
+ExecStart=/bin/bash -c "source ~/.bashrc && export ROS_DOMAIN_ID=99 && python3 /xel/1919810.py"
 Restart=always
 RestartSec=10
 
