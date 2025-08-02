@@ -10,9 +10,6 @@ async def lifespan(app: FastAPI):
     # 启动时执行
     print("应用启动")
     # 这里放置启动时需要执行的代码
-    # 比如初始化摄像头
-    global cap
-    cap = cv2.VideoCapture(0)
     
     yield  # 应用运行期间
     
@@ -20,8 +17,6 @@ async def lifespan(app: FastAPI):
     print("应用关闭")
     # 这里放置关闭时需要执行的代码
     # 比如释放摄像头资源
-    if cap is not None:
-        cap.release()
 
 app = FastAPI(lifespan=lifespan)
 
