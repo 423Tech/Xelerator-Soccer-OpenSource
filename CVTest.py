@@ -343,7 +343,6 @@ async def video_feed():
 async def change_camera(camera_id: int):
     """切换摄像头端口"""
     global camera, camera_num
-    print(1)
     
         # 释放当前摄像头
     if camera is not None:
@@ -352,7 +351,6 @@ async def change_camera(camera_id: int):
     
     # 更新摄像头编号
     camera_num = camera_id
-    print(2)
     
     # 尝试初始化新的摄像头
     if initialize_camera():
