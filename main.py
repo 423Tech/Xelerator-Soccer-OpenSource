@@ -1,16 +1,13 @@
 #### HEADER ####
-from ReasonData import QkJson, Positions
+from ReasonData import QkJson, Positions, logger
 from kits import *
-import signal
-from OD import *
-from Defence_link import *
+
 #### HEADER ####
 logger.info("Starting Xelerator")
 while True:
     try:
-        # Pos2Pos([0,0,0],True)
-        print(AbsBallPos())
-        print(AbsChassisAngle())
+        pass
+        # Put Your main logic here
     except KeyboardInterrupt:
         chassis.stop()
         peripheral.StopDribble()
