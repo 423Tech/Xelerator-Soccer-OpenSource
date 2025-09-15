@@ -9,7 +9,7 @@ from headunit import Lidar,ArisuIntelligence
 Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.read("model","Bit") == "AB":
-    from arisbit import ArisBit
+    from ArisuBits import ArisBit
     Bits = ArisBit()
     lidar = Lidar(Bits.GetYaw)
     chassis = Car(Bits.SetMotor,Bits.GetYaw)
@@ -23,9 +23,16 @@ elif cfg.read("model","Bit") == "RM":
     chassis = Car(Bits.SetMotor,Bits.GetYaw)
     compass = Bits.GetYaw
     # peripheral = Peripherals(Bits.SetIO) #TODO
-    logger.info("RoboMaster Bit loaded.")
-elif cfg.read("model","Bit") == "nexus":
+    logger.info("RoboMaster Bits loaded.")
+elif cfg.read("model","Bit") == "3Q":
     logger.info("ZUES Bit loaded.")
+    from RobomasterBits import RobomasterBits
+    Bits = RobomasterBits()
+    lidar = Lidar(Bits.GetYaw)
+    chassis = Car(Bits.SetMotor,Bits.GetYaw)
+    compass = Bits.GetYaw
+    # peripheral = Peripherals(Bits.SetIO) #TODO
+    logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model Set.")
     raise ImportError("None Bit Model Set.")
