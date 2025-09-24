@@ -3,3 +3,4 @@ uvicorn
 peewee
 loguru
 ujson
+pyserial

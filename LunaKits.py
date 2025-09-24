@@ -8,7 +8,7 @@ cfg = Preference()
 from headunit import Lidar,ArisuIntelligence
 Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
-if cfg.read("model","Bit") == "AB":
+if cfg.read("RoboInfo","Bit") == "AB":
     from ArisuBits import ArisBit
     Bits = ArisBit()
     lidar = Lidar(Bits.GetYaw)
@@ -16,7 +16,7 @@ if cfg.read("model","Bit") == "AB":
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
-elif cfg.read("model","Bit") == "RM":
+elif cfg.read("RoboInfo","Bit") == "RM":
     from RobomasterBits import RobomasterBits
     Bits = RobomasterBits()
     lidar = Lidar(Bits.GetYaw)
@@ -24,7 +24,7 @@ elif cfg.read("model","Bit") == "RM":
     compass = Bits.GetYaw
     # peripheral = Peripherals(Bits.SetIO) #TODO
     logger.info("RoboMaster Bits loaded.")
-elif cfg.read("model","Bit") == "3Q":
+elif cfg.read("RoboInfo","Bit") == "3Q":
     logger.info("ZUES Bit loaded.")
     from RobomasterBits import RobomasterBits
     Bits = RobomasterBits()
@@ -291,8 +291,6 @@ class Positions():
             else:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
-
-
 
 class Communication:
     def __init__(self):
