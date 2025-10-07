@@ -5,12 +5,22 @@
 </center>
 
 ## 游戏规则
+2025
 https://github.com/423Tech/RoboCupJuniorModels/blob/main/.readme/pdf/rules.pdf
+
+2026[Draft]
+https://github.com/423Tech/RoboCupJuniorModels/blob/main/.readme/pdf/RoboCupJuniorSoccerDraftRules2026.pdf
 
 ## 基础规则
 
-机器人的方向描述统一以从提手处往下观察，指南针`0˚`为正方向，`90˚`为右侧，`270˚`为左侧
-角度系统统一为 `0-360`
+~~机器人的方向描述统一以从提手处往下观察，指南针`0˚`为正方向，`90˚`为右侧，`270˚`为左侧
+角度系统统一为 `0-360`~~
+
+遵循右手定则 符合ROS角度标准
+
+逆时针方向 食指为`0˚` 中指为`90˚` 以此类推
+大拇指为机器人顶部方向
+
 
 ### 方向和坐标系统
 
