@@ -94,7 +94,7 @@ class YDLidarParser(Node):
         for i in range(NumRanges):
             Angle = AngleMin + i * AngleIncrement
             lRanges.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
-
+        # 
 #        print(lRanges)
 
         self.Queue.put(lRanges)
@@ -207,7 +207,7 @@ class Lidar:
 
 class ArisuIntelligence:
     def __init__(self,GetPos=None):
-        self.GetPos = GetPos
+        # self.GetPos = GetPos
         from ReasonData import QkJson
         self.cfg = QkJson()
         self.CamPorts = [0,2,4,6]
@@ -266,12 +266,13 @@ class ArisuIntelligence:
         # self.FindBallThread = threading.Thread(target=self.FindBall)
         # self.FindBallThread.daemon = True
         # self.FindBallThread.start()
-        # 弃用
+        # 色块识别 弃用
 
         self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
         self.InitConfiguredModelThread.daemon = True
         self.InitConfiguredModelThread.start()
 
+        # 报错会阻塞程序 try&except
         time.sleep(2)
 
         self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
@@ -289,12 +290,10 @@ class ArisuIntelligence:
         self.BallDetectionThread = threading.Thread(target=self.BallDetection)
         self.BallDetectionThread.daemon = True
         self.BallDetectionThread.start()
-
         
-        
-        # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
-        # self.YOLOProcessThread.daemon = True
-        # self.YOLOProcessThread.start()
+        self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
+        self.YOLOProcessThread.daemon = True
+        self.YOLOProcessThread.start()
 
 
     def InitVideo(self):
@@ -303,6 +302,7 @@ class ArisuIntelligence:
             return
         for i in range(4):
             Time = int(time.time())
+            # TODO warning for reformat
             Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
             Videos.append(Video)
         self.Videos = Videos
@@ -328,9 +328,9 @@ class ArisuIntelligence:
     
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
+            # put path into config
             InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel.set_batch_size(4)
-
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
             with InferModel.configure() as ConfiguredInferModel:
@@ -339,7 +339,6 @@ class ArisuIntelligence:
     
     def ModelPreProcess(self):
         while(1):
-            
             BindingsList = []
             for i in range(4):
                 Bindings = self.ConfiguredInferModel.create_bindings()
@@ -550,12 +549,15 @@ class ArisuIntelligence:
             self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
+        # TODO: change X,Y dimension
+        # 应用透视矩阵
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
         Transformed /= Transformed[2]
         return int(Transformed[0]), int(Transformed[1])
 
     def Pixel2CM(self,X,Y,CamIndex):
+        # TODO: change X,Y dimension
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]
         P2CVB = self.P2CVB[CamIndex]
@@ -702,16 +704,16 @@ class ArisuIntelligence:
     def GetBallPos(self):
         return self.BallPos
     
-    def BinaryObjectDetection(self):
-        Frame = self.Frames[0]
-        Pos = [self.GetPos()[0], self.GetPos()[1]]
-        Yaw = self.GetPos()[2]
-        DistToCorner = int(math.sqrt((Pos[0] - 10) ** 2 + (Pos[1] - 13) ** 2))
-        VisionAngle = math.degrees(math.atan2(Pos[0] - 10, Pos[1] - 13))
-        Theta = VisionAngle - Yaw
-        VisionCornerX = int(DistToCorner * math.sin(math.radians(Theta)))
-        VisionCornerY = int(DistToCorner * math.cos(math.radians(Theta)))
-        VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
-        print(VisionCornerX, VisionCornerY)
+    # def BinaryObjectDetection(self):
+    #     Frame = self.Frames[0]
+    #     Pos = [self.GetPos()[0], self.GetPos()[1]]
+    #     Yaw = self.GetPos()[2]
+    #     DistToCorner = int(math.sqrt((Pos[0] - 10) ** 2 + (Pos[1] - 13) ** 2))
+    #     VisionAngle = math.degrees(math.atan2(Pos[0] - 10, Pos[1] - 13))
+    #     Theta = VisionAngle - Yaw
+    #     VisionCornerX = int(DistToCorner * math.sin(math.radians(Theta)))
+    #     VisionCornerY = int(DistToCorner * math.cos(math.radians(Theta)))
+    #     VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
+    #     print(VisionCornerX, VisionCornerY)
 
 
