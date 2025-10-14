@@ -210,8 +210,8 @@ class Lidar:
 class ArisuIntelligence:
     def __init__(self,GetPos=None):
         # self.GetPos = GetPos
-        from ReasonData import QkJson
-        self.cfg = QkJson()
+        from ReasonData import Preference
+        self.cfg = Preference()
         self.CamPorts = [0,2,4,6]
 
         self.Cams = []
@@ -265,15 +265,10 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-<<<<<<< Updated upstream
+
         # self.FindBallThread = threading.Thread(target=self.FindBall)
         # self.FindBallThread.daemon = True
         # self.FindBallThread.start()
-=======
-        self.FindBallThread = threading.Thread(target=self.FindBall)
-        self.FindBallThread.daemon = True
-        self.FindBallThread.start()
->>>>>>> Stashed changes
         # 色块识别 弃用
 
         self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
@@ -299,9 +294,9 @@ class ArisuIntelligence:
         self.BallDetectionThread.daemon = True
         self.BallDetectionThread.start()
         
-        self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
-        self.YOLOProcessThread.daemon = True
-        self.YOLOProcessThread.start()
+        # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
+        # self.YOLOProcessThread.daemon = True
+        # self.YOLOProcessThread.start()
 
 
     def InitVideo(self):

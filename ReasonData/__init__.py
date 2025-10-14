@@ -1,10 +1,9 @@
 from . import setup
-from .config import QkJson,Preference
+from .config import Preference
 from .data import Positions, Date
 
 __version__ = '0.2.0'
 # ReasonData 0.2.0(20250722A) Updated Preference instead QKjson
-
 try:
     from loguru import logger
     from pathlib import Path

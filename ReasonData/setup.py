@@ -22,10 +22,10 @@ def AutoSetup():
     if not CONFIG_FILE.exists():
         logger.info("config.json doesn't exist")
         logger.info("create config.json")
-    from .config import QkJson
-    QkJson().__init__()
+    from .config import Preference
+    Preference().__init__()
     from .data import SetupDatabase
-    RoBotName = QkJson().read("model","number")
+    RoBotName = Preference().read("model","number")
     DATABASE_FILE = DATA_DIR / f"Xel-{RoBotName}.{Date}.sqlite"
     if not DATABASE_FILE.exists():
         SetupDatabase()

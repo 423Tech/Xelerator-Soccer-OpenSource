@@ -4,7 +4,7 @@ import time
 
 
 class Car:
-    def __init__(self,SetMotorFunc,GetYaw:function,MotorEncoder:function|None = False):
+    def __init__(self,SetMotorFunc,GetYaw=None,MotorEncoder=None):
         self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
         self.MotorEncoder = MotorEncoder
@@ -28,7 +28,7 @@ class Car:
         number = [1,2,3,4]
         speed = [0,0,0,0]
         for n in number:
-            speed[n-1] = int(speedCache[n])
+            speed[n-1] = int(speedCache[n-1])
         if self.SaveLog:
             if self.MotorEncoder:
                 EncoderCache = self.MotorEncoder()
@@ -58,7 +58,8 @@ class Car:
         Speed4 = SpeedX + SpeedY - SpeedZ
         if self.SaveData:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
-        self.SetMotor(Speed1, Speed2, Speed3, Speed4)
+        output = [Speed1, Speed2, Speed3, Speed4]
+        self.SetMotor(output)
     
     def AbsMoveAngle(self,FacingAngle,MovingAngle,Speed,Kp:float|None = None):
         '''

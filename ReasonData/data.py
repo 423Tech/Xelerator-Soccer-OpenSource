@@ -6,7 +6,7 @@ from . import config
 
 # 基础类
 Date = time.strftime("%Y%m", time.localtime())
-RoBotName = config.QkJson().read("model","number")
+RoBotName = config.Preference().read("model","number")
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
 DATABASE_FILE = DATA_DIR / f"Xel-{RoBotName}.{Date}.sqlite"
