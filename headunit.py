@@ -4,6 +4,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
+
+# TODO transform to RDK
 from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
 import threading
@@ -60,8 +62,9 @@ def RoundThresholdJudger(Value, Round, MiddleValue, Offset):
 
 
 
-class YDLidarParser(Node):
+class ROSLidarParser(Node):
     def __init__(self, Queue):
+        self.lRanges = []
         self.Queue = Queue
         super().__init__('ydlidar_parser')
 
@@ -78,11 +81,9 @@ class YDLidarParser(Node):
             self.scanCallback,
             qos_profile=oQos)
         
-        # self.get_logger().info('YDLidar X3解析器已启动，等待数据...')
         
     def scanCallback(self, msg):
-        lRanges = []
-
+        self.lRanges = []
         ScanTime = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         AngleMin = msg.angle_min
         AngleMax = msg.angle_max
@@ -93,17 +94,17 @@ class YDLidarParser(Node):
         NumRanges = len(Ranges)
         for i in range(NumRanges):
             Angle = AngleMin + i * AngleIncrement
-            lRanges.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
-        # 
-#        print(lRanges)
+            self.lRanges.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
+        # lRanges: [(angle,distance),(...)]
+        # print(lRanges)
 
-        self.Queue.put(lRanges)
+        self.Queue.put(self.lRanges)
 
 class Lidar:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
-        from ReasonData import QkJson
-        self.DomainID = QkJson().read("Position","DomainID")
+        from ReasonData import Preference
+        self.DomainID = Preference().read("Position","DomainID")
 
         self.LidarDists = [0,0,0,0]
 
@@ -121,8 +122,8 @@ class Lidar:
     
     def ParseLidar(self):
         rclpy.init(domain_id=self.DomainID,signal_handler_options=SignalHandlerOptions(0))
-        LidarParser = YDLidarParser(self.LidarQueue)
-        rclpy.spin(LidarParser)
+        Parser = ROSLidarParser(self.LidarQueue)
+        rclpy.spin(Parser)
     
     def LidarPositioning(self):
         Step = 2
@@ -152,7 +153,8 @@ class Lidar:
                 FrameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - LastTime >= 1.0:
-                    # print(f"FPS: {FrameCount}")
+                    from ReasonData import Preference, logger
+                    logger.debug(f"FPS: {FrameCount}")
                     FrameCount = 0
                     LastTime = CurrentTime
 

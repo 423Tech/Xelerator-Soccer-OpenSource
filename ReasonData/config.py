@@ -14,6 +14,7 @@ class Preference:
                     "number" : 1,
                     "type": "OP", # OffencePlayer/DefencePlayer
                     "Bit" : "AB",
+                    "AI" : "Hailo", # Hailo/RDK
                 },
                 "Ports": {
                     "LowTigger?" : 0, 
