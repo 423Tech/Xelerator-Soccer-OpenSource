@@ -265,9 +265,15 @@ class ArisuIntelligence:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
+<<<<<<< Updated upstream
         # self.FindBallThread = threading.Thread(target=self.FindBall)
         # self.FindBallThread.daemon = True
         # self.FindBallThread.start()
+=======
+        self.FindBallThread = threading.Thread(target=self.FindBall)
+        self.FindBallThread.daemon = True
+        self.FindBallThread.start()
+>>>>>>> Stashed changes
         # 色块识别 弃用
 
         self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
