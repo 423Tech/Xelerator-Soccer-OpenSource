@@ -1,7 +1,6 @@
 import math
-from ReasonData.config import Preference
+from .utils.ReasonData.config import Settings
 import time
-
 
 class Car:
     def __init__(self,SetMotorFunc,GetYaw=None,MotorEncoder=None):
@@ -9,27 +8,20 @@ class Car:
         self.GetYaw = GetYaw
         self.MotorEncoder = MotorEncoder
         self.Kp = 0.8
-        self.cfg = Preference()
-        self.SaveData = self.cfg.read("Debug","Database")
-        if self.SaveData:
-            from ReasonData.data import Outputs
+        self.cfg = Settings
+        if self.cfg.Debug.Database:
+            from .utils.ReasonData.data import Outputs
             self.DataBase = Outputs()
-        self.SaveLog = self.cfg.read("Debug","FullLog")
-        if self.SaveLog:
-            from ReasonData import logger
+        if self.cfg.Debug.FullLog:
+            from .utils.ReasonData import logger
             self.logger = logger
     
     def SetMotor(self,speedCache:list[int,int,int,int]):
-        LeftFrontNumber = self.cfg.read("Ports","LeftFront")
-        LeftBackNumber = self.cfg.read("Ports","LeftBack")
-        RightFrontNumber = self.cfg.read("Ports","RightFront")
-        RightBackNumber = self.cfg.read("Ports","RightBack")
-        number = [LeftFrontNumber,LeftBackNumber,RightFrontNumber,RightBackNumber]
-        number = [1,2,3,4]
+        number = [self.cfg.Ports.LeftFront,self.cfg.Ports.LeftBack,self.cfg.Ports.RightFront,self.cfg.Ports.RightBack]
         speed = [0,0,0,0]
         for n in number:
             speed[n-1] = int(speedCache[n-1])
-        if self.SaveLog:
+        if self.cfg.Debug.FullLog:
             if self.MotorEncoder:
                 EncoderCache = self.MotorEncoder()
                 Encoder =[0,0,0,0]
@@ -56,7 +48,7 @@ class Car:
         Speed2 = SpeedY - SpeedX + SpeedZ
         Speed3 = SpeedY - SpeedX - SpeedZ
         Speed4 = SpeedX + SpeedY - SpeedZ
-        if self.SaveData:
+        if self.cfg.Debug.FullLog:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         output = [Speed1, Speed2, Speed3, Speed4]
         self.SetMotor(output)
@@ -105,10 +97,9 @@ class Car:
             Speed = AimSpeed
             
             if Error < -5:
-                self.TurnSpeed(Speed)
+                self.RelTurn(Speed)
             elif Error > 5:
-                Speed = -Speed
-                self.TurnSpeed(Speed)
+                self.RelTurn(-Speed)
             else:
                 break
             time.sleep(0.03)
@@ -120,20 +111,17 @@ class Car:
 class Peripherals:
     def __init__(self,IOFunc):
         self.SetIO = IOFunc
-        from ReasonData import Preference
-        self.cfg = Preference()
-        from ReasonData import logger
+        from .utils.ReasonData import Settings
+        self.cfg = Settings
+        from .utils.ReasonData import logger
         self.logger = logger
-        self.ElecMagnetIO = self.cfg.read("Ports","ElecMagnet")
-        self.DribbleIO = self.cfg.read("Ports","Dribble")
-        self.SetIO(self.ElecMagnetIO,1)
-        # Val for log
+        self.SetIO(self.cfg.Ports.ElecMagnet,1)
         self.DribbleStatus = False
 
     def ShootBall(self):
-        self.SetIO(self.ElecMagnetIO,0)
+        self.SetIO(self.cfg.Ports.ElecMagnet,0)
         time.sleep(0.3)
-        self.SetIO(self.ElecMagnetIO,1)
+        self.SetIO(self.cfg.Ports.ElecMagnet,1)
         self.logger.info("Used ElecMagnet")
 
     def Dribble(self,Status:bool):
@@ -141,8 +129,8 @@ class Peripherals:
             pass
         else:
             if Status:
-                self.SetIO(self.DribbleIO,1)
+                self.SetIO(self.cfg.Ports.Dribble,1)
             else:
-                self.SetIO(self.DribbleIO,0)
+                self.SetIO(self.cfg.Ports.Dribble,0)
             self.DribbleStatus = Status
             self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))

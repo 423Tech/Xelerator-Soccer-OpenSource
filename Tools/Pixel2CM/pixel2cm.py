@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 
+APP_DIR = Path(__file__).parent
+DATA_DIR = APP_DIR / "CalibrationData"
+
 class Pixel2CM:
     def __init__(self):
         self.HomePath = Path.home()
@@ -15,7 +18,7 @@ class Pixel2CM:
 
 
         for i in range(4):
-            NumpyData = np.load(self.HomePath / f'CalibrationData{self.CamPorts[i]}.npz')
+            NumpyData = np.load(DATA_DIR / f'CalibrationData{self.CamPorts[i]}.npz')
             PerspectiveMatrix = NumpyData['matrix']
             self.PerspectiveMatrices.append(PerspectiveMatrix)
             P2CK = NumpyData['p2c'][0]

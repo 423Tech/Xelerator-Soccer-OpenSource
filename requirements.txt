@@ -4,3 +4,5 @@ peewee
 loguru
 ujson
 pyserial
+opencv-python
+numpy

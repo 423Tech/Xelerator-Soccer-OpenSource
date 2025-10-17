@@ -2,39 +2,34 @@ import math
 import time
 import threading
 
-from ReasonData import Preference, logger
-cfg = Preference()
+from .utils.ReasonData import logger, Settings
+cfg = Settings
 
 from headunit import Lidar,ArisuIntelligence
 Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
-if cfg.read("RoboInfo","Bit") == "AB":
-    from ArisuBits import ArisBit
+if cfg.RoboInfo.Bit == "AB":
+    from utils.ArisuBits import ArisBit
     Bits = ArisBit()
     lidar = Lidar(Bits.GetYaw)
     chassis = Car(Bits.SetMotor,Bits.GetYaw)
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
-elif cfg.read("RoboInfo","Bit") == "RM":
-    from RobomasterBits import RobomasterBits
-    Bits = RobomasterBits()
-    lidar = Lidar(Bits.GetYaw)
-    chassis = Car(Bits.SetMotor,Bits.GetYaw)
-    compass = Bits.GetYaw
-    # peripheral = Peripherals(Bits.SetIO) #TODO
-    logger.info("RoboMaster Bits loaded.")
-elif cfg.read("RoboInfo","Bit") == "3Q":
-    logger.info("ZUES Bit loaded.")
-    from RobomasterBits import RobomasterBits
-    Bits = RobomasterBits()
-    lidar = Lidar(Bits.GetYaw)
-    chassis = Car(Bits.SetMotor,Bits.GetYaw)
-    compass = Bits.GetYaw
-    # peripheral = Peripherals(Bits.SetIO) #TODO
-    logger.info("RoboMaster Bit loaded.")
+# elif cfg.RoboInfo.Bit") == "RM":
+#     from utils.RobomasterBits import RobomasterBits
+#     Bits = RobomasterBits()
+#     lidar = Lidar(Bits.GetYaw)
+#     chassis = Car(Bits.SetMotor,Bits.GetYaw)
+#     compass = Bits.GetYaw
+#     # peripheral = Peripherals(Bits.SetIO) #TODO
+#     logger.info("RoboMaster Bits loaded.")
+# elif cfg.RoboInfo.Bit") == "3Q":
+#     logger.info("ZUES Bit loaded.")
+#     # peripheral = Peripherals(Bits.SetIO) #TODO
+#     logger.info("RoboMaster Bit loaded.")
 else:
-    logger.error("None Bit Model Set.")
+    logger.error("None Bit Model Fetched.")
     raise ImportError("None Bit Model Set.")
 
 class Positions():
@@ -51,7 +46,7 @@ class Positions():
         # Values for timer
         self.WaitTime = 1
         # Values for configs
-        self.FullLog = cfg.read("Debug","FullLog")
+        self.FullLog = cfg.Debug.FullLog
 
     # ********* BASIC FUNCTIONS ********
     def RelBallPos(self):
@@ -65,10 +60,11 @@ class Positions():
             `0xfff` stand for `NoBallFounded`
             `0xddd` stand for `CatchBall`
         '''
+        # 20251017 already changed X,Y dimension    
         self.BallPos = Vision.GetBallPos()
         if self.BallPos == [0,0]:
             self.BallPos = [0xfff,0xfff]
-        if abs(self.BallPos-cfg.read("ExpectedVals","CatchVal")) <= cfg.read("ExpectedVal","ErrorRange"):
+        if abs(self.BallPos-cfg.ExpectedVals.CatchVal) <= cfg.ExpectedVals.ErrorRange:
             self.BallPos = [0xddd,0xddd]
         logger.info("[Relative] Ball Position: %s"%self.BallPos)
         return self.BallPos
@@ -88,7 +84,7 @@ class Positions():
             self.WarnedLidarCount = self.WarnedLidarCount + 1
             time.sleep(self.WaitTime) # wait 1 second for starting lidar
             logger.warning("Lidar Not Started! Retry for %s time in %s second"%(self.WarnedLidarCount,self.WaitTime))
-            if self.WarnedLidarCount > cfg.read("ExpectedVals","MaxWarnCount"):
+            if self.WarnedLidarCount > cfg.ExpectedVals.MaxWarnCount:
                 logger.error("No Lidar Data Recieved! Please Check Lidar Modules!")
                 raise RuntimeError("No Lidar Data Recieved! Please Check Lidar Modules!")
             return [0xfff,0xfff,compass()]
@@ -113,24 +109,25 @@ class Positions():
             `0xfff` stand for `No Position`
         '''
         if not lower:# if use lidar datas
-            Distance = self.DirDistance()
-            if (Distance[0]+Distance[2]) < (cfg.read("Bounds","Long"))*self.LidarScale*self.BoundsScale:
-                if Distance[0] > Distance[2]:
-                    Y = cfg.read("Bounds","Long")*self.LidarScale/2 - Distance[0]
+            _distance = self.DirDistance()
+            if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
+                if _distance[0] > _distance[2]:
+                    Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
                 else:
-                    Y = Distance[2] - cfg.read("Bounds","Long")*self.LidarScale/2
+                    Y = _distance[2] - cfg.Bounds.Long*self.LidarScale/2
             else:
-                Y = ((cfg.read("Bounds","Long")*self.LidarScale/2 - Distance[0]) + (Distance[2] - cfg.read("Bounds","Long")*self.LidarScale/2))/2
-            if Distance[1]+Distance[3] < (cfg.read("Bounds","Short") - 50)*self.LidarScale*self.BoundsScale:
-                if Distance[1] > Distance[3]:
-                    X = -(cfg.read("Bounds","Short")*self.LidarScale/2 - Distance[1])
+                Y = ((cfg.Bounds.Long*self.LidarScale/2 - _distance[0]) + (_distance[2] - cfg.Bounds.Long*self.LidarScale/2))/2
+            if _distance[1]+_distance[3] < (cfg.Bounds.Short - 50)*self.LidarScale*self.BoundsScale:
+                if _distance[1] > _distance[3]:
+                    X = -(cfg.Bounds.Short*self.LidarScale/2 - _distance[1])
                 else:
-                    X = -(Distance[3] - cfg.read("Bounds","Short")*self.LidarScale/2)
+                    X = -(_distance[3] - cfg.Bounds.Short*self.LidarScale/2)
             else:
-                X = -((cfg.read("Bounds","Short")*self.LidarScale/2 - Distance[1]) + (Distance[3] - cfg.read("Bounds","Short")*self.LidarScale/2))/2
+                X = -((cfg.Bounds.Short*self.LidarScale/2 - _distance[1]) + (_distance[3] - cfg.Bounds.Short*self.LidarScale/2))/2
             self.LidarPos = [X/10,Y/10,compass()]
             logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
-            return [X/10,Y/10,compass()]
+            # 20251017 already changed X,Y dimension    
+            return [Y/10,X/10,compass()]
         else:
             # TODO finish lower Positions
             raise RuntimeError("You Choosed the Wrong Args!")
@@ -146,6 +143,7 @@ class Positions():
                     chassis height
                     chassis weidth
         '''
+        # 20251017 already changed X,Y dimension
         ChassisRawList = Vision.GetChassisPos()
         SelfX,SelfY,SelfZ = Positions.AbsRoboPosition()
         OutputDistanceList = []
@@ -163,8 +161,8 @@ class Positions():
             else:
                 ChassisAbsAngle = ChassisAngleAngle
             AbsChassisCache = [
-                cDistance * math.cos(math.radians(ChassisAbsAngle)) + SelfX,
                 cDistance * math.sin(math.radians(ChassisAbsAngle)) + SelfY,
+                cDistance * math.cos(math.radians(ChassisAbsAngle)) + SelfX,
                 c[2],
                 c[3]
                 ]
@@ -234,7 +232,7 @@ class Positions():
         ballX,ballY = Vision.GetBallPos()
         if [ballX,ballY] == [0,0]:
             return [0xfff,0xfff]
-        if [ballX,ballY] == cfg.read("ExpectedVals","CatchVal"):
+        if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
             return [0xddd,0xddd]
         SelfX,SelfY,SelfZ = self.AbsRoboPosition()
         ballDistance = math.sqrt(ballX**2 + ballY**2)
@@ -250,9 +248,10 @@ class Positions():
         else:
             k = 1
         AbsBallPositon = [
-            ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfX,
-            ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfY
+            ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfY,
+            ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfX
             ]
+        # 20251017 already changed X,Y dimension
         return AbsBallPositon
 
     def RelChassisAngle(self):
@@ -294,16 +293,16 @@ class Positions():
 
 class Communication:
     def __init__(self):
-        if cfg.read("Transimission","Method") == "WIFI":
-            from ReasonBeacon import MisakaNetwork
+        if cfg.Transimission.Method == "WIFI":
+            from utils.ReasonBeacon import MisakaNetwork
             self.transimission = MisakaNetwork()
-        elif cfg.read("Transimission","Method") == "BLE":
+        elif cfg.Transimission.Method == "BLE":
             pass
         else:
             raise RuntimeError("None Transmission Method Selected!")
         self.BallFlag = [0,0]
         self.PeerPosition = [0xfff,0xfff]
-        self.FullLog = cfg.read("Debug","FullLog")
+        self.FullLog = cfg.Debug.FullLog
 
     # Communicate Functions
     def BallOwner(self):# function for judging whether catch the ball
@@ -311,7 +310,7 @@ class Communication:
         ### function for judging whether catch the ball
         #### no return value, this function will change the global variable `BallFlag`
         '''
-        BallX, BallY = Positions.Abs()
+        BallX, BallY = Positions.AbsBallPos()
         if [BallX,BallY] == [0xddd,0xddd]:
             self.BallFlag[0] = 1
         else:
