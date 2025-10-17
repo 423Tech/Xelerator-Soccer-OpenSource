@@ -48,7 +48,7 @@ class Preference:
                     "Record" : False, # False to Disable Record video
                     "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
                     "AutoExpose" : 0,  # 0: Manual, 1: Auto
-                    "CalibrationFolder": './Calibration/',
+                    "CalibrationFolder": './utils/ReasonData/data/Calibration/',
                 },
                 "Bounds" : {
                     "ClsPos": [85,35,0], #Bound CheckPoint (Close to [0,0])

@@ -20,6 +20,7 @@ import signal
 import cv2
 import numpy as np
 
+from utils.ReasonData import Settings, logger
 
 
 def GetLineStandardEquation(Line):
@@ -104,7 +105,6 @@ class ROSLidarParser(Node):
 class Lidar:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
-        from .utils.ReasonData import Settings
         self.domainID = Settings.Ports.LidarID
 
         self.dirNormalizedDistance = [0,0,0,0]
@@ -151,7 +151,6 @@ class Lidar:
                 frameCount += 1
                 CurrentTime = time.time()
                 if CurrentTime - lastTime >= 1.0:
-                    from .utils.ReasonData import logger, Settings
                     if Settings.Debug.FullLog:
                         logger.debug(f"FPS: {frameCount}")
                     frameCount = 0
@@ -209,7 +208,6 @@ class Lidar:
 class LidarWithoutYaw:
     def __init__(self,GetYaw):
         self.GetYaw = GetYaw
-        from .utils.ReasonData import Settings
         self.domainID = Settings.Ports.LidarID
 
         self.dirNormalizedDistance = [0,0,0,0]
@@ -236,7 +234,6 @@ class LidarWithoutYaw:
 class ArisuIntelligence:
     def __init__(self,GetPos=None):
         # self.GetPos = GetPos
-        from .utils.ReasonData import Settings,logger
         self.cfg = Settings
         self.logger = logger
         self.CamPorts = [0,2,4,6]
@@ -272,7 +269,7 @@ class ArisuIntelligence:
         self.BallQueue = queue.Queue(maxsize=1)
 
         for i in range(4):
-            NumpyData = np.load(self.cfg.VisionVals.CalibrationFolder + str(self.CamPorts[i]) + '.npz')
+            NumpyData = np.load(self.cfg.VisionVals.CalibrationFolder + 'CalibrationData' + str(self.CamPorts[i]) + '.npz')
             PerspectiveMatrix = NumpyData['matrix']
             self.PerspectiveMatrices.append(PerspectiveMatrix)
             P2CK = NumpyData['p2c'][0]
@@ -357,7 +354,7 @@ class ArisuIntelligence:
     
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            # put path into config
+            # TODO put path into config
             InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape

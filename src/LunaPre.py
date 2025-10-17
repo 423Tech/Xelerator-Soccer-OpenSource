@@ -2,7 +2,7 @@ import math
 import time
 import threading
 
-from .utils.ReasonData import logger, Settings
+from utils.ReasonData import logger, Settings
 cfg = Settings
 
 from headunit import Lidar,ArisuIntelligence
