@@ -1,14 +1,12 @@
-version: "3.9"
-
 services:
-  Ceasear:
+  pre-utils:
     build:
       context: ./src
       dockerfile: Dockerfile
     container_name: ceasear_kit
     restart: unless-stopped
     volumes:
-      - ./logs: /var/log/CeasearKit
+      - ./logs:/var/log/CeasearKit
     environment:
       - ENV=dev
       - DEBUG=true
