@@ -5,8 +5,12 @@ from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 
+try:
+    from hailo_platform import VDevice, HailoSchedulingAlgorithm
+    HAILO = 1
+except:
+    HAILO = 0
 # TODO transform to RDK
-from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
 import threading
 import math
@@ -16,6 +20,7 @@ import signal
 import cv2
 import numpy as np
 
+from utils.ReasonData import Settings, logger
 
 
 def GetLineStandardEquation(Line):
@@ -64,9 +69,12 @@ def RoundThresholdJudger(Value, Round, MiddleValue, Offset):
 
 class ROSLidarParser(Node):
     def __init__(self, Queue):
-        self.lRanges = []
+        '''
+        解析sllidar_ros2的雷达数据
+        '''
+        self.dirDistance = []
         self.Queue = Queue
-        super().__init__('ydlidar_parser')
+        super().__init__('Sllidar_praser')
 
         oQos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -83,7 +91,7 @@ class ROSLidarParser(Node):
         
         
     def scanCallback(self, msg):
-        self.lRanges = []
+        self.dirDistance = []
         ScanTime = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         AngleMin = msg.angle_min
         AngleMax = msg.angle_max
@@ -94,69 +102,62 @@ class ROSLidarParser(Node):
         NumRanges = len(Ranges)
         for i in range(NumRanges):
             Angle = AngleMin + i * AngleIncrement
-            self.lRanges.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
-        # lRanges: [(angle,distance),(...)]
-        # print(lRanges)
-
-        self.Queue.put(self.lRanges)
+            self.dirDistance.append(((math.degrees(Angle)+180) % 360, Ranges[i]))
+        self.Queue.put(self.dirDistance)
 
 class Lidar:
-    def __init__(self,GetYaw):
+    def __init__(self,GetYaw=None):
         self.GetYaw = GetYaw
-        from ReasonData import Preference
-        self.DomainID = Preference().read("Position","DomainID")
+        self.domainID = Settings.Ports.LidarID
 
-        self.LidarDists = [0,0,0,0]
+        self.dirNormalizedDistance = [0,0,0,0]
 
-        self.LidarQueue = queue.Queue()
+        self.dirLidarQueue = queue.Queue()
 
         self.ParseLidarThread = threading.Thread(target=self.ParseLidar)
         self.ParseLidarThread.daemon = True
         self.ParseLidarThread.start()
 
-        self.LidarPositioningThread = threading.Thread(target=self.LidarPositioning)
+        self.LidarPositioningThread = threading.Thread(target=self.LidarNormalize)
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
 
-
-    
     def ParseLidar(self):
-        rclpy.init(domain_id=self.DomainID,signal_handler_options=SignalHandlerOptions(0))
-        Parser = ROSLidarParser(self.LidarQueue)
+        rclpy.init(domain_id=self.domainID,signal_handler_options=SignalHandlerOptions(0))
+        Parser = ROSLidarParser(self.dirLidarQueue)
         rclpy.spin(Parser)
     
-    def LidarPositioning(self):
-        Step = 2
-
-        FrameCount = 0
-        LastTime = time.time()
+    def LidarNormalize(self):
+        step = 2
+        frameCount = 0
+        lastTime = time.time()
         
         while(1):
-            Ranges = self.LidarQueue.get()
-            Lines = []
-            Points = []
+            Ranges = self.dirLidarQueue.get()
+            lines = []
+            points = []
             for Element in Ranges:
                 if 0 < Element[1] < 2.5:
                     X = Element[1] * math.sin(math.radians(Element[0]))
                     Y = Element[1] * math.cos(math.radians(Element[0]))
-                    Points.append((X, Y, Element[0]))
+                    points.append((X, Y, Element[0]))
             
-            if Points:
-                for i in range(0,len(Points),Step):
-                    if i + 1 < len(Points):
-                        Line = (Points[i][0], Points[i][1], Points[i+1][0], Points[i+1][1])
+            if points:
+                for i in range(0,len(points),step):
+                    if i + 1 < len(points):
+                        Line = (points[i][0], points[i][1], points[i+1][0], points[i+1][1])
                         Theta = GetLineTheta(Line)
-                        LidarAVGTheta = (Points[i][2] + Points[i+1][2]) / 2
+                        LidarAVGTheta = (points[i][2] + points[i+1][2]) / 2
                         Distance = GetLineDistance(Line)
-                        Lines.append((Points[i][0], Points[i][1], Points[i+1][0], Points[i+1][1], Distance, Theta, LidarAVGTheta))
+                        lines.append((points[i][0], points[i][1], points[i+1][0], points[i+1][1], Distance, Theta, LidarAVGTheta))
 
-                FrameCount += 1
+                frameCount += 1
                 CurrentTime = time.time()
-                if CurrentTime - LastTime >= 1.0:
-                    from ReasonData import Preference, logger
-                    logger.debug(f"FPS: {FrameCount}")
-                    FrameCount = 0
-                    LastTime = CurrentTime
+                if CurrentTime - lastTime >= 1.0:
+                    if Settings.Debug.FullLog:
+                        logger.debug(f"FPS: {frameCount}")
+                    frameCount = 0
+                    lastTime = CurrentTime
 
                 Compass = self.GetYaw()
                 CompassFull = Compass
@@ -167,8 +168,8 @@ class Lidar:
                 HorizontalLines = []
                 VerticalLines = []
 
-                if Lines:
-                    for Line in Lines:
+                if lines:
+                    for Line in lines:
                         if RoundThresholdJudger(Line[5], 180, Compass, 20):
                             HorizontalLines.append(Line)
                         elif RoundThresholdJudger(Line[5], 180, Compass + 90, 20):
@@ -202,16 +203,45 @@ class Lidar:
                             else:
                                 LidarDists[i] = 0
 
-                    self.LidarDists = LidarDists
+                    self.dirNormalizedDistance = LidarDists
 
     def GetDists(self):
-        return self.LidarDists
+        return self.dirNormalizedDistance
+
+class LidarWithoutYaw:
+    def __init__(self,GetYaw):
+        self.GetYaw = GetYaw
+        self.domainID = Settings.Ports.LidarID
+
+        self.dirNormalizedDistance = [0,0,0,0]
+
+        self.dirLidarQueue = queue.Queue()
+
+        self.ParseLidarThread = threading.Thread(target=self.ParseLidar)
+        self.ParseLidarThread.daemon = True
+        self.ParseLidarThread.start()
+
+        self.LidarPositioningThread = threading.Thread(target=self.LidarPositioning)
+        self.LidarPositioningThread.daemon = True
+        self.LidarPositioningThread.start()
+
+    def ParseLidar(self):
+        rclpy.init(domain_id=self.domainID,signal_handler_options=SignalHandlerOptions(0))
+        Parser = ROSLidarParser(self.dirLidarQueue)
+        rclpy.spin(Parser)
+    
+    def LidarPosition(self):
+        Ranges = self.dirLidarQueue.get()
+        # TODO
 
 class ArisuIntelligence:
+    '''
+    with hailo only
+    '''
     def __init__(self,GetPos=None):
         # self.GetPos = GetPos
-        from ReasonData import Preference
-        self.cfg = Preference()
+        self.cfg = Settings
+        self.logger = logger
         self.CamPorts = [0,2,4,6]
 
         self.Cams = []
@@ -245,7 +275,7 @@ class ArisuIntelligence:
         self.BallQueue = queue.Queue(maxsize=1)
 
         for i in range(4):
-            NumpyData = np.load('/root/CalibrationData' + str(self.CamPorts[i]) + '.npz')
+            NumpyData = np.load(self.cfg.VisionVals.CalibrationFolder + 'CalibrationData' + str(self.CamPorts[i]) + '.npz')
             PerspectiveMatrix = NumpyData['matrix']
             self.PerspectiveMatrices.append(PerspectiveMatrix)
             P2CK = NumpyData['p2c'][0]
@@ -266,42 +296,41 @@ class ArisuIntelligence:
         self.VideoRecordThread.start()
 
 
-        # self.FindBallThread = threading.Thread(target=self.FindBall)
-        # self.FindBallThread.daemon = True
-        # self.FindBallThread.start()
-        # 色块识别 弃用
+        if HAILO:
+            self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+            self.InitConfiguredModelThread.daemon = True
+            self.InitConfiguredModelThread.start()
 
-        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
-        self.InitConfiguredModelThread.daemon = True
-        self.InitConfiguredModelThread.start()
+            # 报错会阻塞程序 try&except
+            time.sleep(2)
 
-        # 报错会阻塞程序 try&except
-        time.sleep(2)
+            self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+            self.ModelPreProcessThread.daemon = True
+            self.ModelPreProcessThread.start()
 
-        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-        self.ModelPreProcessThread.daemon = True
-        self.ModelPreProcessThread.start()
+            self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+            self.ModelInferThread.daemon = True
+            self.ModelInferThread.start()
 
-        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-        self.ModelInferThread.daemon = True
-        self.ModelInferThread.start()
+            self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
+            self.ChassisDetectionThread.daemon = True
+            self.ChassisDetectionThread.start()
 
-        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-        self.ChassisDetectionThread.daemon = True
-        self.ChassisDetectionThread.start()
+            self.BallDetectionThread = threading.Thread(target=self.BallDetection)
+            self.BallDetectionThread.daemon = True
+            self.BallDetectionThread.start()
 
-        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-        self.BallDetectionThread.daemon = True
-        self.BallDetectionThread.start()
+        else:
+            self.FindBallThread = threading.Thread(target=self.FindBall)
+            self.FindBallThread.daemon = True
+            self.FindBallThread.start()
+            # 色块识别 设计逻辑为无HAILO时启动
         
-        # self.YOLOProcessThread = threading.Thread(target=self.YOLOProcess)
-        # self.YOLOProcessThread.daemon = True
-        # self.YOLOProcessThread.start()
 
 
     def InitVideo(self):
         Videos = []
-        if not self.cfg.read("Vision","Record"):
+        if not self.cfg.VisionVals.Record:
             return
         for i in range(4):
             Time = int(time.time())
@@ -331,7 +360,7 @@ class ArisuIntelligence:
     
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            # put path into config
+            # TODO put path into config
             InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
@@ -430,7 +459,8 @@ class ArisuIntelligence:
                         Height = YMax - YMin
 
                         Confidence = Chassis[4]
-                        ChassisTuple = (CX, CY, Width, Height, Confidence)
+                        ChassisTuple = (CY, CX, Width, Height, Confidence)
+                        # 20251017 already changed X,Y dimension
                         
                         self.MergedChassisList.append(ChassisTuple)
                         # ChassisList.append(ChassisTuple)
@@ -466,6 +496,7 @@ class ArisuIntelligence:
             # print(self.MergedChassisList)
 
     def GetChassisPos(self):
+        # 20251017 already changed X,Y dimension
         return self.MergedChassisList
     
     def BallDetection(self):
@@ -513,7 +544,7 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [BX, BY]
+                self.BallPos = [BY, BX]
             else:
                 self.BallPos = [0, 0]
 
@@ -542,29 +573,28 @@ class ArisuIntelligence:
                 Frame = Cam.read()[1]
                 Frames.append(Frame)
             self.Frames = Frames
-            # print(1)
             FrameCount += 1
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
-                # print(f"FPS: {FrameCount}")
+                if self.cfg.Debug.FullLog:
+                    self.logger.debug("Camera FPS: %s",FrameCount)
                 FrameCount = 0
                 LastTime = CurrentTime
             self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
-        # TODO: change X,Y dimension
+        # 20251017 already changed X,Y dimension
         # 应用透视矩阵
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
         Transformed /= Transformed[2]
-        return int(Transformed[0]), int(Transformed[1])
+        return int(Transformed[1]), int(Transformed[0])
 
     def Pixel2CM(self,X,Y,CamIndex):
-        # TODO: change X,Y dimension
+        # 20251017 already changed X,Y dimension
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]
         P2CVB = self.P2CVB[CamIndex]
-
         X, Y = self.ApplyPerspectiveTransform(X, Y, self.PerspectiveMatrices[CamIndex])
 
         X = int(self.P2CK[CamIndex] * X + self.P2CHB[CamIndex])
@@ -671,8 +701,6 @@ class ArisuIntelligence:
                 Blobs = []
                 Frame = self.Frames[i]
                 Blobs = self.FindBlobs(Frame, self.OrangeThreshold)
-                # print(Blobs)
-            
                 if Blobs:
                     MaxBlob = self.FindMaxBlob(Blobs)
                     X = MaxBlob[4]
@@ -699,15 +727,15 @@ class ArisuIntelligence:
             else:
                 BX = 0
                 BY = 0
-
-
-            self.BallPos = [BX, BY]
+            self.BallPos = [BY, BX]
+            # 20251017 已修改坐标
             time.sleep(0.03)
     
     def GetBallPos(self):
         return self.BallPos
     
     # def BinaryObjectDetection(self):
+    #     二值化检测对方
     #     Frame = self.Frames[0]
     #     Pos = [self.GetPos()[0], self.GetPos()[1]]
     #     Yaw = self.GetPos()[2]

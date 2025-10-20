@@ -1,5 +1,5 @@
 from . import setup
-from .config import Preference
+from .config import Preference, Settings
 from .data import Positions, Date
 
 __version__ = '0.2.0'
@@ -24,4 +24,4 @@ logger.add(
     catch=True)
 logger.info("ReasonData(%s) loaded."%__version__)
 
-__all__ = ['config', 'Positions', 'setup']
+__all__ = ['Preference', 'Positions', 'setup', 'Settings', 'logger']

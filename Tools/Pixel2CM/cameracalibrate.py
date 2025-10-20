@@ -80,7 +80,10 @@ if Corners is not None:
     print(fVerticalB)
     # print(applyPerspectiveTransform(320,240,aPerspectiveMatrix))
 
-    np.savez(HomePath / f'CalibrationData{CamIndex}.npz', 
+    APP_DIR = Path(__file__).parent
+    DATA_DIR = APP_DIR / "CalibrationData"
+
+    np.savez(DATA_DIR / f'CalibrationData{CamIndex}.npz', 
             matrix=aPerspectiveMatrix, 
             p2c=aPixelToCM)
 
