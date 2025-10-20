@@ -69,9 +69,12 @@ def RoundThresholdJudger(Value, Round, MiddleValue, Offset):
 
 class ROSLidarParser(Node):
     def __init__(self, Queue):
+        '''
+        解析sllidar_ros2的雷达数据
+        '''
         self.dirDistance = []
         self.Queue = Queue
-        super().__init__('ydlidar_parser')
+        super().__init__('Sllidar_praser')
 
         oQos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -103,7 +106,7 @@ class ROSLidarParser(Node):
         self.Queue.put(self.dirDistance)
 
 class Lidar:
-    def __init__(self,GetYaw):
+    def __init__(self,GetYaw=None):
         self.GetYaw = GetYaw
         self.domainID = Settings.Ports.LidarID
 
@@ -115,7 +118,7 @@ class Lidar:
         self.ParseLidarThread.daemon = True
         self.ParseLidarThread.start()
 
-        self.LidarPositioningThread = threading.Thread(target=self.LidarPositioning)
+        self.LidarPositioningThread = threading.Thread(target=self.LidarNormalize)
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
 
@@ -124,7 +127,7 @@ class Lidar:
         Parser = ROSLidarParser(self.dirLidarQueue)
         rclpy.spin(Parser)
     
-    def LidarPositioning(self):
+    def LidarNormalize(self):
         step = 2
         frameCount = 0
         lastTime = time.time()
@@ -232,6 +235,9 @@ class LidarWithoutYaw:
         # TODO
 
 class ArisuIntelligence:
+    '''
+    with hailo only
+    '''
     def __init__(self,GetPos=None):
         # self.GetPos = GetPos
         self.cfg = Settings
