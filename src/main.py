@@ -1,0 +1,1 @@
+print("✅ My app is running inside Docker!")
