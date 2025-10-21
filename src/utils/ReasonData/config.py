@@ -161,7 +161,7 @@ class Prompts(object):
             self.Record = False
             self.ExposeVal = 100
             self.AutoExpose = 0
-            self.CalibrationFolder = './Calibration/'
+            self.CalibrationFolder = 'Calibration'
 
     class _bounds(object):
         def __init__(self):
