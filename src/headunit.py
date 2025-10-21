@@ -20,7 +20,7 @@ import signal
 import cv2
 import numpy as np
 
-from utils.ReasonData import Settings, logger
+from utils.ReasonData import Settings, logger, DATA_DIR
 
 
 def GetLineStandardEquation(Line):
@@ -275,7 +275,7 @@ class ArisuIntelligence:
         self.BallQueue = queue.Queue(maxsize=1)
 
         for i in range(4):
-            NumpyData = np.load(self.cfg.VisionVals.CalibrationFolder + 'CalibrationData' + str(self.CamPorts[i]) + '.npz')
+            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
             PerspectiveMatrix = NumpyData['matrix']
             self.PerspectiveMatrices.append(PerspectiveMatrix)
             P2CK = NumpyData['p2c'][0]
