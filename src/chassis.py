@@ -105,7 +105,7 @@ class Car:
             time.sleep(0.03)
             
     def stop(self):
-        self.SetMotor(0,0,0,0)
+        self.SetMotor([0,0,0,0])
 
 
 class Peripherals:

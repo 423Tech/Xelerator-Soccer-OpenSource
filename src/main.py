@@ -1,4 +1,21 @@
-from LunaPre import *
+from LunaPre import chassis
+import time
 
-while True:
-    print(chassis.AbsMoveAngle(0,90,100))
+
+for i in range(10):
+    chassis.AbsMoveVetor(100,0,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(0,-100,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(-100,0,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(0,100,0)
+    time.sleep(0.2)
+
+chassis.stop()
