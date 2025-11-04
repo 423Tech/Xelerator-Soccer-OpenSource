@@ -26,7 +26,7 @@ class Car:
                 EncoderCache = self.MotorEncoder()
                 Encoder =[0,0,0,0]
                 for n in number:
-                    Encoder[n-1] = int(EncoderCache[n])
+                    Encoder[n-1] = int(EncoderCache[n-1])
                 self.logger.debug("SetMotorVals: (%s, %s, %s, %s) | With feedbackVals %s" %
                                    (speed[0], speed[1], speed[2], speed[3],Encoder)
                                    )

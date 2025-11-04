@@ -12,7 +12,7 @@ if cfg.RoboInfo.Bit == "AB":
     from utils.ArisuBits import ArisBit
     Bits = ArisBit()
     lidar = Lidar(Bits.GetYaw)
-    chassis = Car(Bits.SetMotor,Bits.GetYaw)
+    chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
     logger.info("Arisu Bit loaded.")
