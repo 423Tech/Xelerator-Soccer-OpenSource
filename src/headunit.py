@@ -249,6 +249,7 @@ class ArisuIntelligence:
         self.Videos = []
 
         self.StopRecord = 0
+        from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
         self.HailoParams = VDevice.create_params()
         self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
