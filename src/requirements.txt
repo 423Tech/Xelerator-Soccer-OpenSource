@@ -1,5 +1,5 @@
 loguru==0.7.3
-numpy==2.2.6
+numpy
 opencv-python==4.12.0.88
 peewee==3.18.2
 pyserial==3.5
