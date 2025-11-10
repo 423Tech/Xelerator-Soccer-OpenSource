@@ -80,20 +80,21 @@ class Positions():
             `0xfff` stand for `NoPosition`
         '''
         self.BoundsDistance = lidar.GetDists()
-        if self.BoundsDistance == [0,0,0,0]:
-            self.WarnedLidarCount = self.WarnedLidarCount + 1
+        logger.debug("Lidar Raw Data: %s"%self.BoundsDistance)
+        if self.BoundsDistance == [0, 0, 0, 0]:
+            self.WarnedLidarCount +=1
             time.sleep(self.WaitTime) # wait 1 second for starting lidar
             logger.warning("Lidar Not Started! Retry for %s time in %s second"%(self.WarnedLidarCount,self.WaitTime))
-            if self.WarnedLidarCount > cfg.ExpectedVals.MaxWarnCount:
+            if self.WarnedLidarCount >= cfg.ExpectedVals.MaxWarnCount:
                 logger.error("No Lidar Data Recieved! Please Check Lidar Modules!")
                 raise RuntimeError("No Lidar Data Recieved! Please Check Lidar Modules!")
-            return [0xfff,0xfff,compass()]
+            return [0xfff,0xfff,0xfff,0xfff]
         else:
             if self.WarnedLidarCount:
                 self.WarnedLidarCount = 0
-                logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
             else:
                 pass
+            logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         logger.info("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         return self.BoundsDistance
 

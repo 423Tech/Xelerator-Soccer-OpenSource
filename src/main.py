@@ -1,3 +1,9 @@
-from LunaPre import lidar
+from LunaPre import *
 
-print(lidar.dirLidarQueue)
+while(1):
+    try:
+        print(Positions().AbsRoboPosition())
+        chassis.AbsMoveVetor(0,50,0)
+    except KeyboardInterrupt:
+        chassis.stop()
+        break
