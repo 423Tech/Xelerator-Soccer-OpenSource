@@ -1,9 +1,21 @@
-from LunaPre import *
+from LunaPre import chassis
+import time
 
-while(1):
-    try:
-        print(Positions().AbsRoboPosition())
-        chassis.AbsMoveVetor(0,50,0)
-    except KeyboardInterrupt:
-        chassis.stop()
-        break
+
+for i in range(10):
+    chassis.AbsMoveVetor(100,0,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(0,-100,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(-100,0,0)
+    time.sleep(0.2)
+
+for i in range(10):
+    chassis.AbsMoveVetor(0,100,0)
+    time.sleep(0.2)
+
+chassis.stop()

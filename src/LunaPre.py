@@ -1,11 +1,10 @@
-import math
-import time
-import threading
+import math, time, threading
 
 from utils.ReasonData import logger, Settings
 cfg = Settings
 
-from headunit import Lidar,ArisuIntelligence
+from Vision import ArisuIntelligence
+from Sensor import Lidar
 Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
