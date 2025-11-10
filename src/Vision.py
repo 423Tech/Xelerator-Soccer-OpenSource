@@ -22,7 +22,7 @@ class ArisuIntelligence:
         # self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
-        self.CamPorts = [0,2,4,6]
+        self.CamPorts = [6,4,2,0]
 
         self.Cams = []
         self.Frames = []
@@ -141,7 +141,9 @@ class ArisuIntelligence:
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
             # TODO put path into config
-            InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+            # InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+            InferModel = Hat.create_infer_model("/home/arisu/Caesear/src/yoloV8_Weighs/yolov8s.hef")
+            # InferModel = Hat.create_infer_model(self.cfg.VisionVals.HailoModelPath + 'yolov8s.hef')
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
@@ -185,7 +187,12 @@ class ArisuIntelligence:
                 LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
             self.InferTF = self.InferTF + 1
-            self.ConfiguredInferModel.run(BindingsList, 500)
+            # 确保在传递给 BindingsList 之前执行此操作
+            try:
+                self.ConfiguredInferModel.run(BindingsList, 1000)
+            except Exception as e:
+                self.logger.error(f"Hailo Inference Error: {e}")
+                self.ModelInfer()
             Outputs = []
             ChassisList = []
             for Bindings in BindingsList:
@@ -324,7 +331,8 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [BY, BX]
+                self.BallPos = [-BY, BX]
+                # 20251111 已修改坐标
             else:
                 self.BallPos = [0, 0]
 
@@ -357,7 +365,7 @@ class ArisuIntelligence:
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
                 if self.cfg.Debug.FullLog:
-                    self.logger.debug("Camera FPS: %s",FrameCount)
+                    self.logger.debug("Camera FPS: "+str(FrameCount))
                 FrameCount = 0
                 LastTime = CurrentTime
             self.ReadCamTF = self.ReadCamTF + 1
@@ -507,8 +515,8 @@ class ArisuIntelligence:
             else:
                 BX = 0
                 BY = 0
-            self.BallPos = [BY, BX]
-            # 20251017 已修改坐标
+            self.BallPos = [-BY, BX]
+            # 20251111 已修改坐标
             time.sleep(0.03)
     
     def GetBallPos(self):

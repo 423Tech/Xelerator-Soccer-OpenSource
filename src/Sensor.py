@@ -58,7 +58,7 @@ class ROSLidarParser(Node):
         '''
         self.dirDistance = []
         self.Queue = Queue
-        super().__init__('Sllidar_praser')
+        super().__init__('sllidar_node')
 
         oQos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -121,7 +121,7 @@ class Lidar:
             lines = []
             points = []
             for Element in Ranges:
-                if 0 < Element[1] < 2.5:
+                # if 0 < Element[1] < 2.5:
                     X = Element[1] * math.sin(math.radians(Element[0]))
                     Y = Element[1] * math.cos(math.radians(Element[0]))
                     points.append((X, Y, Element[0]))

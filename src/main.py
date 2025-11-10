@@ -1,21 +1,5 @@
-from LunaPre import chassis
-import time
+from LunaPre import *
 
-
-for i in range(10):
-    chassis.AbsMoveVetor(100,0,0)
-    time.sleep(0.2)
-
-for i in range(10):
-    chassis.AbsMoveVetor(0,-100,0)
-    time.sleep(0.2)
-
-for i in range(10):
-    chassis.AbsMoveVetor(-100,0,0)
-    time.sleep(0.2)
-
-for i in range(10):
-    chassis.AbsMoveVetor(0,100,0)
-    time.sleep(0.2)
-
-chassis.stop()
+while 1:
+    print(Positions().RelBallPos())
+    time.sleep(0.1)

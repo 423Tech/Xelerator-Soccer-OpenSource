@@ -62,11 +62,14 @@ class Positions():
         # 20251017 already changed X,Y dimension    
         self.BallPos = Vision.GetBallPos()
         if self.BallPos == [0,0]:
-            self.BallPos = [0xfff,0xfff]
-        if abs(self.BallPos-cfg.ExpectedVals.CatchVal) <= cfg.ExpectedVals.ErrorRange:
-            self.BallPos = [0xddd,0xddd]
-        logger.info("[Relative] Ball Position: %s"%self.BallPos)
-        return self.BallPos
+            self.BallPosOut = [0xfff,0xfff]
+        elif abs(self.BallPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.BallPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
+            self.BallPosOut = [0xddd,0xddd]
+        else:
+            self.BallPosOut = self.BallPos
+        logger.debug("[Relative] Ball Position: %s"%self.BallPos)
+        logger.info("[Relative] Ball Position Output: %s"%self.BallPosOut)
+        return self.BallPosOut
 
     def DirDistance(self):
         '''
