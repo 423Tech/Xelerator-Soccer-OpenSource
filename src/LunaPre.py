@@ -14,22 +14,24 @@ if cfg.RoboInfo.Bit == "AB":
     chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
+    Odometer = None
     logger.info("Arisu Bit loaded.")
-# elif cfg.RoboInfo.Bit") == "RM":
-#     from utils.RobomasterBits import RobomasterBits
-#     Bits = RobomasterBits()
-#     lidar = Lidar(Bits.GetYaw)
-#     chassis = Car(Bits.SetMotor,Bits.GetYaw)
-#     compass = Bits.GetYaw
-#     # peripheral = Peripherals(Bits.SetIO) #TODO
-#     logger.info("RoboMaster Bits loaded.")
-# elif cfg.RoboInfo.Bit") == "3Q":
-#     logger.info("ZUES Bit loaded.")
+elif cfg.RoboInfo.Bit == "IceDragon":
+    from utils.IceLoongBits import IceLoongBits
+    Bits = IceLoongBits()
+    lidar = Lidar(Bits.GetYaw)
+    peripheral = Peripherals(Bits.SetIO) #TODO
+    chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
+    compass = Bits.GetYaw
+    # Odometer = Bits.Odometer #TODO add odometer support
+    logger.info("IceDragon Bit loaded.")
+# elif cfg.RoboInfo.Bit == "3Q":
+#     logger.info("3Q Bit loaded.")
 #     # peripheral = Peripherals(Bits.SetIO) #TODO
 #     logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model Fetched.")
-    raise ImportError("None Bit Model Set.")
+    raise ImportError("None Bits Model Set.")
 
 class Positions():
     def __init__(self):
@@ -131,9 +133,9 @@ class Positions():
             logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
             # 20251017 already changed X,Y dimension    
             return [Y/10,X/10,compass()]
-        else:
+        elif Bits.Odometer is not None:# if use odometer datas
             # TODO finish lower Positions
-            raise RuntimeError("You Choosed the Wrong Args!")
+            pass
 
     def AbsChassisPos(self):
         '''
@@ -293,6 +295,26 @@ class Positions():
             else:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
+    
+    def MoveToPosition(self,Position:list[int,int,int],Kp:float|None = None):
+        '''
+        Move the robot to the target Position [X,Y,W]
+        #### Args:
+            Position: list | [X,Y,W]
+            Kp: float | Proportional Coefficient for Yaw Correction
+        '''
+        TargetX = Position[0]
+        TargetY = Position[1]
+        FacingAngle = Position[2]
+        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
+        DeltaX = TargetX - SelfX
+        DeltaY = TargetY - SelfY
+        chassis.AbsMoveVetor(DeltaX,DeltaY,FacingAngle,Kp)
+        # MovingAngle = math.degrees(math.atan2(DeltaX,DeltaY))
+        # Speed = int(math.sqrt(DeltaX**2 + DeltaY**2))
+        # if Speed > cfg.ExpectedVals.MaxSpeedValue:
+        #     Speed = cfg.ExpectedVals.MaxSpeedValue
+        # chassis.AbsMoveAngle(FacingAngle,MovingAngle,Speed,Kp)
 
 class Communication:
     def __init__(self):

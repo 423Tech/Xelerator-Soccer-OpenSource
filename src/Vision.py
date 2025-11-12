@@ -1,8 +1,10 @@
 try:
     from hailo_platform import VDevice, HailoSchedulingAlgorithm
     HAILO = 1
-except:
+except ImportError:
     HAILO = 0
+else:
+    raise
 # TODO transform to RDK
 
 import threading
@@ -19,7 +21,7 @@ class ArisuIntelligence:
     with hailo only
     '''
     def __init__(self,GetPos=None):
-        # self.GetPos = GetPos
+        self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
         self.CamPorts = [6,4,2,0]
@@ -114,7 +116,6 @@ class ArisuIntelligence:
             return
         for i in range(4):
             Time = int(time.time())
-            # TODO warning for reformat
             Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
             Videos.append(Video)
         self.Videos = Videos
@@ -140,10 +141,9 @@ class ArisuIntelligence:
     
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            # TODO put path into config
             # InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
-            InferModel = Hat.create_infer_model("/home/arisu/Caesear/src/yoloV8_Weighs/yolov8s.hef")
-            # InferModel = Hat.create_infer_model(self.cfg.VisionVals.HailoModelPath + 'yolov8s.hef')
+            # InferModel = Hat.create_infer_model( + 'yolov8s.hef')
+            InferModel = Hat.create_infer_model(DATA_DIR / self.cfg.VisionVals.HailoModelPath / "yolov8s.hef")
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
@@ -182,7 +182,7 @@ class ArisuIntelligence:
             FrameCount += 1
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
-                # print(f"FPS: {FrameCount}")
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
                 FrameCount = 0
                 LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
@@ -191,7 +191,7 @@ class ArisuIntelligence:
             try:
                 self.ConfiguredInferModel.run(BindingsList, 1000)
             except Exception as e:
-                self.logger.error(f"Hailo Inference Error: {e}")
+                self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
                 self.ModelInfer()
             Outputs = []
             ChassisList = []
