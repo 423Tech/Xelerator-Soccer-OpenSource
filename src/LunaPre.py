@@ -16,15 +16,15 @@ if cfg.RoboInfo.Bit == "AB":
     peripheral = Peripherals(Bits.SetIO)
     Odometer = None
     logger.info("Arisu Bit loaded.")
-elif cfg.RoboInfo.Bit == "IceDragon":
+elif cfg.RoboInfo.Bit == "IL":
     from utils.IceLoongBits import IceLoongBits
     Bits = IceLoongBits()
     lidar = Lidar(Bits.GetYaw)
     peripheral = Peripherals(Bits.SetIO) #TODO
-    chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
+    chassis = Car(Bits.SetRpmFour,Bits.GetYaw)
     compass = Bits.GetYaw
-    # Odometer = Bits.Odometer #TODO add odometer support
-    logger.info("IceDragon Bit loaded.")
+    Odometer = Bits.Odometer #TODO add odometer support
+    logger.info("IceLoongBits Bit loaded.")
 # elif cfg.RoboInfo.Bit == "3Q":
 #     logger.info("3Q Bit loaded.")
 #     # peripheral = Peripherals(Bits.SetIO) #TODO
@@ -303,18 +303,68 @@ class Positions():
             Position: list | [X,Y,W]
             Kp: float | Proportional Coefficient for Yaw Correction
         '''
-        TargetX = Position[0]
-        TargetY = Position[1]
-        FacingAngle = Position[2]
-        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
-        DeltaX = TargetX - SelfX
-        DeltaY = TargetY - SelfY
-        chassis.AbsMoveVetor(DeltaX,DeltaY,FacingAngle,Kp)
-        # MovingAngle = math.degrees(math.atan2(DeltaX,DeltaY))
-        # Speed = int(math.sqrt(DeltaX**2 + DeltaY**2))
-        # if Speed > cfg.ExpectedVals.MaxSpeedValue:
-        #     Speed = cfg.ExpectedVals.MaxSpeedValue
-        # chassis.AbsMoveAngle(FacingAngle,MovingAngle,Speed,Kp)
+        # PID 控制实现：对 X 与 Y 使用独立的 P 控制（可扩展为 PID），并对朝向使用现有的 Kp 进行修正
+        TargetX = float(Position[0])
+        TargetY = float(Position[1])
+        FacingAngle = float(Position[2])
+
+        # PID 参数（可根据 cfg 或传参调整）
+        Kp_pos = cfg.Control.KpPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KpPos') else 0.8
+        Ki_pos = cfg.Control.KiPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KiPos') else 0.0
+        Kd_pos = cfg.Control.KdPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KdPos') else 0.0
+
+        # 速度限制（像素或单位到 PWM 的映射由底层处理），最大速度取配置或默认
+        MaxSpeed = cfg.ExpectedVals.MaxSpeedValue if hasattr(cfg.ExpectedVals, 'MaxSpeedValue') else 800
+
+        # PID 状态
+        err_x_int = 0.0
+        err_y_int = 0.0
+        prev_err_x = 0.0
+        prev_err_y = 0.0
+
+        timeout = cfg.Control.MoveTimeout if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'MoveTimeout') else 5.0
+        start_t = time.time()
+
+        while True:
+            SelfX, SelfY, SelfZ = self.AbsRoboPosition()
+            # 距离目标的误差
+            err_x = TargetX - SelfX
+            err_y = TargetY - SelfY
+            dist = math.hypot(err_x, err_y)
+
+            # 结束条件：到达目标点（小于阈值）或超时
+            if dist <= (cfg.Control.PosTolerance if hasattr(cfg.Control, 'PosTolerance') else 5.0):
+                # 停止底盘
+                chassis.stop()
+                break
+            if (time.time() - start_t) > timeout:
+                chassis.stop()
+                logger.warning("MoveToPosition timeout, dist remaining: %s", dist)
+                break
+
+            # 积分与微分
+            dt = 0.03
+            err_x_int += err_x * dt
+            err_y_int += err_y * dt
+            err_x_der = (err_x - prev_err_x) / dt
+            err_y_der = (err_y - prev_err_y) / dt
+
+            # PID 计算（得到沿机器人坐标系的 SpeedX, SpeedY）
+            # 先把全局坐标误差转换为车体坐标（以当前朝向 SelfZ）
+            yaw_rad = math.radians(SelfZ)
+            # 旋转误差向量到车体坐标系
+            body_err_x = math.cos(yaw_rad) * err_x + math.sin(yaw_rad) * err_y
+            body_err_y = -math.sin(yaw_rad) * err_x + math.cos(yaw_rad) * err_y
+
+            SpeedX = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_x + Ki_pos * err_x_int + Kd_pos * err_x_der)))
+            SpeedY = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_y + Ki_pos * err_y_int + Kd_pos * err_y_der)))
+
+            # Yaw 修正（保持朝向 FacingAngle，复用 chassis 的 Kp 逻辑）
+            chassis.AbsMoveVetor(SpeedX, SpeedY, FacingAngle, Kp)
+
+            prev_err_x = err_x
+            prev_err_y = err_y
+            time.sleep(dt)
 
 class Communication:
     def __init__(self):

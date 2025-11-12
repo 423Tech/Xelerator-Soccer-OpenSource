@@ -107,6 +107,8 @@ class Car:
     def stop(self):
         self.SetMotor([0,0,0,0])
 
+    def __exit__(self):
+        self.stop()
 
 class Peripherals:
     def __init__(self,IOFunc):
@@ -134,3 +136,4 @@ class Peripherals:
                 self.SetIO(self.cfg.Ports.Dribble,0)
             self.DribbleStatus = Status
             self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))
+
