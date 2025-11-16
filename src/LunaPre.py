@@ -33,11 +33,11 @@ else:
     logger.error("None Bit Model Fetched.")
     raise ImportError("None Bits Model Set.")
 
-class Positions():
+class Positions:
     def __init__(self):
         # Values for Setup Position System
         self.LidarPos = [0xfff,0xfff,0xfff]
-        self.BallPos = [0xfff,0xfff]
+        self.ballPos = [0xfff,0xfff]
         self.BallDistance = 0xfff
         # Values for log system
         self.WarnedLidarCount = 0
@@ -50,7 +50,7 @@ class Positions():
         self.FullLog = cfg.Debug.FullLog
 
     # ********* BASIC FUNCTIONS ********
-    def RelBallPos(self):
+    def Relative_Ball_Position(self):
         '''
         Get the [Relative] Position of the ball
         #### Args:
@@ -62,18 +62,18 @@ class Positions():
             `0xddd` stand for `CatchBall`
         '''
         # 20251017 already changed X,Y dimension    
-        self.BallPos = Vision.GetBallPos()
-        if self.BallPos == [0,0]:
-            self.BallPosOut = [0xfff,0xfff]
-        elif abs(self.BallPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.BallPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
-            self.BallPosOut = [0xddd,0xddd]
+        self.ballPos = Vision.GetBallPos()
+        if self.ballPos == [0,0]:
+            self.ballPosOut = [0xfff,0xfff]
+        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
+            self.ballPosOut = [0xddd,0xddd]
         else:
-            self.BallPosOut = self.BallPos
-        logger.debug("[Relative] Ball Position: %s"%self.BallPos)
-        logger.info("[Relative] Ball Position Output: %s"%self.BallPosOut)
-        return self.BallPosOut
+            self.ballPosOut = self.ballPos
+        logger.debug("[Relative] Ball Position: %s"%self.ballPos)
+        logger.info("[Relative] Ball Position Output: %s"%self.ballPosOut)
+        return self.ballPosOut
 
-    def DirDistance(self):
+    def direct_distance(self):
         '''
         Get the [Direct] Distance From the bound to the Bound
         #### Args:
@@ -114,7 +114,7 @@ class Positions():
             `0xfff` stand for `No Position`
         '''
         if not lower:# if use lidar datas
-            _distance = self.DirDistance()
+            _distance = self.direct_distance()
             if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
                 if _distance[0] > _distance[2]:
                     Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
@@ -150,7 +150,7 @@ class Positions():
         '''
         # 20251017 already changed X,Y dimension
         ChassisRawList = Vision.GetChassisPos()
-        SelfX,SelfY,SelfZ = Positions.AbsRoboPosition()
+        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
         OutputDistanceList = []
         for c in ChassisRawList:
             cDistance = math.sqrt(c[0]**2 + c[1]**2)
@@ -212,7 +212,7 @@ class Positions():
             `0xfff` stand for `NoBall`
             `0xddd` stand for `CatchBall`
         '''
-        BallX, BallY = self.RelBallPos()
+        BallX, BallY = self.Relative_Ball_Position()
         x, y, _ = self.GetPosition()
         if [BallX, BallY] == [0xfff,0xfff]:
             self.BallDistance = 0xfff
