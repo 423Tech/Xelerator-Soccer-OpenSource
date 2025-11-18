@@ -264,8 +264,8 @@ class Vision:
                         Height = YMax - YMin
 
                         Confidence = Chassis[4]
-                        ChassisTuple = (CY, CX, Width, Height, Confidence)
-                        # 20251017 already changed X,Y dimension
+                        ChassisTuple = (CY, -CX, Width, Height, Confidence)
+                        # 20251118 already changed X forward,Y left dimension
                         
                         self.MergedChassisList.append(ChassisTuple)
                         # ChassisList.append(ChassisTuple)
@@ -301,7 +301,7 @@ class Vision:
             # print(self.MergedChassisList)
 
     def GetChassisPos(self):
-        # 20251017 already changed X,Y dimension
+        # 20251118 already changed X,Y dimension
         return self.MergedChassisList
     
     def BallDetection(self):
@@ -350,7 +350,7 @@ class Vision:
                 BX = Ball[0]
                 BY = Ball[1]
                 self.BallPos = [-BY, BX]
-                # 20251111 已修改坐标
+                # 20251118 已修改坐标 x forward,y left
             else:
                 self.BallPos = [0, 0]
 
@@ -389,7 +389,6 @@ class Vision:
             self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
-        # 20251017 already changed X,Y dimension
         # 应用透视矩阵
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
@@ -397,7 +396,6 @@ class Vision:
         return int(Transformed[1]), int(Transformed[0])
 
     def Pixel2CM(self,X,Y,CamIndex):
-        # 20251017 already changed X,Y dimension
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]
         P2CVB = self.P2CVB[CamIndex]
@@ -534,7 +532,7 @@ class Vision:
                 BX = 0
                 BY = 0
             self.BallPos = [-BY, BX]
-            # 20251111 已修改坐标
+            # 20251118 已修改坐标 x forward, y left
             time.sleep(0.03)
     
     def GetBallPos(self):
