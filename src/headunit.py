@@ -15,19 +15,40 @@ import numpy as np
 
 from utils.ReasonData import Settings, logger, DATA_DIR
 
+
 class ArisuIntelligence:
     '''
     with hailo only
     '''
-    
-    def __init__(self,Frames):
+    def __init__(self,GetPos=None):
+        self.GetPos = GetPos
+        self.cfg = Settings
+        self.logger = logger
+        self.CamPorts = [6,4,2,0]
 
-        from hailo_platform import VDevice, HailoSchedulingAlgorithm
+        self.Cams = []
+        self.Frames = []
+        self.Videos = []
 
-        self.Frames = Frames
+        self.StopRecord = 0
 
         self.HailoParams = VDevice.create_params()
         self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
+
+        self.PerspectiveMatrices = []
+        self.P2CK = []
+        self.P2CHB = []
+        self.P2CVB = []
+
+        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
+        self.BallPos = [0,0]
+
+        self.InitCam(self.CamPorts)
+
+        self.ReadCamTF = 0
+        self.PreProcessTF = 0
+        self.InferTF = 0
+        self.PostProcessTF = 0
 
         self.YOLOQueue = queue.Queue(maxsize=1)
 
@@ -35,38 +56,102 @@ class ArisuIntelligence:
         self.ChassisQueue = queue.Queue(maxsize=1)
         self.BallQueue = queue.Queue(maxsize=1)
 
+        for i in range(4):
+            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
+            PerspectiveMatrix = NumpyData['matrix']
+            self.PerspectiveMatrices.append(PerspectiveMatrix)
+            P2CK = NumpyData['p2c'][0]
+            self.P2CK.append(P2CK)
+            P2CHB = NumpyData['p2c'][1]
+            self.P2CHB.append(P2CHB)
+            P2CVB = NumpyData['p2c'][2]
+            self.P2CVB.append(P2CVB)
 
-        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
-        self.InitConfiguredModelThread.daemon = True
-        self.InitConfiguredModelThread.start()
+        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
+        self.ReadCamsThread.daemon = True
+        self.ReadCamsThread.start()
 
-        # 报错会阻塞程序 try&except
-        time.sleep(2)
+        time.sleep(3)
 
-        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-        self.ModelPreProcessThread.daemon = True
-        self.ModelPreProcessThread.start()
-
-        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-        self.ModelInferThread.daemon = True
-        self.ModelInferThread.start()
+        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        self.VideoRecordThread.daemon = True
+        self.VideoRecordThread.start()
 
 
+        if HAILO:
+            self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+            self.InitConfiguredModelThread.daemon = True
+            self.InitConfiguredModelThread.start()
+
+            # 报错会阻塞程序 try&except
+            time.sleep(2)
+
+            self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+            self.ModelPreProcessThread.daemon = True
+            self.ModelPreProcessThread.start()
+
+            self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+            self.ModelInferThread.daemon = True
+            self.ModelInferThread.start()
+
+            self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
+            self.ChassisDetectionThread.daemon = True
+            self.ChassisDetectionThread.start()
+
+            self.BallDetectionThread = threading.Thread(target=self.BallDetection)
+            self.BallDetectionThread.daemon = True
+            self.BallDetectionThread.start()
+
+        else:
+            self.FindBallThread = threading.Thread(target=self.FindBall)
+            self.FindBallThread.daemon = True
+            self.FindBallThread.start()
+            # 色块识别 设计逻辑为无HAILO时启动
+        
+
+
+    def InitVideo(self):
+        Videos = []
+        if not self.cfg.VisionVals.Record:
+            return
+        for i in range(4):
+            Time = int(time.time())
+            Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
+            Videos.append(Video)
+        self.Videos = Videos
+    
+    def CloseVideo(self):
+        for Video in self.Videos:
+            Video.release()
+        self.Videos = []
+    
+    def VideoRecord(self):
+        while True:
+            if not self.Videos:
+                self.InitVideo()
+            elif int(time.time()) % 30 == 0:
+                self.CloseVideo()
+            
+            for i in range(4):
+                if self.Videos:
+                    Frame = self.Frames[i]
+                    if Frame is not None:
+                        self.Videos[i].write(Frame)
+            time.sleep(0.03)
+    
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model(DATA_DIR / self.cfg.VisionVals.HailoModelPath / "yolov8s.hef")
+            # InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
+            # InferModel = Hat.create_infer_model( + 'yolov8s.hef')
+            InferModel = Hat.create_infer_model(DATA_DIR / self.cfg.VisionVals.ModelPath / "yolov8s.hef")
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
             with InferModel.configure() as ConfiguredInferModel:
                 self.ConfiguredInferModel = ConfiguredInferModel
                 time.sleep(114514)
-
+    
     def ModelPreProcess(self):
-        '''
-        input: int8
-        output: float32
-        '''
         while(1):
             BindingsList = []
             for i in range(4):
@@ -123,180 +208,9 @@ class ArisuIntelligence:
             # print(Output0)
             # time.sleep(0.01)
 
-
-class TunaVision:
-    '''
-    support for RDK x5 BPU
-    '''
-    def __init__(self,Frame):
-        import bpu_infer_lib
-        self.inf = bpu_infer_lib.Infer(True)
-        self.inf.load_model(DATA_DIR / Settings.VisionVals.ModelPath / "yolov8s.bin")
-
-        self.YOLOQueue = queue.Queue(maxsize=1)
-        self.ChassisQueue = queue.Queue(maxsize=1)
-        self.BallQueue = queue.Queue(maxsize=1)
-
-    def bgr2nv12_opencv(self, image):
-        height, width = image.shape[0], image.shape[1]
-        area = height * width
-        yuv420p = cv2.cvtColor(image, cv2.COLOR_BGR2YUV_I420).reshape((area * 3 // 2,))
-        y = yuv420p[:area] # Y分量：前area个元素
-        uv_planar = yuv420p[area:].reshape((2, area // 4)) # UV分量：后面的元素，每2个元素分别为U和V分量
-        uv_packed = uv_planar.transpose((1, 0)).reshape((area // 2,)) # 将UV分量交替排列为交错的UV格式
-        nv12 = np.zeros_like(yuv420p) # 创建与原YUV数据形状相同的空数组用于存放NV12格式数据
-        nv12[:height * width] = y # 将Y分量直接赋值到NV12数组的前部
-        nv12[height * width:] = uv_packed  # 将交错的UV分量赋值到NV12数组的后部
-        return nv12
-
-    def YoloProcess(self):
-        while(1):
-            BindingsList = []
-            for i in range(4):
-                Frame = self.Frames[i]
-                if Frame is not None:
-                    BindingsList.append(self.bgr2nv12_opencv(Frame))
-            if self.YOLOQueue.full():
-                continue
-            else:
-                self.PreProcessTF = self.PreProcessTF + 1
-                self.YOLOQueue.put(BindingsList)
-            time.sleep(0.01)
-        
-    def ModelInfer(self):
-        FrameCount = 0
-        LastTime = time.time()
-        while(1):
-            FrameCount += 1
-            CurrentTime = time.time()
-            if CurrentTime - LastTime >= 1.0:
-                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
-                FrameCount = 0
-                LastTime = CurrentTime
-            BindingsList = self.YOLOQueue.get()
-            self.InferTF = self.InferTF + 1
-            # 确保在传递给 BindingsList 之前执行此操作
-            self.infer.forward(True)
-            Outputs = []
-            ChassisList = []
-            for Bindings in BindingsList:
-                self.inf.set_input(Bindings)
-                self.inf.forward()
-                OutputBuffer = self.inf.outputs[0].data
-                Outputs.append(OutputBuffer)            
-            self.ChassisQueue.put(Outputs[0])
-            self.BallQueue.put(Outputs[1])
-
-class Vision:
-    '''
-    with hailo only
-    '''
-    def __init__(self,GetPos=None,AiMethod:None=ArisuIntelligence):
-        self.GetPos = GetPos
-        self.cfg = Settings
-        self.logger = logger
-        self.CamPorts = [6,4,2,0]
-
-        self.Cams = []
-        self.Frames = []
-        self.Videos = []
-
-        self.StopRecord = 0
-
-        self.PerspectiveMatrices = []
-        self.P2CK = []
-        self.P2CHB = []
-        self.P2CVB = []
-
-        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
-        self.BallPos = [0,0]
-
-        self.InitCam(self.CamPorts)
-
-        self.ReadCamTF = 0
-        self.PreProcessTF = 0
-        self.InferTF = 0
-        self.PostProcessTF = 0
-
-        for i in range(4):
-            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
-            PerspectiveMatrix = NumpyData['matrix']
-            self.PerspectiveMatrices.append(PerspectiveMatrix)
-            P2CK = NumpyData['p2c'][0]
-            self.P2CK.append(P2CK)
-            P2CHB = NumpyData['p2c'][1]
-            self.P2CHB.append(P2CHB)
-            P2CVB = NumpyData['p2c'][2]
-            self.P2CVB.append(P2CVB)
-
-        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
-        self.ReadCamsThread.daemon = True
-        self.ReadCamsThread.start()
-
-        time.sleep(3)
-
-        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
-        self.VideoRecordThread.daemon = True
-        self.VideoRecordThread.start()
-
-        self.AiMethod = AiMethod(Frames=self.Frames)
-
-        if HAILO:
-            self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-            self.ChassisDetectionThread.daemon = True
-            self.ChassisDetectionThread.start()
-
-            self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-            self.BallDetectionThread.daemon = True
-            self.BallDetectionThread.start()
-
-        else:
-            self.FindBallThread = threading.Thread(target=self.FindBall)
-            self.FindBallThread.daemon = True
-            self.FindBallThread.start()
-            # 色块识别 设计逻辑为无HAILO时启动
-
-        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-        self.ChassisDetectionThread.daemon = True
-        self.ChassisDetectionThread.start()
-
-        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-        self.BallDetectionThread.daemon = True
-        self.BallDetectionThread.start()
-
-    def InitVideo(self):
-        Videos = []
-        if not self.cfg.VisionVals.Record:
-            return
-        for i in range(4):
-            Time = int(time.time())
-            Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
-            Videos.append(Video)
-        self.Videos = Videos
-    
-    def CloseVideo(self):
-        for Video in self.Videos:
-            Video.release()
-        self.Videos = []
-    
-    def VideoRecord(self):
-        while True:
-            if not self.Videos:
-                self.InitVideo()
-            elif int(time.time()) % 30 == 0:
-                self.CloseVideo()
-            
-            for i in range(4):
-                if self.Videos:
-                    Frame = self.Frames[i]
-                    if Frame is not None:
-                        self.Videos[i].write(Frame)
-            time.sleep(0.03)
-
-
     def ChassisDetection(self):
         while True:
-            OutputBuffer = self.AiMethod.ChassisQueue.get()
+            OutputBuffer = self.ChassisQueue.get()
             self.PostProcessTF = self.PostProcessTF + 1
             self.MergedChassisList = []
             ChassisList = []
@@ -332,8 +246,8 @@ class Vision:
                         Height = YMax - YMin
 
                         Confidence = Chassis[4]
-                        ChassisTuple = (CY, -CX, Width, Height, Confidence)
-                        # 20251118 already changed X forward,Y left dimension
+                        ChassisTuple = (CY, CX, Width, Height, Confidence)
+                        # 20251017 already changed X,Y dimension
                         
                         self.MergedChassisList.append(ChassisTuple)
                         # ChassisList.append(ChassisTuple)
@@ -369,12 +283,12 @@ class Vision:
             # print(self.MergedChassisList)
 
     def GetChassisPos(self):
-        # 20251118 already changed X,Y dimension
+        # 20251017 already changed X,Y dimension
         return self.MergedChassisList
     
     def BallDetection(self):
         while True:
-            OutputBuffer = self.AiMethod.BallQueue.get()
+            OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
                 List = OutputBuffer[i][0]
@@ -418,7 +332,7 @@ class Vision:
                 BX = Ball[0]
                 BY = Ball[1]
                 self.BallPos = [-BY, BX]
-                # 20251118 已修改坐标 x forward,y left
+                # 20251111 已修改坐标
             else:
                 self.BallPos = [0, 0]
 
@@ -457,6 +371,7 @@ class Vision:
             self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
+        # 20251017 already changed X,Y dimension
         # 应用透视矩阵
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
@@ -464,6 +379,7 @@ class Vision:
         return int(Transformed[1]), int(Transformed[0])
 
     def Pixel2CM(self,X,Y,CamIndex):
+        # 20251017 already changed X,Y dimension
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]
         P2CVB = self.P2CVB[CamIndex]
@@ -600,7 +516,7 @@ class Vision:
                 BX = 0
                 BY = 0
             self.BallPos = [-BY, BX]
-            # 20251118 已修改坐标 x forward, y left
+            # 20251111 已修改坐标
             time.sleep(0.03)
     
     def GetBallPos(self):
@@ -619,7 +535,4 @@ class Vision:
     #     VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
     #     print(VisionCornerX, VisionCornerY)
 
-    def _exit__(self):
-        for Cam in self.Cams:
-            Cam.release()
-        self.CloseVideo()
+
