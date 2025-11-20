@@ -164,7 +164,7 @@ class Prompts(object):
             self.ExposeVal = 100
             self.AutoExpose = 0
             self.CalibrationFolder = '/Calibration/'
-            self.HailoModelPath = '/yoloV8_Weighs/'
+            self.ModelPath = '/yoloV8_Weighs/'
 
     class _bounds(object):
         def __init__(self):
