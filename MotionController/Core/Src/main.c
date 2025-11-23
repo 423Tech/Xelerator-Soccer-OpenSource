@@ -83,8 +83,10 @@ void wheel_pwm_update(void);
 void delay_us(uint16_t us);
 void write_gyro(uint8_t reg, uint8_t data);
 void read_gyro(uint8_t reg, uint8_t *data);
-void burst_write_gyro(uint8_t reg, uint8_t *data, int size);
 void burst_read_gyro(uint8_t reg, int size);
+void write_accel(uint8_t reg, uint8_t data);
+void read_accel(uint8_t reg, uint8_t *data);
+void init_gyro(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -100,7 +102,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	uint8_t blank[1000];
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -133,6 +135,10 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim7);
+
+  init_gyro();
+
   /*
   start_all_pwm_channels();
   start_all_encoder_channels();
@@ -140,9 +146,6 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   target_wheel_rpm[0] = 21000;
   */
-  HAL_TIM_Base_Start(&htim7);
-  memset(blank, 0x00, 1000);
-  burst_write_gyro(0x00, blank, sizeof(blank));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -525,9 +528,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 839;
+  htim6.Init.Prescaler = 83;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 999;
+  htim6.Init.Period = 9999;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -963,27 +966,36 @@ void read_gyro(uint8_t reg, uint8_t *data)
 	spi2_tx_buffer[1] = 0xFF;
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
 	HAL_SPI_TransmitReceive(&hspi2, spi2_tx_buffer, spi2_rx_buffer, 2, HAL_MAX_DELAY);
-	*data = spi2_rx_buffer[1];
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-	delay_us(2);
+	*data = spi2_rx_buffer[1];
 }
 
-/* 写数据之后至少等2us后才能再写数据 */
-void burst_write_gyro(uint8_t reg, uint8_t *data, int size)
-{
-	spi2_tx_buffer[0] = reg & 0x7F;
-	memcpy(spi2_tx_buffer + 1, data, size);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_Transmit_DMA(&hspi2, spi2_tx_buffer, size + 1);
-}
-
-/* 写数据之后至少等2us后才能再写数据 */
 void burst_read_gyro(uint8_t reg, int size)
 {
 	spi2_tx_buffer[0] = reg | 0x80;
 	memset(spi2_tx_buffer + 1, 0xFF, size);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
 	HAL_SPI_TransmitReceive_DMA(&hspi2, spi2_tx_buffer, spi2_rx_buffer, size + 1);
+}
+
+void write_accel(uint8_t reg, uint8_t data)
+{
+	spi2_tx_buffer[0] = reg & 0x7F;
+	spi2_tx_buffer[1] = data;
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi2, spi2_tx_buffer, 2, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+	delay_us(2);
+}
+
+void read_accel(uint8_t reg, uint8_t *data)
+{
+	spi2_tx_buffer[0] = reg | 0x80;
+	spi2_tx_buffer[1] = 0xFF;
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive(&hspi2, spi2_tx_buffer, spi2_rx_buffer, 2, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
+	*data = spi2_rx_buffer[1];
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
@@ -1038,6 +1050,20 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
     }
 }
 
+void init_gyro(void)
+{
+	delay_us(1000);
+
+	write_gyro(0x14, 0xB6);
+	delay_us(30000);
+
+	write_gyro(0x0F, 0x00);
+	write_gyro(0x10, 0x02);
+	write_gyro(0x11, 0x00);
+	write_gyro(0x15, 0x80);
+	write_gyro(0x16, 0x00);
+	write_gyro(0x18, 0x01);
+}
 /* USER CODE END 4 */
 
 /**
