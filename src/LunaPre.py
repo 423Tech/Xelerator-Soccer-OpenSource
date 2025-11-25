@@ -1,11 +1,10 @@
-import math
-import time
-import threading
+import math, time, threading
 
 from utils.ReasonData import logger, Settings
 cfg = Settings
 
-from headunit import Lidar,ArisuIntelligence
+from Vision import ArisuIntelligence
+from Sensor import Lidar
 Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
@@ -15,28 +14,30 @@ if cfg.RoboInfo.Bit == "AB":
     chassis = Car(Bits.SetMotor,Bits.GetYaw,Bits.get_motor_encoder)
     compass = Bits.GetYaw
     peripheral = Peripherals(Bits.SetIO)
+    Odometer = None
     logger.info("Arisu Bit loaded.")
-# elif cfg.RoboInfo.Bit") == "RM":
-#     from utils.RobomasterBits import RobomasterBits
-#     Bits = RobomasterBits()
-#     lidar = Lidar(Bits.GetYaw)
-#     chassis = Car(Bits.SetMotor,Bits.GetYaw)
-#     compass = Bits.GetYaw
-#     # peripheral = Peripherals(Bits.SetIO) #TODO
-#     logger.info("RoboMaster Bits loaded.")
-# elif cfg.RoboInfo.Bit") == "3Q":
-#     logger.info("ZUES Bit loaded.")
+elif cfg.RoboInfo.Bit == "IL":
+    from utils.IceLoongBits import IceLoongBits
+    Bits = IceLoongBits()
+    lidar = Lidar(Bits.GetYaw)
+    peripheral = Peripherals(Bits.SetIO) #TODO
+    chassis = Car(Bits.SetRpmFour,Bits.GetYaw)
+    compass = Bits.GetYaw
+    Odometer = Bits.Odometer #TODO add odometer support
+    logger.info("IceLoongBits Bit loaded.")
+# elif cfg.RoboInfo.Bit == "3Q":
+#     logger.info("3Q Bit loaded.")
 #     # peripheral = Peripherals(Bits.SetIO) #TODO
 #     logger.info("RoboMaster Bit loaded.")
 else:
     logger.error("None Bit Model Fetched.")
-    raise ImportError("None Bit Model Set.")
+    raise ImportError("None Bits Model Set.")
 
-class Positions():
+class Positions:
     def __init__(self):
         # Values for Setup Position System
         self.LidarPos = [0xfff,0xfff,0xfff]
-        self.BallPos = [0xfff,0xfff]
+        self.ballPos = [0xfff,0xfff]
         self.BallDistance = 0xfff
         # Values for log system
         self.WarnedLidarCount = 0
@@ -49,7 +50,7 @@ class Positions():
         self.FullLog = cfg.Debug.FullLog
 
     # ********* BASIC FUNCTIONS ********
-    def RelBallPos(self):
+    def Relative_Ball_Position(self):
         '''
         Get the [Relative] Position of the ball
         #### Args:
@@ -61,15 +62,18 @@ class Positions():
             `0xddd` stand for `CatchBall`
         '''
         # 20251017 already changed X,Y dimension    
-        self.BallPos = Vision.GetBallPos()
-        if self.BallPos == [0,0]:
-            self.BallPos = [0xfff,0xfff]
-        if abs(self.BallPos-cfg.ExpectedVals.CatchVal) <= cfg.ExpectedVals.ErrorRange:
-            self.BallPos = [0xddd,0xddd]
-        logger.info("[Relative] Ball Position: %s"%self.BallPos)
-        return self.BallPos
+        self.ballPos = Vision.GetBallPos()
+        if self.ballPos == [0,0]:
+            self.ballPosOut = [0xfff,0xfff]
+        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
+            self.ballPosOut = [0xddd,0xddd]
+        else:
+            self.ballPosOut = self.ballPos
+        logger.debug("[Relative] Ball Position: %s"%self.ballPos)
+        logger.info("[Relative] Ball Position Output: %s"%self.ballPosOut)
+        return self.ballPosOut
 
-    def DirDistance(self):
+    def direct_distance(self):
         '''
         Get the [Direct] Distance From the bound to the Bound
         #### Args:
@@ -80,20 +84,21 @@ class Positions():
             `0xfff` stand for `NoPosition`
         '''
         self.BoundsDistance = lidar.GetDists()
-        if self.BoundsDistance == [0,0,0,0]:
-            self.WarnedLidarCount = self.WarnedLidarCount + 1
+        logger.debug("Lidar Raw Data: %s"%self.BoundsDistance)
+        if self.BoundsDistance == [0, 0, 0, 0]:
+            self.WarnedLidarCount +=1
             time.sleep(self.WaitTime) # wait 1 second for starting lidar
             logger.warning("Lidar Not Started! Retry for %s time in %s second"%(self.WarnedLidarCount,self.WaitTime))
-            if self.WarnedLidarCount > cfg.ExpectedVals.MaxWarnCount:
+            if self.WarnedLidarCount >= cfg.ExpectedVals.MaxWarnCount:
                 logger.error("No Lidar Data Recieved! Please Check Lidar Modules!")
                 raise RuntimeError("No Lidar Data Recieved! Please Check Lidar Modules!")
-            return [0xfff,0xfff,compass()]
+            return [0xfff,0xfff,0xfff,0xfff]
         else:
             if self.WarnedLidarCount:
                 self.WarnedLidarCount = 0
-                logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
             else:
                 pass
+            logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         logger.info("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         return self.BoundsDistance
 
@@ -109,7 +114,7 @@ class Positions():
             `0xfff` stand for `No Position`
         '''
         if not lower:# if use lidar datas
-            _distance = self.DirDistance()
+            _distance = self.direct_distance()
             if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
                 if _distance[0] > _distance[2]:
                     Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
@@ -128,9 +133,9 @@ class Positions():
             logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
             # 20251017 already changed X,Y dimension    
             return [Y/10,X/10,compass()]
-        else:
+        elif Bits.Odometer is not None:# if use odometer datas
             # TODO finish lower Positions
-            raise RuntimeError("You Choosed the Wrong Args!")
+            pass
 
     def AbsChassisPos(self):
         '''
@@ -145,7 +150,7 @@ class Positions():
         '''
         # 20251017 already changed X,Y dimension
         ChassisRawList = Vision.GetChassisPos()
-        SelfX,SelfY,SelfZ = Positions.AbsRoboPosition()
+        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
         OutputDistanceList = []
         for c in ChassisRawList:
             cDistance = math.sqrt(c[0]**2 + c[1]**2)
@@ -207,7 +212,7 @@ class Positions():
             `0xfff` stand for `NoBall`
             `0xddd` stand for `CatchBall`
         '''
-        BallX, BallY = self.RelBallPos()
+        BallX, BallY = self.Relative_Ball_Position()
         x, y, _ = self.GetPosition()
         if [BallX, BallY] == [0xfff,0xfff]:
             self.BallDistance = 0xfff
@@ -290,6 +295,76 @@ class Positions():
             else:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
+    
+    def MoveToPosition(self,Position:list[int,int,int],Kp:float|None = None):
+        '''
+        Move the robot to the target Position [X,Y,W]
+        #### Args:
+            Position: list | [X,Y,W]
+            Kp: float | Proportional Coefficient for Yaw Correction
+        '''
+        # PID 控制实现：对 X 与 Y 使用独立的 P 控制（可扩展为 PID），并对朝向使用现有的 Kp 进行修正
+        TargetX = float(Position[0])
+        TargetY = float(Position[1])
+        FacingAngle = float(Position[2])
+
+        # PID 参数（可根据 cfg 或传参调整）
+        Kp_pos = cfg.Control.KpPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KpPos') else 0.8
+        Ki_pos = cfg.Control.KiPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KiPos') else 0.0
+        Kd_pos = cfg.Control.KdPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KdPos') else 0.0
+
+        # 速度限制（像素或单位到 PWM 的映射由底层处理），最大速度取配置或默认
+        MaxSpeed = cfg.ExpectedVals.MaxSpeedValue if hasattr(cfg.ExpectedVals, 'MaxSpeedValue') else 800
+
+        # PID 状态
+        err_x_int = 0.0
+        err_y_int = 0.0
+        prev_err_x = 0.0
+        prev_err_y = 0.0
+
+        timeout = cfg.Control.MoveTimeout if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'MoveTimeout') else 5.0
+        start_t = time.time()
+
+        while True:
+            SelfX, SelfY, SelfZ = self.AbsRoboPosition()
+            # 距离目标的误差
+            err_x = TargetX - SelfX
+            err_y = TargetY - SelfY
+            dist = math.hypot(err_x, err_y)
+
+            # 结束条件：到达目标点（小于阈值）或超时
+            if dist <= (cfg.Control.PosTolerance if hasattr(cfg.Control, 'PosTolerance') else 5.0):
+                # 停止底盘
+                chassis.stop()
+                break
+            if (time.time() - start_t) > timeout:
+                chassis.stop()
+                logger.warning("MoveToPosition timeout, dist remaining: %s", dist)
+                break
+
+            # 积分与微分
+            dt = 0.03
+            err_x_int += err_x * dt
+            err_y_int += err_y * dt
+            err_x_der = (err_x - prev_err_x) / dt
+            err_y_der = (err_y - prev_err_y) / dt
+
+            # PID 计算（得到沿机器人坐标系的 SpeedX, SpeedY）
+            # 先把全局坐标误差转换为车体坐标（以当前朝向 SelfZ）
+            yaw_rad = math.radians(SelfZ)
+            # 旋转误差向量到车体坐标系
+            body_err_x = math.cos(yaw_rad) * err_x + math.sin(yaw_rad) * err_y
+            body_err_y = -math.sin(yaw_rad) * err_x + math.cos(yaw_rad) * err_y
+
+            SpeedX = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_x + Ki_pos * err_x_int + Kd_pos * err_x_der)))
+            SpeedY = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_y + Ki_pos * err_y_int + Kd_pos * err_y_der)))
+
+            # Yaw 修正（保持朝向 FacingAngle，复用 chassis 的 Kp 逻辑）
+            chassis.AbsMoveVetor(SpeedX, SpeedY, FacingAngle, Kp)
+
+            prev_err_x = err_x
+            prev_err_y = err_y
+            time.sleep(dt)
 
 class Communication:
     def __init__(self):

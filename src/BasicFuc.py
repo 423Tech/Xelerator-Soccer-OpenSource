@@ -1,7 +1,7 @@
 from LunaPre import *
 
 def ChasingBall():
-    iBX,iBY = Positions.RelBallPos()
+    iBX,iBY = Positions.Relative_Ball_Position()
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     AbsAngle = Angle + Compass

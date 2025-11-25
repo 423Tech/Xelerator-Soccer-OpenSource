@@ -48,7 +48,8 @@ class Preference:
                     "Record" : False, # False to Disable Record video
                     "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
                     "AutoExpose" : 0,  # 0: Manual, 1: Auto
-                    "CalibrationFolder": './utils/ReasonData/data/Calibration/',
+                    "CalibrationFolder": '/Calibration/',
+                    "HailoModelPath": '/yoloV8_Weighs/',
                 },
                 "Bounds" : {
                     "ClsPos": [85,35,0], #Bound CheckPoint (Close to [0,0])
@@ -63,6 +64,7 @@ class Preference:
                     "CatchVal" : [0,9], # Position when Robo Cathch the ball
                     "ErrorRange": 10,
                     "MaxWarnCount": 3,
+                    "MaxSpeedValue": 500,
                 },
                 "Transimission": {
                     "Type" : "Slave", # master to start AP/ slave to connect
@@ -161,7 +163,8 @@ class Prompts(object):
             self.Record = False
             self.ExposeVal = 100
             self.AutoExpose = 0
-            self.CalibrationFolder = 'Calibration'
+            self.CalibrationFolder = '/Calibration/'
+            self.ModelPath = '/yoloV8_Weighs/'
 
     class _bounds(object):
         def __init__(self):
@@ -179,6 +182,7 @@ class Prompts(object):
             self.CatchVal = [0,9]
             self.ErrorRange = 10
             self.MaxWarnCount = 3
+            self.MaxSpeedValue = 500
 
     class _transimission(object):
         def __init__(self):
@@ -202,7 +206,7 @@ class Prompts(object):
         def __init__(self):
             self.DebugWifi = "RoboCup"
             self.DebugIP = "192.168.1.109"
-            self.DebugPSWD = "12345"
+            self.DebugPSWD = "RoboCup9"
             self.FullLog = True
             self.Database = True
 
