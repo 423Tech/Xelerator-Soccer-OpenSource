@@ -56,8 +56,9 @@ TIM_HandleTypeDef htim9;
 
 /* USER CODE BEGIN PV */
 float target_wheel_rpm[4] = {0, 0, 0, 0};
-uint8_t spi2_tx_buffer[64];
-uint8_t spi2_rx_buffer[64];
+uint8_t spi2_tx_buffer[1 + 6];
+uint8_t spi2_rx_buffer[1 + 6];
+float gyro_angle[3] = {0, 0, 0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,6 +88,7 @@ void burst_read_gyro(uint8_t reg, int size);
 void write_accel(uint8_t reg, uint8_t data);
 void read_accel(uint8_t reg, uint8_t *data);
 void init_gyro(void);
+void process_gyro_angle(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -138,7 +140,6 @@ int main(void)
   HAL_TIM_Base_Start(&htim7);
 
   init_gyro();
-
   /*
   start_all_pwm_channels();
   start_all_encoder_channels();
@@ -740,10 +741,10 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
 }
@@ -783,7 +784,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PD8 */
   GPIO_InitStruct.Pin = GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
@@ -793,6 +794,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -1002,51 +1007,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     switch ((uint32_t)hspi->Instance)
     {
-        case (uint32_t)SPI2:
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-            break;
-
-        default:
-            break;
-    }
-}
-
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-    switch ((uint32_t)hspi->Instance)
-    {
-        case (uint32_t)SPI2:
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-            break;
-
-        default:
-            break;
-    }
-}
-
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-    switch ((uint32_t)hspi->Instance)
-    {
-        case (uint32_t)SPI2:
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-            break;
-
-        default:
-            break;
-    }
-}
-
-void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
-{
-    switch ((uint32_t)hspi->Instance)
-    {
-        case (uint32_t)SPI2:
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-            break;
-
-        default:
-            break;
+    case (uint32_t)SPI2:
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+        process_gyro_angle();
+        break;
+    default:
+        break;
     }
 }
 
@@ -1063,6 +1029,32 @@ void init_gyro(void)
 	write_gyro(0x15, 0x80);
 	write_gyro(0x16, 0x00);
 	write_gyro(0x18, 0x01);
+}
+
+void process_gyro_angle(void)
+{
+	int i;
+	static float rate[3];
+	static float last_rate[3] = {0, 0, 0};
+
+	for (i = 0; i < 3; i++) {
+		rate[i] = spi2_rx_buffer[2 * i + 1] + spi2_rx_buffer[2 * i + 2] * 256;
+		rate[i] = rate[i] * 2000 / 32767;
+		gyro_angle[i] += (last_rate[i] + rate[i]) * 1 / 1000 / 2;
+		last_rate[i] = rate[i];
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    switch(GPIO_Pin)
+    {
+    case GPIO_PIN_8:
+        burst_read_gyro(0x02, 6);
+        break;
+    default:
+        break;
+    }
 }
 /* USER CODE END 4 */
 
