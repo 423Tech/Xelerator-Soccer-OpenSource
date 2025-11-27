@@ -10,6 +10,7 @@ from headunit import ArisuIntelligence
 vision = ArisuIntelligence()
 
 from Sensor import Lidar
+Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
     from utils.ArisuBits import ArisBit
@@ -57,6 +58,7 @@ class Positions:
     def Relative_Ball_Position(self):
         '''
         Get the [Relative] Position of the ball
+        获取[球]相对于[机器几何中心]的位置
         #### Args:
         
         #### Returns:
@@ -80,6 +82,8 @@ class Positions:
     def direct_distance(self):
         '''
         Get the [Direct] Distance From the bound to the Bound
+        获取四面墙的距离 
+        TODO 维修四边分离
         #### Args:
 
         #### Returns:
@@ -109,6 +113,7 @@ class Positions:
     def AbsRoboPosition(self,lower:bool|None = False):
         '''
         Get the [Absolute] Position of the Robot
+        获取[机器人几何中心]相对于[场地几何中心]的位置 [x_forward,y_left,yaw]
         #### Args:
             lower: `bool`, choose to using lower data
 
@@ -143,6 +148,7 @@ class Positions:
 
     def AbsChassisPos(self):
         '''
+        获取[对方机器人]相对于[场地几何中心]的位置 [[x_forward,y_left],[x_forward,y_left],[x_forward,y_left]]
         ##### retrun a list of the absloute position of all chassis
         #### Returns:
             OutputDistanceList: [c1,c2]
@@ -181,6 +187,7 @@ class Positions:
     # ********* UPPER FUNCTIONS ********
     def RelBallAngle(self):
         '''
+        获取[球]相对于[机器几何中心]的角度
         retrun a relative angle of the ball
         ### Returns:
             ballangle: int | relative ball angle
@@ -208,6 +215,7 @@ class Positions:
 
     def AbsBallDistance(self):
         '''
+        获取[球]相对于[机器几何中心]的距离
         Get the [Absolute] Distance from Robot to Ball
         #### Returns:
             BallDistance: int | absolute Distance from Robot to Ball
@@ -230,7 +238,8 @@ class Positions:
 
     def AbsBallPos(self):
         '''
-        Get the [Absolute] Position from Robot to Ball
+        获取[球]相对于[场地几何中心]的距离
+        Get the [Absolute] Position for the Ball in the Field
         #### Returns:
             BallPos: list | [0,0]
 
@@ -265,6 +274,7 @@ class Positions:
 
     def RelChassisAngle(self):
         '''
+        获取[球]相对于[机器人几何中心]的角度列表
         ##### retrun a list of the relative angle from the robot to the chassis
         #### Returns:
             [a1,a2,a3,etc]
@@ -286,6 +296,7 @@ class Positions:
 
     def AbsChassisAngle(self):
         '''
+        获取[球]相对于[场地几何中心]的角度列表
         ##### retrun a list of the absolute angles of the chassis
         #### Returns:
             [a1,a2,a3,etc]
