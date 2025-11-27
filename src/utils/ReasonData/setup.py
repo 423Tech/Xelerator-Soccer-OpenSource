@@ -7,8 +7,6 @@ import time
 Date = time.strftime("%Y%m", time.localtime())
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "data"
-APP_DIR = Path(__file__).parent
-DATA_DIR = APP_DIR / "data"
 CONFIG_FILE = DATA_DIR / "config.json"
 LOG_FILE = DATA_DIR / f"{Date}.log"
 

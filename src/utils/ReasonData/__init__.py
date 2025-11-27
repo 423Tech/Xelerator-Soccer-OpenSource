@@ -1,5 +1,5 @@
 from . import setup
-from .config import Preference, Settings, DATA_DIR
+from .config import Preference, Settings
 from .data import Positions, Date
 
 __version__ = '0.2.0'

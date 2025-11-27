@@ -116,78 +116,83 @@ class Lidar:
         frameCount = 0
         lastTime = time.time()
         
-        while(1):
-            Ranges = self.dirLidarQueue.get()
-            lines = []
-            points = []
-            for Element in Ranges:
-                # if 0 < Element[1] < 2.5:
-                    X = Element[1] * math.sin(math.radians(Element[0]))
-                    Y = Element[1] * math.cos(math.radians(Element[0]))
-                    points.append((X, Y, Element[0]))
-            
-            if points:
-                for i in range(0,len(points),step):
-                    if i + 1 < len(points):
-                        Line = (points[i][0], points[i][1], points[i+1][0], points[i+1][1])
-                        Theta = GetLineTheta(Line)
-                        LidarAVGTheta = (points[i][2] + points[i+1][2]) / 2
-                        Distance = GetLineDistance(Line)
-                        lines.append((points[i][0], points[i][1], points[i+1][0], points[i+1][1], Distance, Theta, LidarAVGTheta))
-
-                frameCount += 1
-                CurrentTime = time.time()
-                if CurrentTime - lastTime >= 1.0:
-                    if Settings.Debug.FullLog:
-                        logger.debug(f"FPS: {frameCount}")
-                    frameCount = 0
-                    lastTime = CurrentTime
-
-                Compass = self.GetYaw()
-                CompassFull = Compass
-
-                if Compass > 180:
-                    Compass = Compass - 180
-
-                HorizontalLines = []
-                VerticalLines = []
-
-                if lines:
-                    for Line in lines:
-                        if RoundThresholdJudger(Line[5], 180, Compass, 20):
-                            HorizontalLines.append(Line)
-                        elif RoundThresholdJudger(Line[5], 180, Compass + 90, 20):
-                            VerticalLines.append(Line)
-                        
-                    # print(Compass,len(HorizontalLines),len(VerticalLines))
-                    Distances = [[],[],[],[]]
-                    LidarDists = [0,0,0,0]
+        try:
+            while(1):
+                Ranges = self.dirLidarQueue.get()
+                lines = []
+                points = []
+                for Element in Ranges:
+                    # if 0 < Element[1] < 2.5:
+                        X = Element[1] * math.sin(math.radians(Element[0]))
+                        Y = Element[1] * math.cos(math.radians(Element[0]))
+                        points.append((X, Y, Element[0]))
                 
-                    if HorizontalLines and VerticalLines:
-                        for Line in HorizontalLines:
-                            if RoundThresholdJudger(Line[6], 360, -(CompassFull), 90):
-                                Distance = round(Line[4], 3)
-                                Distances[0].append(Distance)
-                            elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 180), 90):
-                                Distance = round(Line[4], 3)
-                                Distances[2].append(Distance)
-                        for Line in VerticalLines:
-                            if RoundThresholdJudger(Line[6], 360, -(CompassFull + 90), 90):
-                                Distance = round(Line[4], 3)
-                                Distances[1].append(Distance)
-                            elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 270), 90):
-                                Distance = round(Line[4], 3)
-                                Distances[3].append(Distance)
-                                
-                        for i in range(4):
-                            if len(Distances[i]) > 5:
-                                Distances[i].sort()
-                                iNum = int(len(Distances[i])/100*85)
-                                LidarDists[i] = int(Distances[i][iNum] * 1000)
-                            else:
-                                LidarDists[i] = 0
+                if points:
+                    for i in range(0,len(points),step):
+                        if i + 1 < len(points):
+                            Line = (points[i][0], points[i][1], points[i+1][0], points[i+1][1])
+                            Theta = GetLineTheta(Line)
+                            LidarAVGTheta = (points[i][2] + points[i+1][2]) / 2
+                            Distance = GetLineDistance(Line)
+                            lines.append((points[i][0], points[i][1], points[i+1][0], points[i+1][1], Distance, Theta, LidarAVGTheta))
 
-                    self.dirNormalizedDistance = LidarDists
+                    frameCount += 1
+                    CurrentTime = time.time()
+                    if CurrentTime - lastTime >= 1.0:
+                        if Settings.Debug.FullLog:
+                            logger.debug(f"FPS: {frameCount}")
+                        frameCount = 0
+                        lastTime = CurrentTime
+
+                    Compass = self.GetYaw()
+                    CompassFull = Compass
+
+                    if Compass > 180:
+                        Compass = Compass - 180
+
+                    HorizontalLines = []
+                    VerticalLines = []
+
+                    if lines:
+                        for Line in lines:
+                            if RoundThresholdJudger(Line[5], 180, Compass, 20):
+                                HorizontalLines.append(Line)
+                            elif RoundThresholdJudger(Line[5], 180, Compass + 90, 20):
+                                VerticalLines.append(Line)
+                            
+                        # print(Compass,len(HorizontalLines),len(VerticalLines))
+                        Distances = [[],[],[],[]]
+                        LidarDists = [0,0,0,0]
+                    
+                        if HorizontalLines and VerticalLines:
+                            for Line in HorizontalLines:
+                                if RoundThresholdJudger(Line[6], 360, -(CompassFull), 90):
+                                    Distance = round(Line[4], 3)
+                                    Distances[0].append(Distance)
+                                elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 180), 90):
+                                    Distance = round(Line[4], 3)
+                                    Distances[2].append(Distance)
+                            for Line in VerticalLines:
+                                if RoundThresholdJudger(Line[6], 360, -(CompassFull + 90), 90):
+                                    Distance = round(Line[4], 3)
+                                    Distances[1].append(Distance)
+                                elif RoundThresholdJudger(Line[6], 360, -(CompassFull + 270), 90):
+                                    Distance = round(Line[4], 3)
+                                    Distances[3].append(Distance)
+                            
+
+                            for i in range(4):
+                                if len(Distances[i]) > 5:
+                                    Distances[i].sort()
+                                    iNum = int(len(Distances[i])/100*85)
+                                    import numpy
+                                    LidarDists[i] = int(numpy.nan_to_num(Distances[i][iNum]) * 1000)
+                                else:
+                                    LidarDists[i] = 0
+
+                        self.dirNormalizedDistance = LidarDists
+        except Exception as e:
+            self.LidarNormalize()
 
     def GetDists(self):
         return self.dirNormalizedDistance
@@ -205,7 +210,7 @@ class LidarWithoutYaw:
         self.ParseLidarThread.daemon = True
         self.ParseLidarThread.start()
 
-        self.LidarPositioningThread = threading.Thread(target=self.LidarPositioning)
+        self.LidarPositioningThread = threading.Thread(target=self.LidarPosition)
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
 

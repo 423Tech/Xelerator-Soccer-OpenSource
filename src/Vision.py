@@ -3,8 +3,7 @@ try:
     HAILO = 1
 except ImportError:
     HAILO = 0
-else:
-    raise
+
 # TODO transform to RDK
 
 import threading
@@ -13,7 +12,12 @@ import time
 import cv2
 import numpy as np
 
-from utils.ReasonData import Settings, logger, DATA_DIR
+from utils.ReasonData import Settings, logger, Path
+
+APP_DIR = Path(__file__).parent
+DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
+MODEL_DIR = APP_DIR / "models"
+
 
 class ArisuIntelligence:
     '''
@@ -22,9 +26,14 @@ class ArisuIntelligence:
     
     def __init__(self,Frames):
 
+        self.logger = logger
+
         from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
         self.Frames = Frames
+
+        self.PreProcessTF = 0
+        self.InferTF = 0
 
         self.HailoParams = VDevice.create_params()
         self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
@@ -52,9 +61,30 @@ class ArisuIntelligence:
         self.ModelInferThread.start()
 
 
+    def Resize(self, Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
+   
+
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model(DATA_DIR / self.cfg.VisionVals.HailoModelPath / "yolov8s.hef")
+            InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
@@ -84,6 +114,7 @@ class ArisuIntelligence:
                     Bindings.output().set_buffer(OutputBuffer)
                     BindingsList.append(Bindings)
             if self.YOLOQueue.full():
+                logger.success("YOLOQueue is full")
                 continue
             else:
                 self.PreProcessTF = self.PreProcessTF + 1
@@ -104,7 +135,7 @@ class ArisuIntelligence:
             self.InferTF = self.InferTF + 1
             # 确保在传递给 BindingsList 之前执行此操作
             try:
-                self.ConfiguredInferModel.run(BindingsList, 1000)
+                self.ConfiguredInferModel.run(BindingsList, 2000)
             except Exception as e:
                 self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
                 self.ModelInfer()
@@ -297,6 +328,7 @@ class Vision:
     def ChassisDetection(self):
         while True:
             OutputBuffer = self.AiMethod.ChassisQueue.get()
+            print(OutputBuffer)
             self.PostProcessTF = self.PostProcessTF + 1
             self.MergedChassisList = []
             ChassisList = []
@@ -473,27 +505,7 @@ class Vision:
         Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
 
         return X, Y
-
-    def Resize(Frame, TargetSize=(640, 640)):
-        Height, Width = Frame.shape[:2]
-        TargetHeight, TargetWidth = TargetSize
-        
-        Scale = min(TargetWidth/Width, TargetHeight/Height)
-        
-        NewWidth = int(Width * Scale)
-        NewHeight = int(Height * Scale)
-        
-        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
-        
-        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
-        
-        YOffset = (TargetHeight - NewHeight) // 2
-        XOffset = (TargetWidth - NewWidth) // 2
-        
-        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
-        
-        return PaddedImage
-    
+ 
     def CM2Pixel(self, X, Y, CamIndex):
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]

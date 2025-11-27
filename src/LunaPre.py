@@ -3,9 +3,13 @@ import math, time, threading
 from utils.ReasonData import logger, Settings
 cfg = Settings
 
-from Vision import ArisuIntelligence
+# from Vision import Vision as V
+# vision = V()
+
+from headunit import ArisuIntelligence
+vision = ArisuIntelligence()
+
 from Sensor import Lidar
-Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
     from utils.ArisuBits import ArisBit
@@ -62,7 +66,7 @@ class Positions:
             `0xddd` stand for `CatchBall`
         '''
         # 20251017 already changed X,Y dimension    
-        self.ballPos = Vision.GetBallPos()
+        self.ballPos = vision.GetBallPos()
         if self.ballPos == [0,0]:
             self.ballPosOut = [0xfff,0xfff]
         elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
@@ -131,8 +135,8 @@ class Positions:
                 X = -((cfg.Bounds.Short*self.LidarScale/2 - _distance[1]) + (_distance[3] - cfg.Bounds.Short*self.LidarScale/2))/2
             self.LidarPos = [X/10,Y/10,compass()]
             logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
-            # 20251017 already changed X,Y dimension    
-            return [Y/10,X/10,compass()]
+            # 20251126 already changed X_forward,Y_left dimension    
+            return [X/10,Y/10,compass()]
         elif Bits.Odometer is not None:# if use odometer datas
             # TODO finish lower Positions
             pass
@@ -149,7 +153,7 @@ class Positions:
                     chassis weidth
         '''
         # 20251017 already changed X,Y dimension
-        ChassisRawList = Vision.GetChassisPos()
+        ChassisRawList = vision.GetChassisPos()
         SelfX,SelfY,SelfZ = self.AbsRoboPosition()
         OutputDistanceList = []
         for c in ChassisRawList:
@@ -181,7 +185,7 @@ class Positions:
         ### Returns:
             ballangle: int | relative ball angle
         '''
-        ballX,ballY = Vision.GetBallPos()
+        ballX,ballY = vision.GetBallPos()
         if ballY == 0:
             relBallAngle = 0
         try:
@@ -234,7 +238,7 @@ class Positions:
             `0xfff` stand for `NoBall`
             `0xddd` stand for `CatchBall`
         '''
-        ballX,ballY = Vision.GetBallPos()
+        ballX,ballY = vision.GetBallPos()
         if [ballX,ballY] == [0,0]:
             return [0xfff,0xfff]
         if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
@@ -265,7 +269,7 @@ class Positions:
         #### Returns:
             [a1,a2,a3,etc]
         '''
-        ChassisRawList = Vision.GetChassisPos()
+        ChassisRawList = vision.GetChassisPos()
         ChassisAngleList = []
         for c in ChassisRawList:
             if c[1] == 0:
@@ -296,75 +300,86 @@ class Positions:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
     
-    def MoveToPosition(self,Position:list[int,int,int],Kp:float|None = None):
-        '''
-        Move the robot to the target Position [X,Y,W]
-        #### Args:
-            Position: list | [X,Y,W]
-            Kp: float | Proportional Coefficient for Yaw Correction
-        '''
-        # PID 控制实现：对 X 与 Y 使用独立的 P 控制（可扩展为 PID），并对朝向使用现有的 Kp 进行修正
-        TargetX = float(Position[0])
-        TargetY = float(Position[1])
-        FacingAngle = float(Position[2])
+    # def MoveToPosition(self,Position:list[int,int,int],Kp:float|None = None):
+    #     '''
+    #     Move the robot to the target Position [X,Y,W]
+    #     #### Args:
+    #         Position: list | [X,Y,W]
+    #         Kp: float | Proportional Coefficient for Yaw Correction
+    #     '''
+    #     # PID 控制实现：对 X 与 Y 使用独立的 P 控制（可扩展为 PID），并对朝向使用现有的 Kp 进行修正
+    #     TargetX = float(Position[0])
+    #     TargetY = float(Position[1])
+    #     FacingAngle = float(Position[2])
 
-        # PID 参数（可根据 cfg 或传参调整）
-        Kp_pos = cfg.Control.KpPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KpPos') else 0.8
-        Ki_pos = cfg.Control.KiPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KiPos') else 0.0
-        Kd_pos = cfg.Control.KdPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KdPos') else 0.0
+    #     # PID 参数（可根据 cfg 或传参调整）
+    #     Kp_pos = cfg.Control.KpPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KpPos') else 0.8
+    #     Ki_pos = cfg.Control.KiPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KiPos') else 0.0
+    #     Kd_pos = cfg.Control.KdPos if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'KdPos') else 0.0
 
-        # 速度限制（像素或单位到 PWM 的映射由底层处理），最大速度取配置或默认
-        MaxSpeed = cfg.ExpectedVals.MaxSpeedValue if hasattr(cfg.ExpectedVals, 'MaxSpeedValue') else 800
+    #     # 速度限制（像素或单位到 PWM 的映射由底层处理），最大速度取配置或默认
+    #     MaxSpeed = cfg.ExpectedVals.MaxSpeedValue if hasattr(cfg.ExpectedVals, 'MaxSpeedValue') else 800
 
-        # PID 状态
-        err_x_int = 0.0
-        err_y_int = 0.0
-        prev_err_x = 0.0
-        prev_err_y = 0.0
+    #     # PID 状态
+    #     err_x_int = 0.0
+    #     err_y_int = 0.0
+    #     prev_err_x = 0.0
+    #     prev_err_y = 0.0
 
-        timeout = cfg.Control.MoveTimeout if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'MoveTimeout') else 5.0
-        start_t = time.time()
+    #     timeout = cfg.Control.MoveTimeout if hasattr(cfg, 'Control') and hasattr(cfg.Control, 'MoveTimeout') else 5.0
+    #     start_t = time.time()
 
-        while True:
-            SelfX, SelfY, SelfZ = self.AbsRoboPosition()
-            # 距离目标的误差
-            err_x = TargetX - SelfX
-            err_y = TargetY - SelfY
-            dist = math.hypot(err_x, err_y)
+    #     while True:
+    #         SelfX, SelfY, SelfZ = self.AbsRoboPosition()
+    #         # 距离目标的误差
+    #         err_x = TargetX - SelfX
+    #         err_y = TargetY - SelfY
+    #         dist = math.hypot(err_x, err_y)
 
-            # 结束条件：到达目标点（小于阈值）或超时
-            if dist <= (cfg.Control.PosTolerance if hasattr(cfg.Control, 'PosTolerance') else 5.0):
-                # 停止底盘
-                chassis.stop()
-                break
-            if (time.time() - start_t) > timeout:
-                chassis.stop()
-                logger.warning("MoveToPosition timeout, dist remaining: %s", dist)
-                break
+    #         # 结束条件：到达目标点（小于阈值）或超时
+    #         if dist <= (cfg.Control.PosTolerance if hasattr(cfg.Control, 'PosTolerance') else 5.0):
+    #             # 停止底盘
+    #             chassis.stop()
+    #             break
+    #         if (time.time() - start_t) > timeout:
+    #             chassis.stop()
+    #             logger.warning("MoveToPosition timeout, dist remaining: %s", dist)
+    #             break
 
-            # 积分与微分
-            dt = 0.03
-            err_x_int += err_x * dt
-            err_y_int += err_y * dt
-            err_x_der = (err_x - prev_err_x) / dt
-            err_y_der = (err_y - prev_err_y) / dt
+    #         # 积分与微分
+    #         dt = 0.03
+    #         err_x_int += err_x * dt
+    #         err_y_int += err_y * dt
+    #         err_x_der = (err_x - prev_err_x) / dt
+    #         err_y_der = (err_y - prev_err_y) / dt
 
-            # PID 计算（得到沿机器人坐标系的 SpeedX, SpeedY）
-            # 先把全局坐标误差转换为车体坐标（以当前朝向 SelfZ）
-            yaw_rad = math.radians(SelfZ)
-            # 旋转误差向量到车体坐标系
-            body_err_x = math.cos(yaw_rad) * err_x + math.sin(yaw_rad) * err_y
-            body_err_y = -math.sin(yaw_rad) * err_x + math.cos(yaw_rad) * err_y
+    #         # PID 计算（得到沿机器人坐标系的 SpeedX, SpeedY）
+    #         # 先把全局坐标误差转换为车体坐标（以当前朝向 SelfZ）
+    #         yaw_rad = math.radians(SelfZ)
+    #         # 旋转误差向量到车体坐标系
+    #         body_err_x = math.cos(yaw_rad) * err_x + math.sin(yaw_rad) * err_y
+    #         body_err_y = -math.sin(yaw_rad) * err_x + math.cos(yaw_rad) * err_y
 
-            SpeedX = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_x + Ki_pos * err_x_int + Kd_pos * err_x_der)))
-            SpeedY = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_y + Ki_pos * err_y_int + Kd_pos * err_y_der)))
+    #         SpeedX = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_x + Ki_pos * err_x_int + Kd_pos * err_x_der)))
+    #         SpeedY = int(max(-MaxSpeed, min(MaxSpeed, Kp_pos * body_err_y + Ki_pos * err_y_int + Kd_pos * err_y_der)))
 
-            # Yaw 修正（保持朝向 FacingAngle，复用 chassis 的 Kp 逻辑）
-            chassis.AbsMoveVetor(SpeedX, SpeedY, FacingAngle, Kp)
+    #         # Yaw 修正（保持朝向 FacingAngle，复用 chassis 的 Kp 逻辑）
+    #         chassis.AbsMoveVetor(SpeedX, SpeedY, FacingAngle, Kp)
 
-            prev_err_x = err_x
-            prev_err_y = err_y
-            time.sleep(dt)
+    #         prev_err_x = err_x
+    #         prev_err_y = err_y
+    #         time.sleep(dt)
+
+    def MoveToPosition(self, Position: list[int, int, int], Kp: float | None = None):
+        selfPosition = self.AbsRoboPosition()
+        dX = Position[0] - selfPosition[0]
+        dY = Position[1] - selfPosition[1]
+        dW = Position[2] - selfPosition[2]
+        if abs(dX) < 5 and abs(dY) < 5 and abs(dW) < 5:
+            return [0, 0, 0]  # 已经到达目标位置
+        else:
+            chassis.AbsMoveVetor(dX, dY, dW)
+        
 
 class Communication:
     def __init__(self):

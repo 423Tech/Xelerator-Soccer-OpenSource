@@ -3,8 +3,6 @@ try:
     HAILO = 1
 except ImportError:
     HAILO = 0
-else:
-    raise
 # TODO transform to RDK
 
 import threading
@@ -13,8 +11,11 @@ import time
 import cv2
 import numpy as np
 
-from utils.ReasonData import Settings, logger, DATA_DIR
+from utils.ReasonData import Settings, logger, Path
 
+APP_DIR = Path(__file__).parent
+DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
+MODEL_DIR = APP_DIR / "models"
 
 class ArisuIntelligence:
     '''
@@ -143,7 +144,7 @@ class ArisuIntelligence:
         with VDevice(self.HailoParams) as Hat:
             # InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
             # InferModel = Hat.create_infer_model( + 'yolov8s.hef')
-            InferModel = Hat.create_infer_model(DATA_DIR / self.cfg.VisionVals.ModelPath / "yolov8s.hef")
+            InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
@@ -182,17 +183,21 @@ class ArisuIntelligence:
             FrameCount += 1
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
-                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
+                self.logger.debug(f"Hailo Process FPS: {FameCount}")
                 FrameCount = 0
                 LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
             self.InferTF = self.InferTF + 1
             # 确保在传递给 BindingsList 之前执行此操作
+            
             try:
-                self.ConfiguredInferModel.run(BindingsList, 1000)
+                self.ConfiguredInferModel.run(BindingsList, 2000)
             except Exception as e:
                 self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
-                self.ModelInfer()
+                self.logger.error(f"Hailo Inference BindingList: {len(BindingsList)}")
+                breakpoint
+                raise e
+                # self.ModelInfer()
             Outputs = []
             ChassisList = []
             for Bindings in BindingsList:
