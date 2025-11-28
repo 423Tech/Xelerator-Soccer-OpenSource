@@ -50,7 +50,6 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim6;
-TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
@@ -74,14 +73,14 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM6_Init(void);
-static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 void start_all_pwm_channels(void);
 void set_wheels_pwm(int32_t (*pwm_array_ptr)[4]);
 void start_all_encoder_channels(void);
 void get_encoder_count_delta(int16_t (*delta_array_ptr)[4]);
 void wheel_pwm_update(void);
-void delay_us(uint16_t us);
+void dwt_init(void);
+void delay_us(uint32_t us);
 void write_gyro(uint8_t reg, uint8_t data);
 void read_gyro(uint8_t reg, uint8_t *data);
 void burst_read_gyro(uint8_t reg, int size);
@@ -135,9 +134,8 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM5_Init();
   MX_TIM6_Init();
-  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim7);
+  dwt_init(); /* 给delay_us函数用的 */
 
   init_gyro();
   /*
@@ -550,44 +548,6 @@ static void MX_TIM6_Init(void)
 }
 
 /**
-  * @brief TIM7 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM7_Init(void)
-{
-
-  /* USER CODE BEGIN TIM7_Init 0 */
-
-  /* USER CODE END TIM7_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM7_Init 1 */
-
-  /* USER CODE END TIM7_Init 1 */
-  htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 83;
-  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 65535;
-  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM7_Init 2 */
-
-  /* USER CODE END TIM7_Init 2 */
-
-}
-
-/**
   * @brief TIM8 Initialization Function
   * @param None
   * @retval None
@@ -939,20 +899,19 @@ void wheel_pwm_update(void)
 	set_wheels_pwm(&target_pwm);
 }
 
-void delay_us(uint16_t us)
+void dwt_init(void)
 {
-	uint16_t elapsed, current;
-    uint16_t start = __HAL_TIM_GET_COUNTER(&htim7);
+	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+	DWT->CYCCNT = 0;
+	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
 
-    do {
-        current = __HAL_TIM_GET_COUNTER(&htim7);
+void delay_us(uint32_t us)
+{
+    uint32_t start = DWT->CYCCNT;
+    uint32_t cycles = us * 168;
 
-        if (current >= start)
-            elapsed = current - start;
-        else
-            elapsed = (0xFFFF - start) + current + 1;
-
-    } while (elapsed < us);
+    while (DWT->CYCCNT - start < cycles);
 }
 
 void write_gyro(uint8_t reg, uint8_t data)
