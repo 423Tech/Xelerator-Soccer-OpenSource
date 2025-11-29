@@ -122,16 +122,32 @@ int main(void)
   /* USER CODE BEGIN 2 */
   init_gyro();
   init_motor();
-  target_wheel_rpm[0] = 120;
-  target_wheel_rpm[1] = 120;
-  target_wheel_rpm[2] = 120;
-  target_wheel_rpm[3] = 120;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  delay_us(3000000);
+	  target_wheel_rpm[0] = 120;
+	  target_wheel_rpm[1] = 120;
+	  target_wheel_rpm[2] = 120;
+	  target_wheel_rpm[3] = 120;
+	  delay_us(3000000);
+	  target_wheel_rpm[0] = 240;
+	  target_wheel_rpm[1] = 240;
+	  target_wheel_rpm[2] = 240;
+	  target_wheel_rpm[3] = 240;
+	  delay_us(3000000);
+	  target_wheel_rpm[0] = 120;
+	  target_wheel_rpm[1] = 120;
+	  target_wheel_rpm[2] = 120;
+	  target_wheel_rpm[3] = 120;
+	  delay_us(3000000);
+	  target_wheel_rpm[0] = 0;
+	  target_wheel_rpm[1] = 0;
+	  target_wheel_rpm[2] = 0;
+	  target_wheel_rpm[3] = 0;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

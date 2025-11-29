@@ -127,15 +127,46 @@ void wheel_pwm_update(void)
 		{0, 0, 0}
 	};
 
+	static enum {
+		PID_ACTIVE,
+		PID_OBSERVING,
+		PID_INACTIVE
+	} pid_state[4] = {PID_INACTIVE, PID_INACTIVE, PID_INACTIVE, PID_INACTIVE};
+
 	get_encoder_count_delta(&count_delta_arr);
 
 	for (i = 0; i < 4; i++) {
 		float error = target_wheel_rpm[i] - (float)count_delta_arr[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f);
+
+		switch(pid_state[i]) {
+		case PID_ACTIVE:
+			if (target_wheel_rpm[i] == 0 && error > -1 && error < 1)
+				pid_state[i] = PID_OBSERVING;
+			break;
+		case PID_OBSERVING:
+			if (target_wheel_rpm[i] == 0 && error > -1 && error < 1) {
+				pid_state[i] = PID_INACTIVE;
+				error = 0;
+				pid_arr[i].integral = 0;
+				pid_arr[i].last_error = 0;
+			} else
+				pid_state[i] = PID_ACTIVE;
+			break;
+		case PID_INACTIVE:
+			if (target_wheel_rpm[i] != 0 || error <= -1 || error >= 1)
+				pid_state[i] = PID_ACTIVE;
+			break;
+		default:
+			break;
+		}
+
 		pid_arr[i].integral += error;
 		pid_arr[i].derivative = error - pid_arr[i].last_error;
 		pid_arr[i].last_error = error;
+
 		pid_arr[i].integral = pid_arr[i].integral > 2000 ? 2000 : pid_arr[i].integral;
 		pid_arr[i].integral = pid_arr[i].integral < -2000 ? -2000 : pid_arr[i].integral;
+
 		target_pwm[i] = (float)(12.6 * error + 8.4 * pid_arr[i].integral + 42 * pid_arr[i].derivative);
 		target_pwm[i] = target_pwm[i] > 42000 ? 42000 : target_pwm[i];
 		target_pwm[i] = target_pwm[i] < -42000 ? -42000 : target_pwm[i];
