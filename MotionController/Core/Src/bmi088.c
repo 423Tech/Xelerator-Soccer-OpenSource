@@ -64,7 +64,6 @@ void process_gyro_angle(void)
 {
 	int i;
 	float time_interval;
-	uint32_t dwt_cycle_interval;
 	uint32_t current_dwt_cycle = DWT->CYCCNT;
 	static uint32_t last_dwt_cycle = 0;
 	static float rate[3];

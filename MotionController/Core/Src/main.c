@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "bmi088.h"
+#include "motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +55,7 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
 /* USER CODE BEGIN PV */
-float target_wheel_rpm[4] = {0, 0, 0, 0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -120,13 +121,11 @@ int main(void)
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   init_gyro();
-  /*
-  start_all_pwm_channels();
-  start_all_encoder_channels();
-  __HAL_TIM_SET_COUNTER(&htim6, 0);
-  HAL_TIM_Base_Start_IT(&htim6);
-  target_wheel_rpm[0] = 21000;
-  */
+  init_motor();
+  target_wheel_rpm[0] = 120;
+  target_wheel_rpm[1] = 120;
+  target_wheel_rpm[2] = 120;
+  target_wheel_rpm[3] = 120;
   /* USER CODE END 2 */
 
   /* Infinite loop */
