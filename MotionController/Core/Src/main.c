@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
+#include "bmi088.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,9 +55,6 @@ TIM_HandleTypeDef htim9;
 
 /* USER CODE BEGIN PV */
 float target_wheel_rpm[4] = {0, 0, 0, 0};
-uint8_t spi2_tx_buffer[1 + 6];
-uint8_t spi2_rx_buffer[1 + 6];
-float gyro_angle[3] = {0, 0, 0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,20 +71,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
-void start_all_pwm_channels(void);
-void set_wheels_pwm(int32_t (*pwm_array_ptr)[4]);
-void start_all_encoder_channels(void);
-void get_encoder_count_delta(int16_t (*delta_array_ptr)[4]);
-void wheel_pwm_update(void);
-void dwt_init(void);
-void delay_us(uint32_t us);
-void write_gyro(uint8_t reg, uint8_t data);
-void read_gyro(uint8_t reg, uint8_t *data);
-void burst_read_gyro(uint8_t reg, int size);
-void write_accel(uint8_t reg, uint8_t data);
-void read_accel(uint8_t reg, uint8_t *data);
-void init_gyro(void);
-void process_gyro_angle(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -135,8 +119,6 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
-  dwt_init(); /* 给delay_us函数用的 */
-
   init_gyro();
   /*
   start_all_pwm_channels();
@@ -745,7 +727,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PD8 */
   GPIO_InitStruct.Pin = GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PD12 */
@@ -765,94 +747,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void start_all_pwm_channels(void)
-{
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
-	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);
-
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, 0);
-	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 0);
-	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, 0);
-}
-
-void set_wheels_pwm(int32_t (*pwm_array_ptr)[4])
-{
-	int i;
-	int32_t pwm_val;
-	static const struct {
-		TIM_HandleTypeDef * const phtim;
-		const unsigned int forward_channel;
-		const unsigned int back_channel;
-	} wheel_arr[4] = {
-		{&htim8, TIM_CHANNEL_1, TIM_CHANNEL_2},
-		{&htim8, TIM_CHANNEL_3, TIM_CHANNEL_4},
-		{&htim4, TIM_CHANNEL_1, TIM_CHANNEL_2},
-		{&htim4, TIM_CHANNEL_3, TIM_CHANNEL_4}
-	};
-
-	for (i = 0; i < 4; i++) {
-		pwm_val = (*pwm_array_ptr)[i];
-		__HAL_TIM_SET_COMPARE(
-				wheel_arr[i].phtim,
-				wheel_arr[i].forward_channel,
-				pwm_val >= 0 ? pwm_val : 0);
-		__HAL_TIM_SET_COMPARE(
-				wheel_arr[i].phtim,
-				wheel_arr[i].back_channel,
-				pwm_val >= 0 ? 0 : -pwm_val);
-	}
-}
-
-void start_all_encoder_channels(void)
-{
-	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
-	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-	HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
-
-	__HAL_TIM_SET_COUNTER(&htim1, 0);
-	__HAL_TIM_SET_COUNTER(&htim2, 0);
-	__HAL_TIM_SET_COUNTER(&htim3, 0);
-	__HAL_TIM_SET_COUNTER(&htim5, 0);
-}
-
-void get_encoder_count_delta(int16_t (*delta_array_ptr)[4])
-{
-	int i;
-	int32_t delta;
-	int32_t current_count;
-	static int32_t last_count[4] = {0, 0, 0, 0};
-	static TIM_HandleTypeDef * const phtim[4] = {&htim1, &htim2, &htim3, &htim5};
-
-	for (i = 0; i < 4; i++) {
-		current_count = __HAL_TIM_GET_COUNTER(phtim[i]);
-		delta = current_count - last_count[i];
-
-		if (delta > 32767)
-			delta -= 65536;
-		else if (delta < -32768)
-			delta += 65536;
-
-		last_count[i] = current_count;
-		(*delta_array_ptr)[i] = (int16_t)delta;
-	}
-}
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
@@ -864,102 +758,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-void wheel_pwm_update(void)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	int i;
-	int32_t error;
-	int16_t target_count_delta;
-	int16_t count_delta_arr[4];
-	int32_t target_pwm[4];
-	static struct {
-		int32_t last_error;
-		int32_t integral;
-		int32_t derivative;
-	} pid_arr[4] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-
-	get_encoder_count_delta(&count_delta_arr);
-
-	for (i = 0; i < 4; i++) {
-		/* 编码器一圈8个脉冲，4倍频，电机减速比20:1，一分钟60秒，每1/100秒里的脉冲数 */
-		target_count_delta = (int16_t)(target_wheel_rpm[i] * 8 * 4 * 20 / 60 / 100);
-		error = target_count_delta - count_delta_arr[i];
-		pid_arr[i].integral += error * 0.01; /* dt = 1/100s */
-		pid_arr[i].derivative = (error - pid_arr[i].last_error) / 0.01; /* dt = 1/100s */
-		pid_arr[i].last_error = error;
-		target_pwm[i] = 0.5 * error + 0.1 * pid_arr[i].integral + 0.01 * pid_arr[i].derivative;
-		target_pwm[i] = target_pwm[i] > 42000 ? 42000 : target_pwm[i];
-		target_pwm[i] = target_pwm[i] < -42000 ? -42000 : target_pwm[i];
-	}
-
-	set_wheels_pwm(&target_pwm);
-}
-
-void dwt_init(void)
-{
-	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-	DWT->CYCCNT = 0;
-	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-}
-
-void delay_us(uint32_t us)
-{
-    uint32_t start = DWT->CYCCNT;
-    uint32_t cycles = us * 168;
-
-    while (DWT->CYCCNT - start < cycles);
-}
-
-void write_gyro(uint8_t reg, uint8_t data)
-{
-	spi2_tx_buffer[0] = reg & 0x7F;
-	spi2_tx_buffer[1] = data;
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi2, spi2_tx_buffer, 2, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-	delay_us(2);
-}
-
-void read_gyro(uint8_t reg, uint8_t *data)
-{
-	spi2_tx_buffer[0] = reg | 0x80;
-	spi2_tx_buffer[1] = 0xFF;
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi2, spi2_tx_buffer, spi2_rx_buffer, 2, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-	*data = spi2_rx_buffer[1];
-}
-
-void burst_read_gyro(uint8_t reg, int size)
-{
-	spi2_tx_buffer[0] = reg | 0x80;
-	memset(spi2_tx_buffer + 1, 0xFF, size);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive_DMA(&hspi2, spi2_tx_buffer, spi2_rx_buffer, size + 1);
-}
-
-void write_accel(uint8_t reg, uint8_t data)
-{
-	spi2_tx_buffer[0] = reg & 0x7F;
-	spi2_tx_buffer[1] = data;
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi2, spi2_tx_buffer, 2, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
-	delay_us(2);
-}
-
-void read_accel(uint8_t reg, uint8_t *data)
-{
-	spi2_tx_buffer[0] = reg | 0x80;
-	spi2_tx_buffer[1] = 0xFF;
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi2, spi2_tx_buffer, spi2_rx_buffer, 2, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);
-	*data = spi2_rx_buffer[1];
+    switch(GPIO_Pin)
+    {
+    case GPIO_PIN_8:
+        burst_read_gyro(0x02, 6);
+        break;
+    default:
+        break;
+    }
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
@@ -969,47 +777,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     case (uint32_t)SPI2:
         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
         process_gyro_angle();
-        break;
-    default:
-        break;
-    }
-}
-
-void init_gyro(void)
-{
-	delay_us(1000);
-
-	write_gyro(0x14, 0xB6);
-	delay_us(30000);
-
-	write_gyro(0x0F, 0x00);
-	write_gyro(0x10, 0x02);
-	write_gyro(0x11, 0x00);
-	write_gyro(0x15, 0x80);
-	write_gyro(0x16, 0x00);
-	write_gyro(0x18, 0x01);
-}
-
-void process_gyro_angle(void)
-{
-	int i;
-	static float rate[3];
-	static float last_rate[3] = {0, 0, 0};
-
-	for (i = 0; i < 3; i++) {
-		rate[i] = spi2_rx_buffer[2 * i + 1] + spi2_rx_buffer[2 * i + 2] * 256;
-		rate[i] = rate[i] * 2000 / 32767;
-		gyro_angle[i] += (last_rate[i] + rate[i]) * 1 / 1000 / 2;
-		last_rate[i] = rate[i];
-	}
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    switch(GPIO_Pin)
-    {
-    case GPIO_PIN_8:
-        burst_read_gyro(0x02, 6);
         break;
     default:
         break;
