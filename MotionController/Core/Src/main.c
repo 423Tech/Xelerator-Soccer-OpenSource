@@ -128,12 +128,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_Delay(3000);
-	  target_wheel_rpm[0] = 240;
-	  HAL_Delay(3000);
-	  target_wheel_rpm[0] = 120;
-	  HAL_Delay(3000);
-	  target_wheel_rpm[0] = 0;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
