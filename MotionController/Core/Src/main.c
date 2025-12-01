@@ -54,8 +54,11 @@ TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
-/* USER CODE BEGIN PV */
+UART_HandleTypeDef huart4;
+DMA_HandleTypeDef hdma_uart4_rx;
 
+/* USER CODE BEGIN PV */
+/* char uart_test_buff[] = "Hello"; */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,6 +74,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_UART4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,8 +123,9 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM5_Init();
   MX_TIM6_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-  init_gyro();
+  bmi088_init_gyro();
   init_motor();
   /* USER CODE END 2 */
 
@@ -668,6 +673,39 @@ static void MX_TIM9_Init(void)
 }
 
 /**
+  * @brief UART4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART4_Init(void)
+{
+
+  /* USER CODE BEGIN UART4_Init 0 */
+
+  /* USER CODE END UART4_Init 0 */
+
+  /* USER CODE BEGIN UART4_Init 1 */
+
+  /* USER CODE END UART4_Init 1 */
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 115200;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART4_Init 2 */
+
+  /* USER CODE END UART4_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -677,6 +715,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
   /* DMA1_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
@@ -758,7 +799,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     switch(GPIO_Pin)
     {
     case GPIO_PIN_8:
-        burst_read_gyro(0x02, 6);
+    	bmi088_burst_read_gyro(0x02, 6);
         break;
     default:
         break;
@@ -770,11 +811,22 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     switch ((uint32_t)hspi->Instance)
     {
     case (uint32_t)SPI2:
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-        process_gyro_angle();
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+    	bmi088_process_gyro_angle();
         break;
     default:
         break;
+    }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    switch((uint32_t)huart->Instance) {
+    case (uint32_t)UART4:
+    		/* HAL_UART_Transmit_IT(&huart4, uart_test_buff, strlen(uart_test_buff)); */
+    	break;
+    default:
+    	break;
     }
 }
 /* USER CODE END 4 */
