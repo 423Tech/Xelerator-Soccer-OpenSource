@@ -58,7 +58,7 @@ UART_HandleTypeDef huart4;
 DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
-/* char uart_test_buff[] = "Hello"; */
+char uart_test_buff[16];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -126,13 +126,29 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
-  init_motor();
+  bmi088_calibrate_gyro_zero_bias(3000);
+  /* init_motor(); */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  sprintf(uart_test_buff, "x: %d, y: %d, z: %d\r\n", (int)bmi088_gyro_angle[0], (int)bmi088_gyro_angle[1], (int)bmi088_gyro_angle[2]);
+	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_test_buff, strlen(uart_test_buff));
+	  HAL_Delay(1000);
+	  /*
+	  target_wheel_rpm[0] = 120;
+	  target_wheel_rpm[1] = 120;
+	  target_wheel_rpm[2] = -120;
+	  target_wheel_rpm[3] = -120;
+	  HAL_Delay(1000);
+	  target_wheel_rpm[0] = 240;
+	  target_wheel_rpm[1] = 240;
+	  target_wheel_rpm[2] = -240;
+	  target_wheel_rpm[3] = -240;
+	  HAL_Delay(1000);
+	  */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -823,7 +839,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     switch((uint32_t)huart->Instance) {
     case (uint32_t)UART4:
-    		/* HAL_UART_Transmit_IT(&huart4, uart_test_buff, strlen(uart_test_buff)); */
+    		/* HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_test_buff, strlen(uart_test_buff)); */
     	break;
     default:
     	break;

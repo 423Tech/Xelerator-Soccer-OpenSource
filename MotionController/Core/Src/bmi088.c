@@ -5,6 +5,7 @@
  *      Author: yehui
  */
 
+#include "bool.h"
 #include "main.h"
 #include "delay.h"
 #include <string.h>
@@ -13,6 +14,11 @@ extern SPI_HandleTypeDef hspi2;
 
 static uint8_t tx_buff[6 + 1];
 static uint8_t rx_buff[6 + 1];
+static bool calibratint_gyro_zero_bias = false;
+static int calibration_samples;
+static int samples;
+static uint32_t sum[3];
+static float gyro_zero_bias[3] = {0, 0, 0};
 volatile uint32_t bmi088_drdy_timestamp = 0;
 float bmi088_gyro_angle[3] = {0, 0, 0};
 
@@ -80,10 +86,32 @@ void bmi088_process_gyro_angle(void)
 	time_interval = (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock;
 
 	for (i = 0; i < 3; i++) {
-		rate[i] = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]) * (2000.0f / 32767.0f);
+		int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
+		if (calibratint_gyro_zero_bias && samples < calibration_samples)
+			sum[i] += raw;
+		rate[i] = ((float)raw - gyro_zero_bias[i]) * (2000.0f / 32767.0f);
 		bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * time_interval * 0.5f;
 		last_rate[i] = rate[i];
 	}
 
 	last_dwt_cycle = current_dwt_cycle;
+
+	if (calibratint_gyro_zero_bias && samples < calibration_samples)
+		samples++;
+	if (calibratint_gyro_zero_bias && samples == calibration_samples) {
+		for (i = 0; i < 3; i++) {
+			gyro_zero_bias[i] = (float)sum[i] / (float)samples;
+			bmi088_gyro_angle[i] = 0;
+		}
+		calibratint_gyro_zero_bias = false;
+	}
+}
+
+void bmi088_calibrate_gyro_zero_bias(int calibration_samples_num)
+{
+	samples = 0;
+	memset(sum, 0, sizeof(sum));
+	calibration_samples = calibration_samples_num;
+	calibratint_gyro_zero_bias = true;
+	while (calibratint_gyro_zero_bias);
 }

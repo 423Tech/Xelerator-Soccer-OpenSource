@@ -164,7 +164,7 @@ void wheel_pwm_update(void)
 		pid_arr[i].derivative = error - pid_arr[i].last_error;
 		pid_arr[i].last_error = error;
 
-		target_pwm[i] = (float)(12.6 * error + 8.4 * pid_arr[i].integral + 42 * pid_arr[i].derivative);
+		target_pwm[i] = (float)(50 * error + 7 * pid_arr[i].integral + 5 * pid_arr[i].derivative);
 		target_pwm[i] = target_pwm[i] > 42000 ? 42000 : target_pwm[i];
 		target_pwm[i] = target_pwm[i] < -42000 ? -42000 : target_pwm[i];
 	}

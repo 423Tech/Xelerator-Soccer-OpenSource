@@ -18,5 +18,6 @@ void bmi088_read_gyro(uint8_t reg, uint8_t *data);
 void bmi088_burst_read_gyro(uint8_t reg, int size);
 void bmi088_init_gyro(void);
 void bmi088_process_gyro_angle(void);
+void bmi088_calibrate_gyro_zero_bias(int calibration_samples_num);
 
 #endif /* INC_BMI088_H_ */
