@@ -3,14 +3,12 @@ import math, time, threading
 from utils.ReasonData import logger, Settings
 cfg = Settings
 
-# from Vision import Vision as V
-# vision = V()
-
+# from Vision import ArisuIntelligence
 from headunit import ArisuIntelligence
+
 vision = ArisuIntelligence()
 
 from Sensor import Lidar
-Vision = ArisuIntelligence()
 from chassis import Car,Peripherals # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
     from utils.ArisuBits import ArisBit
@@ -386,11 +384,88 @@ class Positions:
         dX = Position[0] - selfPosition[0]
         dY = Position[1] - selfPosition[1]
         dW = Position[2] - selfPosition[2]
+
         if abs(dX) < 5 and abs(dY) < 5 and abs(dW) < 5:
+            chassis.stop()
             return [0, 0, 0]  # 已经到达目标位置
         else:
             chassis.AbsMoveVetor(dX, dY, dW)
-        
+
+    def Pos2Pos(self,AimPos:list, A2O:bool | None = False, Speed:int | None = None) -> int:
+        '''
+        iFacingAngle 移动时面对的方向 0~360
+        lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
+        A2O 是否开启自动避障 默认True
+        '''
+        iLocX,iLocY,iLocZ = self.AbsRoboPosition()
+        if iLocX < 0:
+            kX = -1
+        else:
+            kX = 1
+        if iLocY < 0:
+            kY = -1
+        else:
+            kY = 1
+        iAimX,iAimY,iAimZ = AimPos
+        iDeltaX = (iAimX) - (iLocX)
+        iDeltaY = (iAimY) - (iLocY)
+        RestrictedX = Settings.Bounds.FarPos[0]
+        RestrictedY = Settings.Bounds.FarPos[1]
+        try:
+            try:
+                Slope = iDeltaX/iDeltaY
+            except ZeroDivisionError:
+                Slope = 1
+            if Slope*RestrictedY > RestrictedX:
+                iAimX = (RestrictedX - 3)*kX
+            if Slope/RestrictedX > RestrictedY:
+                iAimY = (RestrictedY - 3)*kY
+        except:
+            iAimX,iAimY,iAimZ = AimPos
+        logger.info([iAimX,iAimY,iAimZ])
+        if iLocZ > 180:
+            iDeltaZ = 360 - abs(iAimZ) - abs(iLocZ)
+        else:
+            iDeltaZ = (abs(iAimZ) - abs(iLocZ))
+        logger.debug([iDeltaX,iDeltaY,iDeltaZ])
+        iErrorRange = Settings.ExpectedVals.ErrorRange
+        iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
+        if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
+            chassis.stop()
+            return True
+        elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
+            chassis.RelTurn(iDeltaZ)
+        else:
+            if Speed:
+                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,Speed)
+            else:
+                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+5)
+            return False
+
+    def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
+        iErrorRange = Settings.ExpectedVals.ErrorRange
+        for i in Posistions:
+            while (1):
+                iAimX = i[0]
+                iAimY = i[1]
+                iAimZ = i[2]
+                lLocal = self.AbsRoboPosition()
+                iLocX = lLocal[0]
+                iLocY = lLocal[1]
+                iLocZ = lLocal[2]
+                iDeltaX = iAimX - iLocX
+                iDeltaY = iAimY - iLocY
+                iDeltaZ = iAimZ - iLocZ
+                if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and iErrorRange > abs(iDeltaZ):
+                    if i == Posistions[-1]:
+                        return True
+                    else:
+                        time.sleep(iWaitMs)
+                        break
+                else:
+                    self.Pos2Pos(i,A2O=A2O)
+
+
 
 class Communication:
     def __init__(self):

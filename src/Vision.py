@@ -18,211 +18,11 @@ APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
 MODEL_DIR = APP_DIR / "models"
 
-
-class ArisuIntelligence:
-    '''
-    with hailo only
-    '''
-    
-    def __init__(self,Frames):
-
-        self.logger = logger
-
-        from hailo_platform import VDevice, HailoSchedulingAlgorithm
-
-        self.Frames = Frames
-
-        self.PreProcessTF = 0
-        self.InferTF = 0
-
-        self.HailoParams = VDevice.create_params()
-        self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
-
-        self.YOLOQueue = queue.Queue(maxsize=1)
-
-        self.MergedChassisList = []
-        self.ChassisQueue = queue.Queue(maxsize=1)
-        self.BallQueue = queue.Queue(maxsize=1)
-
-
-        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
-        self.InitConfiguredModelThread.daemon = True
-        self.InitConfiguredModelThread.start()
-
-        # 报错会阻塞程序 try&except
-        time.sleep(2)
-
-        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-        self.ModelPreProcessThread.daemon = True
-        self.ModelPreProcessThread.start()
-
-        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-        self.ModelInferThread.daemon = True
-        self.ModelInferThread.start()
-
-
-    def Resize(self, Frame, TargetSize=(640, 640)):
-        Height, Width = Frame.shape[:2]
-        TargetHeight, TargetWidth = TargetSize
-        
-        Scale = min(TargetWidth/Width, TargetHeight/Height)
-        
-        NewWidth = int(Width * Scale)
-        NewHeight = int(Height * Scale)
-        
-        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
-        
-        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
-        
-        YOffset = (TargetHeight - NewHeight) // 2
-        XOffset = (TargetWidth - NewWidth) // 2
-        
-        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
-        
-        return PaddedImage
-   
-
-    def InitConfiguredModel(self):
-        with VDevice(self.HailoParams) as Hat:
-            InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
-            InferModel.set_batch_size(4)
-            self.InputShape = InferModel.input().shape
-            self.OutputShape = InferModel.output().shape
-            with InferModel.configure() as ConfiguredInferModel:
-                self.ConfiguredInferModel = ConfiguredInferModel
-                time.sleep(114514)
-
-    def ModelPreProcess(self):
-        '''
-        input: int8
-        output: float32
-        '''
-        while(1):
-            BindingsList = []
-            for i in range(4):
-                Bindings = self.ConfiguredInferModel.create_bindings()
-                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
-                Frame = self.Frames[i]
-                if Frame is not None:
-                    Frame = self.Resize(Frame, (640, 640))
-                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                    # cv2.imshow(f"Frame {i}", Frame)
-                    # Frame = Frame.astype(np.uint8)
-                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
-                    # print(Frame.shape)
-                    Bindings.input().set_buffer(Frame)
-                    Bindings.output().set_buffer(OutputBuffer)
-                    BindingsList.append(Bindings)
-            if self.YOLOQueue.full():
-                logger.success("YOLOQueue is full")
-                continue
-            else:
-                self.PreProcessTF = self.PreProcessTF + 1
-                self.YOLOQueue.put(BindingsList)
-            time.sleep(0.01)
-                
-    def ModelInfer(self):
-        FrameCount = 0
-        LastTime = time.time()
-        while(1):
-            FrameCount += 1
-            CurrentTime = time.time()
-            if CurrentTime - LastTime >= 1.0:
-                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
-                FrameCount = 0
-                LastTime = CurrentTime
-            BindingsList = self.YOLOQueue.get()
-            self.InferTF = self.InferTF + 1
-            # 确保在传递给 BindingsList 之前执行此操作
-            try:
-                self.ConfiguredInferModel.run(BindingsList, 2000)
-            except Exception as e:
-                self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
-                self.ModelInfer()
-            Outputs = []
-            ChassisList = []
-            for Bindings in BindingsList:
-                OutputBuffer = Bindings.output().get_buffer()
-                Outputs.append(OutputBuffer)
-                
-
-            
-            self.ChassisQueue.put(Outputs)
-            self.BallQueue.put(Outputs)
-            # print(ChassisList)
-        
-            # print(Output0)
-            # time.sleep(0.01)
-
-
-class TunaVision:
-    '''
-    support for RDK x5 BPU
-    '''
-    def __init__(self,Frame):
-        import bpu_infer_lib
-        self.inf = bpu_infer_lib.Infer(True)
-        self.inf.load_model(DATA_DIR / Settings.VisionVals.ModelPath / "yolov8s.bin")
-
-        self.YOLOQueue = queue.Queue(maxsize=1)
-        self.ChassisQueue = queue.Queue(maxsize=1)
-        self.BallQueue = queue.Queue(maxsize=1)
-
-    def bgr2nv12_opencv(self, image):
-        height, width = image.shape[0], image.shape[1]
-        area = height * width
-        yuv420p = cv2.cvtColor(image, cv2.COLOR_BGR2YUV_I420).reshape((area * 3 // 2,))
-        y = yuv420p[:area] # Y分量：前area个元素
-        uv_planar = yuv420p[area:].reshape((2, area // 4)) # UV分量：后面的元素，每2个元素分别为U和V分量
-        uv_packed = uv_planar.transpose((1, 0)).reshape((area // 2,)) # 将UV分量交替排列为交错的UV格式
-        nv12 = np.zeros_like(yuv420p) # 创建与原YUV数据形状相同的空数组用于存放NV12格式数据
-        nv12[:height * width] = y # 将Y分量直接赋值到NV12数组的前部
-        nv12[height * width:] = uv_packed  # 将交错的UV分量赋值到NV12数组的后部
-        return nv12
-
-    def YoloProcess(self):
-        while(1):
-            BindingsList = []
-            for i in range(4):
-                Frame = self.Frames[i]
-                if Frame is not None:
-                    BindingsList.append(self.bgr2nv12_opencv(Frame))
-            if self.YOLOQueue.full():
-                continue
-            else:
-                self.PreProcessTF = self.PreProcessTF + 1
-                self.YOLOQueue.put(BindingsList)
-            time.sleep(0.01)
-        
-    def ModelInfer(self):
-        FrameCount = 0
-        LastTime = time.time()
-        while(1):
-            FrameCount += 1
-            CurrentTime = time.time()
-            if CurrentTime - LastTime >= 1.0:
-                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
-                FrameCount = 0
-                LastTime = CurrentTime
-            BindingsList = self.YOLOQueue.get()
-            self.InferTF = self.InferTF + 1
-            # 确保在传递给 BindingsList 之前执行此操作
-            self.infer.forward(True)
-            Outputs = []
-            ChassisList = []
-            for Bindings in BindingsList:
-                self.inf.set_input(Bindings)
-                self.inf.forward()
-                OutputBuffer = self.inf.outputs[0].data
-                Outputs.append(OutputBuffer)            
-            self.ChassisQueue.put(Outputs[0])
-            self.BallQueue.put(Outputs[1])
-
 class Vision:
     '''
     with hailo only
     '''
-    def __init__(self,GetPos=None,AiMethod:None=ArisuIntelligence):
+    def __init__(self,GetPos=None):
         self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
@@ -270,22 +70,19 @@ class Vision:
         self.VideoRecordThread.daemon = True
         self.VideoRecordThread.start()
 
-        self.AiMethod = AiMethod(Frames=self.Frames)
 
-        if HAILO:
-            self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-            self.ChassisDetectionThread.daemon = True
-            self.ChassisDetectionThread.start()
+        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
+        self.ChassisDetectionThread.daemon = True
+        self.ChassisDetectionThread.start()
 
-            self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-            self.BallDetectionThread.daemon = True
-            self.BallDetectionThread.start()
+        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
+        self.BallDetectionThread.daemon = True
+        self.BallDetectionThread.start()
 
-        else:
-            self.FindBallThread = threading.Thread(target=self.FindBall)
-            self.FindBallThread.daemon = True
-            self.FindBallThread.start()
-            # 色块识别 设计逻辑为无HAILO时启动
+            # self.FindBallThread = threading.Thread(target=self.FindBall)
+            # self.FindBallThread.daemon = True
+            # self.FindBallThread.start()
+            # # 色块识别 设计逻辑为无HAILO时启动
 
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
@@ -327,8 +124,8 @@ class Vision:
 
     def ChassisDetection(self):
         while True:
-            OutputBuffer = self.AiMethod.ChassisQueue.get()
-            print(OutputBuffer)
+            OutputBuffer = self.ChassisQueue.get()
+            # print(OutputBuffer)
             self.PostProcessTF = self.PostProcessTF + 1
             self.MergedChassisList = []
             ChassisList = []
@@ -406,7 +203,7 @@ class Vision:
     
     def BallDetection(self):
         while True:
-            OutputBuffer = self.AiMethod.BallQueue.get()
+            OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
                 List = OutputBuffer[i][0]
@@ -487,6 +284,7 @@ class Vision:
                 FrameCount = 0
                 LastTime = CurrentTime
             self.ReadCamTF = self.ReadCamTF + 1
+        
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
         # 应用透视矩阵
@@ -631,7 +429,208 @@ class Vision:
     #     VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
     #     print(VisionCornerX, VisionCornerY)
 
-    def _exit__(self):
+    def __exit__(self):
         for Cam in self.Cams:
             Cam.release()
         self.CloseVideo()
+
+
+class ArisuIntelligence(Vision):
+    '''
+    with hailo only
+    '''
+    
+    def __init__(self):
+
+
+        self.logger = logger
+
+        from hailo_platform import VDevice, HailoSchedulingAlgorithm
+
+        self.PreProcessTF = 0
+        self.InferTF = 0
+
+        self.HailoParams = VDevice.create_params()
+        self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
+
+        self.YOLOQueue = queue.Queue(maxsize=1)
+
+        self.MergedChassisList = []
+        self.ChassisQueue = queue.Queue(maxsize=1)
+        self.BallQueue = queue.Queue(maxsize=1)
+
+        super().__init__()
+
+        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+        self.InitConfiguredModelThread.daemon = True
+        self.InitConfiguredModelThread.start()
+
+        # 报错会阻塞程序 try&except
+        time.sleep(2)
+
+
+        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+        self.ModelPreProcessThread.daemon = True
+        self.ModelPreProcessThread.start()
+
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
+
+
+    def Resize(self, Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
+   
+
+    def InitConfiguredModel(self):
+        with VDevice(self.HailoParams) as Hat:
+            InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
+            InferModel.set_batch_size(4)
+            self.InputShape = InferModel.input().shape
+            self.OutputShape = InferModel.output().shape
+            with InferModel.configure() as ConfiguredInferModel:
+                self.ConfiguredInferModel = ConfiguredInferModel
+                time.sleep(114514)
+
+    def ModelPreProcess(self):
+        '''
+        input: int8
+        output: float32
+        '''
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Bindings = self.ConfiguredInferModel.create_bindings()
+                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    Frame = self.Resize(Frame, (640, 640))
+                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                    # cv2.imshow(f"Frame {i}", Frame)
+                    # Frame = Frame.astype(np.uint8)
+                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                    # print(Frame.shape)
+                    Bindings.input().set_buffer(Frame)
+                    Bindings.output().set_buffer(OutputBuffer)
+                    BindingsList.append(Bindings)
+            if self.YOLOQueue.full():
+                self.YOLOQueue.empty()
+                # print(self.YOLOQueue.get())
+                continue
+            else:
+                self.PreProcessTF = self.PreProcessTF + 1
+                self.YOLOQueue.put(BindingsList)
+            time.sleep(0.01)
+                
+    def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
+            BindingsList = self.YOLOQueue.get()
+            self.InferTF = self.InferTF + 1
+            # 确保在传递给 BindingsList 之前执行此操作
+            try:
+                self.ConfiguredInferModel.run(BindingsList, 1000)
+            except Exception as e:
+                self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
+                self.ModelInfer()
+            Outputs = []
+            ChassisList = []
+            for Bindings in BindingsList:
+                OutputBuffer = Bindings.output().get_buffer()
+                Outputs.append(OutputBuffer)
+            self.ChassisQueue.put(Outputs)
+            self.BallQueue.put(Outputs)
+            # print(ChassisList)
+        
+            # print(Output0)
+            # time.sleep(0.01)
+
+
+class TunaVision(Vision):
+    '''
+    support for RDK x5 BPU
+    '''
+    def __init__(self,Frame):
+        import bpu_infer_lib
+        self.inf = bpu_infer_lib.Infer(True)
+        self.inf.load_model(DATA_DIR / Settings.VisionVals.ModelPath / "yolov8s.bin")
+
+        self.YOLOQueue = queue.Queue(maxsize=1)
+        self.ChassisQueue = queue.Queue(maxsize=1)
+        self.BallQueue = queue.Queue(maxsize=1)
+
+    def bgr2nv12_opencv(self, image):
+        height, width = image.shape[0], image.shape[1]
+        area = height * width
+        yuv420p = cv2.cvtColor(image, cv2.COLOR_BGR2YUV_I420).reshape((area * 3 // 2,))
+        y = yuv420p[:area] # Y分量：前area个元素
+        uv_planar = yuv420p[area:].reshape((2, area // 4)) # UV分量：后面的元素，每2个元素分别为U和V分量
+        uv_packed = uv_planar.transpose((1, 0)).reshape((area // 2,)) # 将UV分量交替排列为交错的UV格式
+        nv12 = np.zeros_like(yuv420p) # 创建与原YUV数据形状相同的空数组用于存放NV12格式数据
+        nv12[:height * width] = y # 将Y分量直接赋值到NV12数组的前部
+        nv12[height * width:] = uv_packed  # 将交错的UV分量赋值到NV12数组的后部
+        return nv12
+
+    def YoloProcess(self):
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    BindingsList.append(self.bgr2nv12_opencv(Frame))
+            if self.YOLOQueue.full():
+                continue
+            else:
+                self.PreProcessTF = self.PreProcessTF + 1
+                self.YOLOQueue.put(BindingsList)
+            time.sleep(0.01)
+        
+    def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
+            BindingsList = self.YOLOQueue.get()
+            self.InferTF = self.InferTF + 1
+            # 确保在传递给 BindingsList 之前执行此操作
+            self.infer.forward(True)
+            Outputs = []
+            ChassisList = []
+            for Bindings in BindingsList:
+                self.inf.set_input(Bindings)
+                self.inf.forward()
+                OutputBuffer = self.inf.outputs[0].data
+                Outputs.append(OutputBuffer)            
+            self.ChassisQueue.put(Outputs[0])
+            self.BallQueue.put(Outputs[1])
+
+

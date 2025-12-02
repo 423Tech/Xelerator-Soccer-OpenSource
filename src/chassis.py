@@ -44,6 +44,7 @@ class Car:
         '''
         a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
         '''
+        SpeedX = -SpeedX
         Speed1 = SpeedX + SpeedY + SpeedZ
         Speed2 = SpeedY - SpeedX + SpeedZ
         Speed3 = SpeedY - SpeedX - SpeedZ
@@ -107,8 +108,9 @@ class Car:
     def stop(self):
         self.SetMotor([0,0,0,0])
 
-    def __exit__(self):
-        self.stop()
+    def __del__(self):
+        self.SetMotor([0,0,0,0])
+        
 
 class Peripherals:
     def __init__(self,IOFunc):

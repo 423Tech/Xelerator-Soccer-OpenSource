@@ -183,7 +183,7 @@ class ArisuIntelligence:
             FrameCount += 1
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
-                self.logger.debug(f"Hailo Process FPS: {FameCount}")
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
                 FrameCount = 0
                 LastTime = CurrentTime
             BindingsList = self.YOLOQueue.get()
