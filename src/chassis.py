@@ -1,5 +1,5 @@
 import math
-from utils.ReasonData.config import Settings
+from ReasonData.config import Settings
 import time
 
 class Car:
@@ -10,10 +10,10 @@ class Car:
         self.Kp = 0.8
         self.cfg = Settings
         if self.cfg.Debug.Database:
-            from utils.ReasonData.data import Outputs
+            from ReasonData.data import Outputs
             self.DataBase = Outputs()
         if self.cfg.Debug.FullLog:
-            from utils.ReasonData import logger
+            from ReasonData import logger
             self.logger = logger
     
     def SetMotor(self,speedCache:list[int,int,int,int]):
@@ -115,9 +115,9 @@ class Car:
 class Peripherals:
     def __init__(self,IOFunc):
         self.SetIO = IOFunc
-        from utils.ReasonData import Settings
+        from ReasonData import Settings
         self.cfg = Settings
-        from utils.ReasonData import logger
+        from ReasonData import logger
         self.logger = logger
         self.SetIO(self.cfg.Ports.ElecMagnet,1)
         self.DribbleStatus = False
