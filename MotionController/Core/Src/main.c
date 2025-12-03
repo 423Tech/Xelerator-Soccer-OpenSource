@@ -126,6 +126,7 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
+  HAL_Delay(500);
   bmi088_calibrate_gyro_zero_bias(3000);
   /* init_motor(); */
   /* USER CODE END 2 */

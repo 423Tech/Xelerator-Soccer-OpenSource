@@ -17,7 +17,7 @@ static uint8_t rx_buff[6 + 1];
 static bool calibratint_gyro_zero_bias = false;
 static int calibration_samples;
 static int samples;
-static uint32_t sum[3];
+static int32_t sum[3];
 static float gyro_zero_bias[3] = {0, 0, 0};
 volatile uint32_t bmi088_drdy_timestamp = 0;
 float bmi088_gyro_angle[3] = {0, 0, 0};

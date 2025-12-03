@@ -1,0 +1,6 @@
+../Core/Src/motor.c:21:13:start_all_pwm_channels	1
+../Core/Src/motor.c:46:13:start_all_encoder_channels	1
+../Core/Src/motor.c:59:6:init_motor	1
+../Core/Src/motor.c:67:13:set_wheels_pwm	12
+../Core/Src/motor.c:94:13:get_encoder_count_delta	4
+../Core/Src/motor.c:114:6:wheel_pwm_update	15

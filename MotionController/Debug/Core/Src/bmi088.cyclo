@@ -1,0 +1,6 @@
+../Core/Src/bmi088.c:25:6:bmi088_write_gyro	1
+../Core/Src/bmi088.c:35:6:bmi088_read_gyro	1
+../Core/Src/bmi088.c:45:6:bmi088_burst_read_gyro	1
+../Core/Src/bmi088.c:53:6:bmi088_init_gyro	1
+../Core/Src/bmi088.c:70:6:bmi088_process_gyro_angle	11
+../Core/Src/bmi088.c:110:6:bmi088_calibrate_gyro_zero_bias	2
