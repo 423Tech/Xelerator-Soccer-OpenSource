@@ -1,20 +1,29 @@
 [Unit]
-Description=Xelerator Service
+Description=Xelerator sllidar ROS2 service (template)
 After=network.target nss-lookup.target
 Wants=network.target
+# Limit start retries to avoid tight restart loops
+StartLimitBurst=5
+StartLimitIntervalSec=60
 
 [Service]
-User=root
-Group=root
+# Instance template: start with e.g. sllidarROS2@kei.service
+# User is taken from the instance name (%i)
+User=%i
+Group=%i
 Type=simple
 LimitAS=infinity
 LimitRSS=infinity
 LimitCORE=infinity
 LimitNOFILE=999999
-WorkingDirectory=/xel
-ExecStart=/bin/bash -c "source ~/.bashrc && export ROS_DOMAIN_ID=99 && ros2 launch sllidar_ros2 sllidar_s1_launch.py"
-Restart=always
-RestartSec=10
+# Use the user's home based working directory
+WorkingDirectory=/home/%i/Xelerator-Soccer-OpenSource
+ExecStart=/home/%i/Xelerator-Soccer-OpenSource/run_sllidar.sh
+StandardOutput=journal
+StandardError=journal
+# Reduce aggressive restart behavior to allow debugging and avoid device contention
+Restart=on-failure
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
