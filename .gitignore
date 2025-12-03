@@ -186,4 +186,5 @@ data/
 Records/*
 resource/*
 ROS_Nodes/*
-AB/
+install/
+log/
