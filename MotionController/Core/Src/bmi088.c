@@ -13,8 +13,8 @@
 extern SPI_HandleTypeDef hspi2;
 
 static uint8_t tx_buff[6 + 1];
-static volatile uint8_t rx_buff[6 + 1];
-static volatile bool calibratint_gyro_zero_bias = false;
+static uint8_t rx_buff[6 + 1];
+static bool calibratint_gyro_zero_bias = false;
 static int calibration_samples;
 static int samples;
 static int32_t sum[3];

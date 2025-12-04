@@ -81,7 +81,8 @@ static void MX_UART4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#include <stdio.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+#include <string.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 /* USER CODE END 0 */
 
 /**
@@ -92,7 +93,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	char uart_buff[64]; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -135,6 +136,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)bmi088_gyro_angle[0], (int)bmi088_gyro_angle[1], (int)bmi088_gyro_angle[2]);
+	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
