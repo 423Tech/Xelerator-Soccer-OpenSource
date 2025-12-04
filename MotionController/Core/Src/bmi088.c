@@ -14,7 +14,7 @@ extern SPI_HandleTypeDef hspi2;
 
 static uint8_t tx_buff[6 + 1];
 static uint8_t rx_buff[6 + 1];
-static bool calibratint_gyro_zero_bias = false;
+static bool calibrating_gyro_zero_bias = false;
 static int calibration_samples;
 static int samples;
 static int32_t sum[3];
@@ -80,7 +80,7 @@ void bmi088_process_gyro_angle(void)
 
 	for (i = 0; i < 3; i++) {
 		int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
-		if (calibratint_gyro_zero_bias && samples < calibration_samples)
+		if (calibrating_gyro_zero_bias && samples < calibration_samples)
 			sum[i] += raw;
 		rate[i] = ((float)raw - gyro_zero_bias[i]) * (2000.0f / 32767.0f);
 		bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * time_interval * 0.5f;
@@ -89,14 +89,14 @@ void bmi088_process_gyro_angle(void)
 
 	last_dwt_cycle = current_dwt_cycle;
 
-	if (calibratint_gyro_zero_bias && samples < calibration_samples)
+	if (calibrating_gyro_zero_bias && samples < calibration_samples)
 		samples++;
-	if (calibratint_gyro_zero_bias && samples == calibration_samples) {
+	if (calibrating_gyro_zero_bias && samples == calibration_samples) {
 		for (i = 0; i < 3; i++) {
 			gyro_zero_bias[i] = (float)sum[i] / (float)samples;
 			bmi088_gyro_angle[i] = 0;
 		}
-		calibratint_gyro_zero_bias = false;
+		calibrating_gyro_zero_bias = false;
 	}
 }
 
@@ -105,6 +105,6 @@ void bmi088_calibrate_gyro_zero_bias(int calibration_samples_num)
 	samples = 0;
 	memset(sum, 0, sizeof(sum));
 	calibration_samples = calibration_samples_num;
-	calibratint_gyro_zero_bias = true;
-	while (calibratint_gyro_zero_bias);
+	calibrating_gyro_zero_bias = true;
+	while (calibrating_gyro_zero_bias);
 }
