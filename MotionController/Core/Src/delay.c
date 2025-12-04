@@ -8,7 +8,7 @@
 #include "bool.h"
 #include "main.h"
 
-void dwt_init(void)
+void delay_init_dwt(void)
 {
 	static bool dwt_is_initialized = false;
 	if (!dwt_is_initialized) {

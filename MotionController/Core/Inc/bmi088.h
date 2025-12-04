@@ -11,7 +11,7 @@
 #define BMI088_CAPTURE_DRDY_TIMESTAMP() bmi088_drdy_timestamp = DWT->CYCCNT
 
 extern volatile uint32_t bmi088_drdy_timestamp;
-extern float bmi088_gyro_angle[3];
+extern volatile float bmi088_gyro_angle[3];
 
 void bmi088_write_gyro(uint8_t reg, uint8_t data);
 void bmi088_read_gyro(uint8_t reg, uint8_t *data);

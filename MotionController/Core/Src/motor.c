@@ -16,7 +16,7 @@ extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim8;
 extern TIM_HandleTypeDef htim9;
 
-float target_wheel_rpm[4] = {0, 0, 0, 0};
+volatile float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
 
 static void start_all_pwm_channels(void)
 {
@@ -54,14 +54,6 @@ static void start_all_encoder_channels(void)
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
 	__HAL_TIM_SET_COUNTER(&htim3, 0);
 	__HAL_TIM_SET_COUNTER(&htim5, 0);
-}
-
-void init_motor(void)
-{
-	start_all_pwm_channels();
-	start_all_encoder_channels();
-	__HAL_TIM_SET_COUNTER(&htim6, 0);
-	HAL_TIM_Base_Start_IT(&htim6);
 }
 
 static void set_wheels_pwm(int32_t (*pwm_array_ptr)[4])
@@ -111,7 +103,15 @@ static void get_encoder_count_delta(int32_t (*delta_array_ptr)[4])
 	}
 }
 
-void wheel_pwm_update(void)
+void motor_init(void)
+{
+	start_all_pwm_channels();
+	start_all_encoder_channels();
+	__HAL_TIM_SET_COUNTER(&htim6, 0);
+	HAL_TIM_Base_Start_IT(&htim6);
+}
+
+void motor_update_wheels_pwm(void)
 {
 	int i;
 	int32_t count_delta_arr[4];
@@ -126,7 +126,6 @@ void wheel_pwm_update(void)
 		{0, 0, 0},
 		{0, 0, 0}
 	};
-
 	static enum {
 		PID_ACTIVE,
 		PID_OBSERVING,
@@ -136,15 +135,15 @@ void wheel_pwm_update(void)
 	get_encoder_count_delta(&count_delta_arr);
 
 	for (i = 0; i < 4; i++) {
-		float error = target_wheel_rpm[i] - (float)count_delta_arr[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f);
+		float error = motor_target_wheels_rpm[i] - (float)count_delta_arr[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f);
 
 		switch(pid_state[i]) {
 		case PID_ACTIVE:
-			if (target_wheel_rpm[i] == 0 && error > -1 && error < 1)
+			if (motor_target_wheels_rpm[i] == 0 && error > -1 && error < 1)
 				pid_state[i] = PID_OBSERVING;
 			break;
 		case PID_OBSERVING:
-			if (target_wheel_rpm[i] == 0 && error > -1 && error < 1) {
+			if (motor_target_wheels_rpm[i] == 0 && error > -1 && error < 1) {
 				pid_state[i] = PID_INACTIVE;
 				error = 0;
 				pid_arr[i].integral = 0;
@@ -153,7 +152,7 @@ void wheel_pwm_update(void)
 				pid_state[i] = PID_ACTIVE;
 			break;
 		case PID_INACTIVE:
-			if (target_wheel_rpm[i] != 0 || error <= -1 || error >= 1)
+			if (motor_target_wheels_rpm[i] != 0 || error <= -1 || error >= 1)
 				pid_state[i] = PID_ACTIVE;
 			break;
 		default:
@@ -164,7 +163,7 @@ void wheel_pwm_update(void)
 		pid_arr[i].derivative = error - pid_arr[i].last_error;
 		pid_arr[i].last_error = error;
 
-		target_pwm[i] = (float)(50 * error + 7 * pid_arr[i].integral + 5 * pid_arr[i].derivative);
+		target_pwm[i] = (int)(50 * error + 7 * pid_arr[i].integral + 5 * pid_arr[i].derivative);
 		target_pwm[i] = target_pwm[i] > 42000 ? 42000 : target_pwm[i];
 		target_pwm[i] = target_pwm[i] < -42000 ? -42000 : target_pwm[i];
 	}

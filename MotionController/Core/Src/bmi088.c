@@ -13,14 +13,14 @@
 extern SPI_HandleTypeDef hspi2;
 
 static uint8_t tx_buff[6 + 1];
-static uint8_t rx_buff[6 + 1];
-static bool calibratint_gyro_zero_bias = false;
+static volatile uint8_t rx_buff[6 + 1];
+static volatile bool calibratint_gyro_zero_bias = false;
 static int calibration_samples;
 static int samples;
 static int32_t sum[3];
 static float gyro_zero_bias[3] = {0, 0, 0};
 volatile uint32_t bmi088_drdy_timestamp = 0;
-float bmi088_gyro_angle[3] = {0, 0, 0};
+volatile float bmi088_gyro_angle[3] = {0, 0, 0};
 
 void bmi088_write_gyro(uint8_t reg, uint8_t data)
 {
@@ -52,7 +52,7 @@ void bmi088_burst_read_gyro(uint8_t reg, int size)
 
 void bmi088_init_gyro(void)
 {
-	dwt_init();
+	delay_init_dwt();
 
 	delay_us(1000);
 
@@ -75,13 +75,6 @@ void bmi088_process_gyro_angle(void)
 	static uint32_t last_dwt_cycle = 0;
 	static float rate[3];
 	static float last_rate[3] = {0, 0, 0};
-
-	if (last_dwt_cycle == 0) {
-		for (i = 0; i < 3; i++)
-			last_rate[i] = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]) * (2000.0f / 32767.0f);
-		last_dwt_cycle = current_dwt_cycle;
-		return;
-	}
 
 	time_interval = (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock;
 
