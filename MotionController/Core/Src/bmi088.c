@@ -14,7 +14,7 @@ extern SPI_HandleTypeDef hspi2;
 
 static uint8_t tx_buff[6 + 1];
 static uint8_t rx_buff[6 + 1];
-static bool calibrating_gyro_zero_bias = false;
+static volatile bool calibrating_gyro_zero_bias = false;
 static int calibration_samples;
 static int samples;
 static int32_t sum[3];
@@ -70,6 +70,7 @@ void bmi088_init_gyro(void)
 void bmi088_process_gyro_angle(void)
 {
 	int i;
+	volatile uint8_t *v_rx = (volatile uint8_t *)rx_buff;
 	float time_interval;
 	uint32_t current_dwt_cycle = bmi088_drdy_timestamp;
 	static uint32_t last_dwt_cycle = 0;
@@ -79,7 +80,7 @@ void bmi088_process_gyro_angle(void)
 	time_interval = (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock;
 
 	for (i = 0; i < 3; i++) {
-		int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
+		int16_t raw = (int16_t)(v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
 		if (calibrating_gyro_zero_bias && samples < calibration_samples)
 			sum[i] += raw;
 		rate[i] = ((float)raw - gyro_zero_bias[i]) * (2000.0f / 32767.0f);

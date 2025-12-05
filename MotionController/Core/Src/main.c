@@ -130,6 +130,12 @@ int main(void)
   HAL_Delay(500);
   bmi088_calibrate_gyro_zero_bias(3000);
   motor_init();
+  /*
+  MOTOR_SET_WHEELS_RPM(0, 120);
+  MOTOR_SET_WHEELS_RPM(1, 120);
+  MOTOR_SET_WHEELS_RPM(2, -120);
+  MOTOR_SET_WHEELS_RPM(3, -120);
+  */
   /* USER CODE END 2 */
 
   /* Infinite loop */
