@@ -1,6 +1,5 @@
-../Core/Src/main.c:160:6:SystemClock_Config	96	static,ignoring_inline_asm
-../Core/Src/main.c:92:5:main	176	static,ignoring_inline_asm
-../Core/Src/main.c:799:6:HAL_TIM_PeriodElapsedCallback	0	static
-../Core/Src/main.c:810:6:HAL_GPIO_EXTI_Callback	0	static
-../Core/Src/main.c:822:6:HAL_SPI_TxRxCpltCallback	8	static
-../Core/Src/main.c:840:6:Error_Handler	0	static,ignoring_inline_asm
+../Core/Src/main.c:159:6:SystemClock_Config	96	static,ignoring_inline_asm
+../Core/Src/main.c:91:5:main	176	static,ignoring_inline_asm
+../Core/Src/main.c:795:6:HAL_TIM_PeriodElapsedCallback	0	static
+../Core/Src/main.c:806:6:HAL_GPIO_EXTI_Callback	0	static
+../Core/Src/main.c:823:6:Error_Handler	0	static,ignoring_inline_asm

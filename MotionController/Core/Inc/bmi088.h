@@ -13,9 +13,6 @@
 extern volatile uint32_t bmi088_drdy_timestamp;
 extern volatile float bmi088_gyro_angle[3];
 
-void bmi088_write_gyro(uint8_t reg, uint8_t data);
-void bmi088_read_gyro(uint8_t reg, uint8_t *data);
-void bmi088_burst_read_gyro(uint8_t reg, int size);
 void bmi088_init_gyro(void);
 void bmi088_process_gyro_angle(void);
 void bmi088_calibrate_gyro_zero_bias(int calibration_samples_num);

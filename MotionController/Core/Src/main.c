@@ -42,8 +42,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
-DMA_HandleTypeDef hdma_spi2_tx;
-DMA_HandleTypeDef hdma_spi2_rx;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -55,6 +53,7 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
 UART_HandleTypeDef huart4;
+DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
@@ -144,7 +143,7 @@ int main(void)
   {
 	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)bmi088_gyro_angle[0], (int)bmi088_gyro_angle[1], (int)bmi088_gyro_angle[2]);
-	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
+	  HAL_UART_Transmit_DMA(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -731,11 +730,8 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
-  /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 1, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
 }
@@ -812,19 +808,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     switch(GPIO_Pin)
     {
     case GPIO_PIN_8:
-    	bmi088_burst_read_gyro(0x02, 6);
-        break;
-    default:
-        break;
-    }
-}
-
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-    switch ((uint32_t)hspi->Instance)
-    {
-    case (uint32_t)SPI2:
-    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
     	bmi088_process_gyro_angle();
         break;
     default:
