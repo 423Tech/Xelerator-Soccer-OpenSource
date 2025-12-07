@@ -42,6 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
+DMA_HandleTypeDef hdma_spi2_tx;
+DMA_HandleTypeDef hdma_spi2_rx;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -53,7 +55,6 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
 UART_HandleTypeDef huart4;
-DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
@@ -82,6 +83,7 @@ static void MX_UART4_Init(void);
 /* USER CODE BEGIN 0 */
 #include <stdio.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 #include <string.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+char uart_buff[64]; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 /* USER CODE END 0 */
 
 /**
@@ -92,7 +94,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	char uart_buff[64]; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -127,14 +128,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
   HAL_Delay(500);
-  bmi088_calibrate_gyro_zero_bias(3000);
+  bmi088_calibrate_gyro_zero_bias(3500);
   motor_init();
-  /*
-  MOTOR_SET_WHEELS_RPM(0, 120);
-  MOTOR_SET_WHEELS_RPM(1, 120);
-  MOTOR_SET_WHEELS_RPM(2, -120);
-  MOTOR_SET_WHEELS_RPM(3, -120);
-  */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,8 +137,8 @@ int main(void)
   while (1)
   {
 	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)bmi088_gyro_angle[0], (int)bmi088_gyro_angle[1], (int)bmi088_gyro_angle[2]);
-	  HAL_UART_Transmit_DMA(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
+	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)(bmi088_gyro_angle[0] * 1000), (int)(bmi088_gyro_angle[1] * 1000), (int)(bmi088_gyro_angle[2] * 1000));
+	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -728,10 +723,13 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
 }
@@ -792,28 +790,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	switch ((uint32_t)htim->Instance) {
-	case (uint32_t)TIM6:
-		motor_update_wheels_pwm();
-		break;
-	default:
-		break;
-	}
-}
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    switch(GPIO_Pin)
-    {
-    case GPIO_PIN_8:
-    	bmi088_process_gyro_angle();
-        break;
-    default:
-        break;
-    }
-}
 /* USER CODE END 4 */
 
 /**

@@ -5,34 +5,39 @@
  *      Author: yehui
  */
 
+#include <stdbool.h>
 #include <string.h>
-#include "bool.h"
 #include "main.h"
 #include "delay.h"
-#include "bmi088.h"
+#include "spi.h"
 
-#define CSB_GYRO_GPIO GPIOD
-#define CSB_GYRO_GPIO_PIN GPIO_PIN_12
+#define GYRO_DRDY_PIN GPIO_PIN_8
 
 extern SPI_HandleTypeDef hspi2;
 
+static const struct spi_device spi_device_gyro = {
+	&hspi2,
+	GPIOD,
+	GPIO_PIN_12
+};
+
 static uint8_t tx_buff[6 + 1];
 static uint8_t rx_buff[6 + 1];
-static volatile bool calibrating_gyro_zero_bias = false;
-static int calibration_samples;
-static int samples;
-static int32_t sum[3];
-static float gyro_zero_bias[3] = {0, 0, 0};
-volatile uint32_t bmi088_drdy_timestamp = 0;
+
+static volatile bool is_calibrating_gyro_offset = false;
+static int gyro_calibration_sample_count;
+static int gyro_calibrated_samples;
+static int32_t gyro_raw_sum[3];
+static float gyro_offset[3] = {0, 0, 0};
+
+volatile uint32_t bmi088_gyro_drdy_timestamp = 0;
 volatile float bmi088_gyro_angle[3] = {0, 0, 0};
 
 static void bmi088_write_gyro(uint8_t reg, uint8_t data)
 {
 	tx_buff[0] = reg & 0x7F;
 	tx_buff[1] = data;
-	HAL_GPIO_WritePin(CSB_GYRO_GPIO, CSB_GYRO_GPIO_PIN, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi2, tx_buff, 2, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(CSB_GYRO_GPIO, CSB_GYRO_GPIO_PIN, GPIO_PIN_SET);
+	spi_transmit(&spi_device_gyro, tx_buff, 2, HAL_MAX_DELAY);
 	delay_us(2);
 }
 
@@ -40,12 +45,50 @@ static void bmi088_burst_read_gyro(uint8_t reg, int size)
 {
 	tx_buff[0] = reg | 0x80;
 	memset(tx_buff + 1, 0xFF, size);
-	HAL_GPIO_WritePin(CSB_GYRO_GPIO, CSB_GYRO_GPIO_PIN, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi2, tx_buff, rx_buff, size + 1, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(CSB_GYRO_GPIO, CSB_GYRO_GPIO_PIN, GPIO_PIN_SET);
+	spi_transmit_receive(&spi_device_gyro, tx_buff, rx_buff, size + 1, HAL_MAX_DELAY);
 }
 
-void bmi088_init_gyro(void)
+static void bmi088_process_gyro_angle(void)
+{
+	int i;
+	static bool is_first_call = true;
+	volatile uint8_t *v_rx = (volatile uint8_t *)rx_buff;
+	uint32_t current_dwt_cycle = bmi088_gyro_drdy_timestamp;
+	static uint32_t last_dwt_cycle = 0;
+	float rate[3];
+	static float last_rate[3] = {0, 0, 0};
+
+	if (is_first_call) {
+		for (i = 0; i < 3; i++) {
+			int16_t raw = (int16_t)(v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
+			last_rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
+		}
+		is_first_call = false;
+	} else {
+		for (i = 0; i < 3; i++) {
+			int16_t raw = (int16_t)(v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
+			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_calibration_sample_count)
+				gyro_raw_sum[i] += raw;
+			rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
+			bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock * 0.5f;
+			last_rate[i] = rate[i];
+		}
+	}
+
+	last_dwt_cycle = current_dwt_cycle;
+
+	if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_calibration_sample_count)
+		gyro_calibrated_samples++;
+	if (is_calibrating_gyro_offset && gyro_calibrated_samples == gyro_calibration_sample_count) {
+		for (i = 0; i < 3; i++) {
+			gyro_offset[i] = (float)gyro_raw_sum[i] / (float)gyro_calibrated_samples;
+			bmi088_gyro_angle[i] = 0;
+		}
+		is_calibrating_gyro_offset = false;
+	}
+}
+
+void bmi088_init_gyro()
 {
 	delay_init_dwt();
 
@@ -62,47 +105,24 @@ void bmi088_init_gyro(void)
 	bmi088_write_gyro(0x18, 0x01);
 }
 
-void bmi088_process_gyro_angle(void)
-{
-	int i;
-	volatile uint8_t *v_rx = (volatile uint8_t *)rx_buff;
-	float time_interval;
-	uint32_t current_dwt_cycle = bmi088_drdy_timestamp;
-	static uint32_t last_dwt_cycle = 0;
-	static float rate[3];
-	static float last_rate[3] = {0, 0, 0};
-
-	bmi088_burst_read_gyro(0x02, 6);
-
-	time_interval = (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock;
-
-	for (i = 0; i < 3; i++) {
-		int16_t raw = (int16_t)(v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
-		if (calibrating_gyro_zero_bias && samples < calibration_samples)
-			sum[i] += raw;
-		rate[i] = ((float)raw - gyro_zero_bias[i]) * (2000.0f / 32767.0f);
-		bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * time_interval * 0.5f;
-		last_rate[i] = rate[i];
-	}
-
-	last_dwt_cycle = current_dwt_cycle;
-
-	if (calibrating_gyro_zero_bias && samples < calibration_samples)
-		samples++;
-	if (calibrating_gyro_zero_bias && samples == calibration_samples) {
-		for (i = 0; i < 3; i++) {
-			gyro_zero_bias[i] = (float)sum[i] / (float)samples;
-			bmi088_gyro_angle[i] = 0;
-		}
-		calibrating_gyro_zero_bias = false;
-	}
-}
-
 void bmi088_calibrate_gyro_zero_bias(int calibration_samples_num)
 {
-	samples = 0;
-	memset(sum, 0, sizeof(sum));
-	calibration_samples = calibration_samples_num;
-	calibrating_gyro_zero_bias = true;
-	while (calibrating_gyro_zero_bias);
+	gyro_calibrated_samples = 0;
+	gyro_calibration_sample_count = calibration_samples_num;
+	memset(gyro_raw_sum, 0, sizeof(gyro_raw_sum));
+	is_calibrating_gyro_offset = true;
+	while (is_calibrating_gyro_offset);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    switch(GPIO_Pin) {
+    case GYRO_DRDY_PIN:
+    	bmi088_gyro_drdy_timestamp = DWT->CYCCNT;
+    	bmi088_burst_read_gyro(0x02, 6);
+    	bmi088_process_gyro_angle();
+        break;
+    default:
+        break;
+    }
 }

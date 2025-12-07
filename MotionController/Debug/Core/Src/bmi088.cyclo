@@ -1,3 +1,0 @@
-../Core/Src/bmi088.c:48:6:bmi088_init_gyro	1
-../Core/Src/bmi088.c:65:6:bmi088_process_gyro_angle	8
-../Core/Src/bmi088.c:101:6:bmi088_calibrate_gyro_zero_bias	2

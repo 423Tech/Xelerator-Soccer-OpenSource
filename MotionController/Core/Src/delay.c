@@ -5,7 +5,7 @@
  *      Author: yehui
  */
 
-#include "bool.h"
+#include <stdbool.h>
 #include "main.h"
 
 void delay_init_dwt(void)
