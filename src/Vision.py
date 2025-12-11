@@ -1,26 +1,76 @@
+try:
+    from hailo_platform import VDevice, HailoSchedulingAlgorithm
+    HAILO = 1
+except ImportError:
+    HAILO = 0
+
+# TODO transform to RDK
+
 import threading
-import numpy as np
+import queue
+import time
 import cv2
+import numpy as np
 
-from ReasonData import Settings
+from utils.ReasonData import Settings, logger, Path
 
-if Settings.RoboInfo.Rec == 'AI':
-    from vision_utils import ArisuIntelligence as Detect_Method
-elif Settings.RoboInfo.Rec == 'TV':
-    from vision_utils import TunaVision as Detect_Method
-else:
-    from vision_utils import BlobBased as Detect_Method
+APP_DIR = Path(__file__).parent
+DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
+MODEL_DIR = APP_DIR / "models"
 
-class UnitedVision(Detect_Method):
-    def __init__(self):
+class Vision:
+    '''
+    with hailo only
+    '''
+    def __init__(self,GetPos=None):
+        self.GetPos = GetPos
+        self.cfg = Settings
+        self.logger = logger
+        self.CamPorts = [6,4,2,0]
 
-        super().__init__()
+        self.Cams = []
+        self.Frames = []
+        self.Videos = []
+
+        self.StopRecord = 0
 
         self.PerspectiveMatrices = []
         self.P2CK = []
         self.P2CHB = []
         self.P2CVB = []
 
+        self.OrangeThreshold = (5, 15, 128, 255, 150, 255)
+        self.BallPos = [0,0]
+
+        self.InitCam(self.CamPorts)
+
+        self.ReadCamTF = 0
+        self.PreProcessTF = 0
+        self.InferTF = 0
+        self.PostProcessTF = 0
+
+        for i in range(4):
+            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
+            PerspectiveMatrix = NumpyData['matrix']
+            self.PerspectiveMatrices.append(PerspectiveMatrix)
+            P2CK = NumpyData['p2c'][0]
+            self.P2CK.append(P2CK)
+            P2CHB = NumpyData['p2c'][1]
+            self.P2CHB.append(P2CHB)
+            P2CVB = NumpyData['p2c'][2]
+            self.P2CVB.append(P2CVB)
+
+        self.ReadCamsThread = threading.Thread(target=self.ReadCams)
+        self.ReadCamsThread.daemon = True
+        self.ReadCamsThread.start()
+
+        time.sleep(3)
+
+        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        self.VideoRecordThread.daemon = True
+        self.VideoRecordThread.start()
+
+
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
         self.ChassisDetectionThread.start()
@@ -29,6 +79,11 @@ class UnitedVision(Detect_Method):
         self.BallDetectionThread.daemon = True
         self.BallDetectionThread.start()
 
+            # self.FindBallThread = threading.Thread(target=self.FindBall)
+            # self.FindBallThread.daemon = True
+            # self.FindBallThread.start()
+            # # 色块识别 设计逻辑为无HAILO时启动
+
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
         self.ChassisDetectionThread.start()
@@ -37,56 +92,35 @@ class UnitedVision(Detect_Method):
         self.BallDetectionThread.daemon = True
         self.BallDetectionThread.start()
 
-    def ApplyPerspectiveTransform(self,X, Y, Matrix):
-        # 应用透视矩阵
-        Point = np.array([X, Y, 1], dtype=np.float64)
-        Transformed = Matrix @ Point
-        Transformed /= Transformed[2]
-        return int(Transformed[1]), int(Transformed[0])
-
-    def Pixel2CM(self,X,Y,CamIndex):
-        P2CK = self.P2CK[CamIndex]
-        P2CHB = self.P2CHB[CamIndex]
-        P2CVB = self.P2CVB[CamIndex]
-        X, Y = self.ApplyPerspectiveTransform(X, Y, self.PerspectiveMatrices[CamIndex])
-
-        X = int(self.P2CK[CamIndex] * X + self.P2CHB[CamIndex])
-        Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
-
-        return X, Y
- 
-    def CM2Pixel(self, X, Y, CamIndex):
-        P2CK = self.P2CK[CamIndex]
-        P2CHB = self.P2CHB[CamIndex]
-        P2CVB = self.P2CVB[CamIndex]
-
-        X = (X - P2CHB) / P2CK
-        Y = -(Y - P2CVB) / P2CK
-
-        X, Y = self.ApplyPerspectiveTransform(X, Y, np.linalg.inv(self.PerspectiveMatrices[CamIndex]))
-
-        return int(X), int(Y)
-
-    def Resize(self,Frame, TargetSize=(640, 640)):
-        Height, Width = Frame.shape[:2]
-        TargetHeight, TargetWidth = TargetSize
-        
-        Scale = min(TargetWidth/Width, TargetHeight/Height)
-        
-        NewWidth = int(Width * Scale)
-        NewHeight = int(Height * Scale)
-        
-        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
-        
-        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
-        
-        YOffset = (TargetHeight - NewHeight) // 2
-        XOffset = (TargetWidth - NewWidth) // 2
-        
-        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
-        
-        return PaddedImage
+    def InitVideo(self):
+        Videos = []
+        if not self.cfg.VisionVals.Record:
+            return
+        for i in range(4):
+            Time = int(time.time())
+            Video = cv2.VideoWriter('./Records/' + str(i) + '/' + str(Time) + '.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, (640, 480))
+            Videos.append(Video)
+        self.Videos = Videos
     
+    def CloseVideo(self):
+        for Video in self.Videos:
+            Video.release()
+        self.Videos = []
+    
+    def VideoRecord(self):
+        while True:
+            if not self.Videos:
+                self.InitVideo()
+            elif int(time.time()) % 30 == 0:
+                self.CloseVideo()
+            
+            for i in range(4):
+                if self.Videos:
+                    Frame = self.Frames[i]
+                    if Frame is not None:
+                        self.Videos[i].write(Frame)
+            time.sleep(0.03)
+
 
     def ChassisDetection(self):
         while True:
@@ -215,8 +249,388 @@ class UnitedVision(Detect_Method):
                 self.BallPos = [-BY, BX]
                 # 20251118 已修改坐标 x forward,y left
             else:
-                self.BallPos = [0, 0]       
+                self.BallPos = [0, 0]
 
+
+            
+
+    def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
+        for Port in CamPorts:
+            Cam = cv2.VideoCapture(Port,cv2.CAP_V4L2)
+            Cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            Cam.set(cv2.CAP_PROP_FRAME_WIDTH, Width)
+            Cam.set(cv2.CAP_PROP_FRAME_HEIGHT, Height)
+            Cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, AutoExposure)
+            Cam.set(cv2.CAP_PROP_EXPOSURE, Exposure)
+            Cam.set(cv2.CAP_PROP_BRIGHTNESS, Brightness)
+            Cam.set(cv2.CAP_PROP_CONTRAST, Contrast)
+            Cam.set(cv2.CAP_PROP_SATURATION, Saturation)
+            self.Cams.append(Cam)
+    
+    def ReadCams(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while True:
+            Frames = []
+            for Cam in self.Cams:
+                Frame = Cam.read()[1]
+                Frames.append(Frame)
+            self.Frames = Frames
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                if self.cfg.Debug.FullLog:
+                    self.logger.debug("Camera FPS: "+str(FrameCount))
+                FrameCount = 0
+                LastTime = CurrentTime
+            self.ReadCamTF = self.ReadCamTF + 1
+        
+    
+    def ApplyPerspectiveTransform(self,X, Y, Matrix):
+        # 应用透视矩阵
+        Point = np.array([X, Y, 1], dtype=np.float64)
+        Transformed = Matrix @ Point
+        Transformed /= Transformed[2]
+        return int(Transformed[1]), int(Transformed[0])
+
+    def Pixel2CM(self,X,Y,CamIndex):
+        P2CK = self.P2CK[CamIndex]
+        P2CHB = self.P2CHB[CamIndex]
+        P2CVB = self.P2CVB[CamIndex]
+        X, Y = self.ApplyPerspectiveTransform(X, Y, self.PerspectiveMatrices[CamIndex])
+
+        X = int(self.P2CK[CamIndex] * X + self.P2CHB[CamIndex])
+        Y = int(-self.P2CK[CamIndex] * Y + self.P2CVB[CamIndex])
+
+        return X, Y
+ 
+    def CM2Pixel(self, X, Y, CamIndex):
+        P2CK = self.P2CK[CamIndex]
+        P2CHB = self.P2CHB[CamIndex]
+        P2CVB = self.P2CVB[CamIndex]
+
+        X = (X - P2CHB) / P2CK
+        Y = -(Y - P2CVB) / P2CK
+
+        X, Y = self.ApplyPerspectiveTransform(X, Y, np.linalg.inv(self.PerspectiveMatrices[CamIndex]))
+
+        return int(X), int(Y)
+
+    def Resize(self,Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
+    
+    def FindMaxBlob(self, Blobs):
+        MaxSize=0
+        for Blob in Blobs:
+            if Blob[2]*Blob[3] > MaxSize:
+                MaxBlob=Blob
+                MaxSize = Blob[2] * Blob[3]
+        return MaxBlob
+
+    def FindBlobs(self, Frame, Threshold, Format = 2, ROI = None, MinPixelCount = 5):
+        if Format == 1:
+            Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2LAB)
+
+        elif Format == 2:
+            Frame = cv2.cvtColor(Frame,cv2.COLOR_BGR2HSV)
+
+        LowerThreshold = Threshold[0], Threshold[2], Threshold[4]
+        UpperThreshold = Threshold[1], Threshold[3], Threshold[5]
+
+
+
+        Mask = cv2.inRange(Frame, np.array(LowerThreshold), np.array(UpperThreshold))
+
+        # Kernel = np.ones((5, 5), np.uint8)
+        # Mask = cv2.erode(Mask, Kernel, iterations=1)
+        # Mask = cv2.dilate(Mask, Kernel, iterations=2)
+
+        Conters, _ = cv2.findContours(Mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        Blobs = []
+        for Conter in Conters:
+            Area = cv2.contourArea(Conter)
+            if Area >= MinPixelCount:
+                X, Y, W, H = cv2.boundingRect(Conter)
+                CX = int(X + W / 2) 
+                CY = int(Y + H / 2)
+                if ROI is not None and ((CX < ROI[0] or CX > ROI[0] + ROI[2]) or (CY < ROI[1] or CY > ROI[1] + ROI[3])):
+                    continue
+                Blobs.append((X, Y, W, H, CX, CY))
+        return Blobs
+    
+    def FindBall(self):
+        while True:
+            Balls = []
+            for i in range(4):
+                Blobs = []
+                Frame = self.Frames[i]
+                Blobs = self.FindBlobs(Frame, self.OrangeThreshold)
+                if Blobs:
+                    MaxBlob = self.FindMaxBlob(Blobs)
+                    X = MaxBlob[4]
+                    Y = MaxBlob[1] + MaxBlob[3]
+                    X, Y = self.Pixel2CM(X, Y, i)
+                    Balls.append((X, Y, i))
+            
+            if Balls:
+                X = Balls[0][0]
+                Y = Balls[0][1]
+                CamIndex = Balls[0][2]
+                if CamIndex == 0:
+                    BX = X
+                    BY = Y
+                elif CamIndex == 1:
+                    BY = -X
+                    BX = Y
+                elif CamIndex == 2:
+                    BX = -X
+                    BY = -Y
+                elif CamIndex == 3:
+                    BY = X
+                    BX = -Y
+            else:
+                BX = 0
+                BY = 0
+            self.BallPos = [-BY, BX]
+            # 20251118 已修改坐标 x forward, y left
+            time.sleep(0.03)
+    
     def GetBallPos(self):
         return self.BallPos
     
+    # def BinaryObjectDetection(self):
+    #     二值化检测对方
+    #     Frame = self.Frames[0]
+    #     Pos = [self.GetPos()[0], self.GetPos()[1]]
+    #     Yaw = self.GetPos()[2]
+    #     DistToCorner = int(math.sqrt((Pos[0] - 10) ** 2 + (Pos[1] - 13) ** 2))
+    #     VisionAngle = math.degrees(math.atan2(Pos[0] - 10, Pos[1] - 13))
+    #     Theta = VisionAngle - Yaw
+    #     VisionCornerX = int(DistToCorner * math.sin(math.radians(Theta)))
+    #     VisionCornerY = int(DistToCorner * math.cos(math.radians(Theta)))
+    #     VisionCornerX, VisionCornerY = self.CM2Pixel(VisionCornerX, VisionCornerY, 0)
+    #     print(VisionCornerX, VisionCornerY)
+
+    def __exit__(self):
+        for Cam in self.Cams:
+            Cam.release()
+        self.CloseVideo()
+
+
+class ArisuIntelligence(Vision):
+    '''
+    with hailo only
+    '''
+    
+    def __init__(self):
+
+
+        self.logger = logger
+
+        from hailo_platform import VDevice, HailoSchedulingAlgorithm
+
+        self.PreProcessTF = 0
+        self.InferTF = 0
+
+        self.HailoParams = VDevice.create_params()
+        self.HailoParams.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
+
+        self.YOLOQueue = queue.Queue(maxsize=1)
+
+        self.MergedChassisList = []
+        self.ChassisQueue = queue.Queue(maxsize=1)
+        self.BallQueue = queue.Queue(maxsize=1)
+
+        super().__init__()
+
+        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+        self.InitConfiguredModelThread.daemon = True
+        self.InitConfiguredModelThread.start()
+
+        # 报错会阻塞程序 try&except
+        time.sleep(2)
+
+
+        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+        self.ModelPreProcessThread.daemon = True
+        self.ModelPreProcessThread.start()
+
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
+
+
+    def Resize(self, Frame, TargetSize=(640, 640)):
+        Height, Width = Frame.shape[:2]
+        TargetHeight, TargetWidth = TargetSize
+        
+        Scale = min(TargetWidth/Width, TargetHeight/Height)
+        
+        NewWidth = int(Width * Scale)
+        NewHeight = int(Height * Scale)
+        
+        ResizedImage = cv2.resize(Frame, (NewWidth, NewHeight))
+        
+        PaddedImage = np.zeros((TargetHeight, TargetWidth, 3), dtype=np.uint8)
+        
+        YOffset = (TargetHeight - NewHeight) // 2
+        XOffset = (TargetWidth - NewWidth) // 2
+        
+        PaddedImage[YOffset:YOffset+NewHeight, XOffset:XOffset+NewWidth] = ResizedImage
+        
+        return PaddedImage
+   
+
+    def InitConfiguredModel(self):
+        with VDevice(self.HailoParams) as Hat:
+            InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
+            InferModel.set_batch_size(4)
+            self.InputShape = InferModel.input().shape
+            self.OutputShape = InferModel.output().shape
+            with InferModel.configure() as ConfiguredInferModel:
+                self.ConfiguredInferModel = ConfiguredInferModel
+                time.sleep(114514)
+
+    def ModelPreProcess(self):
+        '''
+        input: int8
+        output: float32
+        '''
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Bindings = self.ConfiguredInferModel.create_bindings()
+                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    Frame = self.Resize(Frame, (640, 640))
+                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                    # cv2.imshow(f"Frame {i}", Frame)
+                    # Frame = Frame.astype(np.uint8)
+                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                    # print(Frame.shape)
+                    Bindings.input().set_buffer(Frame)
+                    Bindings.output().set_buffer(OutputBuffer)
+                    BindingsList.append(Bindings)
+            if self.YOLOQueue.full():
+                self.YOLOQueue.empty()
+                # print(self.YOLOQueue.get())
+                continue
+            else:
+                self.PreProcessTF = self.PreProcessTF + 1
+                self.YOLOQueue.put(BindingsList)
+            time.sleep(0.01)
+                
+    def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
+            BindingsList = self.YOLOQueue.get()
+            self.InferTF = self.InferTF + 1
+            # 确保在传递给 BindingsList 之前执行此操作
+            try:
+                self.ConfiguredInferModel.run(BindingsList, 1000)
+            except Exception as e:
+                self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
+                self.ModelInfer()
+            Outputs = []
+            ChassisList = []
+            for Bindings in BindingsList:
+                OutputBuffer = Bindings.output().get_buffer()
+                Outputs.append(OutputBuffer)
+            self.ChassisQueue.put(Outputs)
+            self.BallQueue.put(Outputs)
+            # print(ChassisList)
+        
+            # print(Output0)
+            # time.sleep(0.01)
+
+
+class TunaVision(Vision):
+    '''
+    support for RDK x5 BPU
+    '''
+    def __init__(self,Frame):
+        import bpu_infer_lib
+        self.inf = bpu_infer_lib.Infer(True)
+        self.inf.load_model(DATA_DIR / Settings.VisionVals.ModelPath / "yolov8s.bin")
+
+        self.YOLOQueue = queue.Queue(maxsize=1)
+        self.ChassisQueue = queue.Queue(maxsize=1)
+        self.BallQueue = queue.Queue(maxsize=1)
+
+    def bgr2nv12_opencv(self, image):
+        height, width = image.shape[0], image.shape[1]
+        area = height * width
+        yuv420p = cv2.cvtColor(image, cv2.COLOR_BGR2YUV_I420).reshape((area * 3 // 2,))
+        y = yuv420p[:area] # Y分量：前area个元素
+        uv_planar = yuv420p[area:].reshape((2, area // 4)) # UV分量：后面的元素，每2个元素分别为U和V分量
+        uv_packed = uv_planar.transpose((1, 0)).reshape((area // 2,)) # 将UV分量交替排列为交错的UV格式
+        nv12 = np.zeros_like(yuv420p) # 创建与原YUV数据形状相同的空数组用于存放NV12格式数据
+        nv12[:height * width] = y # 将Y分量直接赋值到NV12数组的前部
+        nv12[height * width:] = uv_packed  # 将交错的UV分量赋值到NV12数组的后部
+        return nv12
+
+    def YoloProcess(self):
+        while(1):
+            BindingsList = []
+            for i in range(4):
+                Frame = self.Frames[i]
+                if Frame is not None:
+                    BindingsList.append(self.bgr2nv12_opencv(Frame))
+            if self.YOLOQueue.full():
+                continue
+            else:
+                self.PreProcessTF = self.PreProcessTF + 1
+                self.YOLOQueue.put(BindingsList)
+            time.sleep(0.01)
+        
+    def ModelInfer(self):
+        FrameCount = 0
+        LastTime = time.time()
+        while(1):
+            FrameCount += 1
+            CurrentTime = time.time()
+            if CurrentTime - LastTime >= 1.0:
+                self.logger.debug(f"Hailo Process FPS: {FrameCount}")
+                FrameCount = 0
+                LastTime = CurrentTime
+            BindingsList = self.YOLOQueue.get()
+            self.InferTF = self.InferTF + 1
+            # 确保在传递给 BindingsList 之前执行此操作
+            self.infer.forward(True)
+            Outputs = []
+            ChassisList = []
+            for Bindings in BindingsList:
+                self.inf.set_input(Bindings)
+                self.inf.forward()
+                OutputBuffer = self.inf.outputs[0].data
+                Outputs.append(OutputBuffer)            
+            self.ChassisQueue.put(Outputs[0])
+            self.BallQueue.put(Outputs[1])
+
+

@@ -1,14 +1,12 @@
 import math, time, threading
 
-from ReasonData import logger, Settings
+from utils.ReasonData import logger, Settings
 cfg = Settings
 
 # from Vision import ArisuIntelligence
 from headunit import ArisuIntelligence
-vision = ArisuIntelligence()
 
-# from Vision import UnitedVision
-# vision = UnitedVision()
+vision = ArisuIntelligence()
 
 from Sensor import Lidar
 from chassis import Car,Peripherals # Universal-Movement-Standard
@@ -53,6 +51,8 @@ class Positions:
         self.WaitTime = 1
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
+        # Values for PID
+        self.PositionCount = 1
 
     # ********* BASIC FUNCTIONS ********
     def Relative_Ball_Position(self):
@@ -310,8 +310,7 @@ class Positions:
             else:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
-
-
+    
     def MoveToPosition(self, Position: list[int, int, int], Kp: float | None = None):
         selfPosition = self.AbsRoboPosition()
         dX = Position[0] - selfPosition[0]
@@ -324,12 +323,13 @@ class Positions:
         else:
             chassis.AbsMoveVetor(dX, dY, dW)
 
-    def Pos2Pos(self,AimPos:list, Speed:int | None = None) -> int:
+    def Pos2Pos(self,AimPos:list, A2O:bool | None = False, Speed:int | None = None) -> int:
         '''
         iFacingAngle 移动时面对的方向 0~360
         lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
-        # TODO 调整PID
+        A2O 是否开启自动避障 默认True
         '''
+        self.PositionCount = 1
         iLocX,iLocY,iLocZ = self.AbsRoboPosition()
         if iLocX < 0:
             kX = -1
@@ -355,14 +355,17 @@ class Positions:
                 iAimY = (RestrictedY - 3)*kY
         except:
             iAimX,iAimY,iAimZ = AimPos
+        logger.info([iAimX,iAimY,iAimZ])
         if iLocZ > 180:
             iDeltaZ = 360 - abs(iAimZ) - abs(iLocZ)
         else:
             iDeltaZ = (abs(iAimZ) - abs(iLocZ))
-        iErrorRange = Settings.ExpectedVals.ErrorRange
+        logger.debug([iDeltaX,iDeltaY,iDeltaZ])
+        iErrorRange = Settings.ExpectedVals.ErrorRange/4
         iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
+            self.PositionCount = 1
             return True
         elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
             chassis.RelTurn(iDeltaZ)
@@ -370,11 +373,11 @@ class Positions:
             if Speed:
                 chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,Speed)
             else:
-                # chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+5)
-                chassis.AbsMoveVetor(iDeltaX,iDeltaY,AimPos[2])
+                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY)))*(1+self.PositionCount))
+            self.PositionCount += 1
             return False
 
-    def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
+    def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitSec:int,A2O:bool | None = False):
         iErrorRange = Settings.ExpectedVals.ErrorRange
         for i in Posistions:
             while (1):
@@ -392,10 +395,19 @@ class Positions:
                     if i == Posistions[-1]:
                         return True
                     else:
-                        time.sleep(iWaitMs)
+                        chassis.stop()
+                        time.sleep(iWaitSec)
                         break
                 else:
                     self.Pos2Pos(i,A2O=A2O)
+
+    def Cover2Start(self):
+        while(1):
+            if 100 < lidar.GetDists()[0] < 500:
+                return True
+            else:
+                chassis.stop()
+                pass
 
 
 class Communication:
