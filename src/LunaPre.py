@@ -397,6 +397,15 @@ class Positions:
                 else:
                     self.Pos2Pos(i,A2O=A2O)
 
+    def Cover2Start(self):
+        while 1:
+            if 100 < lidar.GetDists()[0] <= 500:
+                return True
+            else:
+                pass
+
+    def referee2Start(self):
+        pass
 
 class Communication:
     def __init__(self):
