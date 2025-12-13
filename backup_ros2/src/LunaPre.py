@@ -4,7 +4,7 @@ import math, time
 from utils.ReasonData import logger, Settings
 cfg = Settings
 
-from UniVision import ArisuIntelligence
+from Vision import ArisuIntelligence
 from Sensor import Lidar
 Vision = ArisuIntelligence()
 from chassis import Car, Peripherals

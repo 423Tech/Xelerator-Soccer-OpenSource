@@ -11,10 +11,10 @@ import time
 import cv2
 import numpy as np
 
-from ReasonData import Settings, logger, Path
+from utils.ReasonData import Settings, logger, Path
 
 APP_DIR = Path(__file__).parent
-DATA_DIR = APP_DIR / "ReasonData" / "data"
+DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
 MODEL_DIR = APP_DIR / "models"
 
 class ArisuIntelligence:
