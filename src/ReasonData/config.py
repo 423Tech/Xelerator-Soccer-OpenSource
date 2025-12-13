@@ -32,6 +32,7 @@ class Preference:
                     "number" : 1,
                     "type": "OP", # OffencePlayer/DefencePlayer
                     "Bit" : "AB", # AB(Arisu Bits)/QB (3Q Bits RPI)/ 3Q (3Q Bits) .etc
+                    "Rec" : "AI", # AI(Arisu Intelligence)/TV(Tuna Vision)/BB(Blob Based)
                 },
                 "Ports": {
                     "LowTigger" : 0, 
@@ -145,6 +146,7 @@ class Prompts(object):
             self.number = 0
             self.type = 'OP'
             self.Bit = 'AB'
+            self.Rec = 'AI'
 
     class _ports(object):
         def __init__(self):

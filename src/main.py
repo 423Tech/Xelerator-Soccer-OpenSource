@@ -1,4 +1,9 @@
 from LunaPre import *
 
-Positions().Cover2Start()
-Positions().Move2Path([[0,0,0],[40,70,0],[40,-70,0],[-40,-70,0],[-40,70,0]],2)
+Cache = False
+
+while 1:
+    # print(Positions().Pos2Pos([-20,0,0]))
+    # Positions().Move2Path([[0,0,0],[40,0,0],[40,40,0],[0,40,0]],1)
+    print(Positions().AbsChassisPos())
+    time.sleep(0.1)
