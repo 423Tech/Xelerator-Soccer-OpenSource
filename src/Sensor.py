@@ -196,6 +196,9 @@ class Lidar:
 
     def GetDists(self):
         return self.dirNormalizedDistance
+    
+    def GetFullData(self):
+        return self.dirLidarQueue.get()
 
 class LidarWithoutYaw:
     def __init__(self,GetYaw):

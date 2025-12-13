@@ -54,6 +54,39 @@ class Positions:
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
+    class Calculate:
+        def Local2Angle(lAimPos:list[int,int]) -> int:
+            '''
+            lAimPos 一个坐标 示例：[0,0]
+            '''
+            iAimX = lAimPos[0]
+            iAimY = lAimPos[1]
+            iLocX,iLocY = Positions.AbsRoboPosition()[0]
+            iDeltaX = iAimX - iLocX
+            iDeltaY = iAimY - iLocY
+            try:
+                iDeltaAngle = -math.degrees(math.atan(iDeltaX/iDeltaY))
+            except:
+                if iDeltaX > 0:
+                    iDeltaAngle = -90
+                else:
+                    iDeltaAngle = 90
+            return int(iDeltaAngle)
+        
+        def Pos2Angle(lInputPos:list[int,int],lAimPos:list[int,int]) -> int:
+            '''
+            lInputPos 输入坐标
+            lAimPos 目标坐标 示例：[0,0]
+            '''
+            iAimX = lAimPos[0]
+            iAimY = lAimPos[1]
+            iLocX = lInputPos[0]
+            iLocY = lInputPos[1]
+            iDeltaX = iAimX - iLocX
+            iDeltaY = iAimY - iLocY
+            iDeltaAngle = math.degrees(math.atan2(iDeltaY,iDeltaX))
+            return int(iDeltaAngle)
+
     # ********* BASIC FUNCTIONS ********
     def Relative_Ball_Position(self):
         '''
@@ -145,6 +178,106 @@ class Positions:
         elif Bits.Odometer is not None:# if use odometer datas
             # TODO finish lower Positions
             pass
+
+    def N_AbsRoboPosition(self):
+        '''
+        Get the [Absolute] Position of the Robot using Lidar Full Data
+        获取[机器人几何中心]相对于[场地几何中心]的位置 [x_forward,y_left,yaw]
+        #### Args:
+            None
+
+        #### Returns:
+            RobotPosition: [x, y, yaw] | absolute position and heading
+        #### Note:
+            `0xfff` stand for `No Position`
+            Uses lidar.GetFullData() to detect field boundaries
+        '''
+        points = []
+        lidar_data = lidar.GetFullData()
+        
+        # Extract valid points from lidar data (angle, distance)
+        for element in lidar_data:
+            angle = element[0]  # 角度 (degrees)
+            distance = element[1]  # 距离 (meters)
+            
+            # Filter points within reasonable range (ignore too close/far points)
+            if 0.1 < distance < 3.0:
+                # Convert polar to cartesian coordinates (relative to robot)
+                x = distance * math.sin(math.radians(angle))
+                y = distance * math.cos(math.radians(angle))
+                points.append([x, y, angle, distance])
+        
+        if not points:
+            logger.warning("No valid lidar points found")
+            return [0xfff, 0xfff, 0xfff]
+        
+        # Detect walls (boundary points)
+        # Points should cluster at the edges of the rectangle
+        field_short = cfg.Bounds.Short / 100.0  # Convert from cm to meters
+        field_long = cfg.Bounds.Long / 100.0
+        
+        # Categorize points by which wall they hit
+        left_wall_points = []   # Detected on left side (y < 0)
+        right_wall_points = []  # Detected on right side (y > 0)
+        front_wall_points = []  # Detected in front (x > 0)
+        back_wall_points = []   # Detected in back (x < 0)
+        
+        for point in points:
+            x, y, angle, distance = point
+            
+            # Determine which wall this point is closest to
+            # Based on angle: 0° = forward, 90° = left, 180° = back, 270° = right
+            if 45 < angle <= 135:  # Left side
+                left_wall_points.append(point)
+            elif 225 < angle <= 315:  # Right side
+                right_wall_points.append(point)
+            elif -45 <= angle <= 45 or 315 < angle <= 360:  # Front
+                front_wall_points.append(point)
+            elif 135 < angle <= 225:  # Back
+                back_wall_points.append(point)
+        
+        # Calculate robot position based on wall distances
+        # Position = field_center - distance_to_wall
+        
+        # Calculate X position (forward-backward)
+        x_pos = 0xfff
+        if front_wall_points:
+            front_dist = min([p[2] for p in front_wall_points])
+            x_pos = (field_long / 2.0) - front_dist
+        if back_wall_points:
+            back_dist = min([p[2] for p in back_wall_points])
+            x_back = -(field_long / 2.0) + back_dist
+            if x_pos == 0xfff:
+                x_pos = x_back
+            else:
+                x_pos = (x_pos + x_back) / 2.0
+        
+        # Calculate Y position (left-right)
+        y_pos = 0xfff
+        if left_wall_points:
+            left_dist = min([p[2] for p in left_wall_points])
+            y_pos = (field_short / 2.0) - left_dist
+        if right_wall_points:
+            right_dist = min([p[2] for p in right_wall_points])
+            y_right = -(field_short / 2.0) + right_dist
+            if y_pos == 0xfff:
+                y_pos = y_right
+            else:
+                y_pos = (y_pos + y_right) / 2.0
+        
+        # Calculate yaw (heading) based on wall point distribution
+        # Use the angles of detected points to infer robot orientation
+        yaw = compass()
+        
+        if x_pos == 0xfff or y_pos == 0xfff:
+            logger.warning("Could not determine robot position from lidar data")
+            return [0xfff, 0xfff, 0xfff]
+        
+        # Convert to centimeters to match existing position system
+        self.LidarPos = [x_pos * 100, y_pos * 100, yaw]
+        logger.info("[Absolute] Robot Position (N method): %s" % self.LidarPos)
+        
+        return [x_pos * 100, y_pos * 100, yaw]
 
     def AbsChassisPos(self):
         '''
