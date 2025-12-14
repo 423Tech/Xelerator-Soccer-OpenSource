@@ -34,13 +34,13 @@ class ArisuIntelligence(VisionPreUntil):
         time.sleep(2)
 
 
-        # self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-        # self.ModelPreProcessThread.daemon = True
-        # self.ModelPreProcessThread.start()
+        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+        self.ModelPreProcessThread.daemon = True
+        self.ModelPreProcessThread.start()
 
-        # self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-        # self.ModelInferThread.daemon = True
-        # self.ModelInferThread.start()
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
 
 
     def Resize(self, Frame, TargetSize=(640, 640)):
@@ -122,13 +122,14 @@ class ArisuIntelligence(VisionPreUntil):
             except Exception as e:
                 self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
                 self.ModelInfer()
-            Outputs = []
-            ChassisList = []
+            BallOutputs = []
+            ChassisOutputs = []
             for Bindings in BindingsList:
                 OutputBuffer = Bindings.output().get_buffer()
-                Outputs.append(OutputBuffer)
-            self.ChassisQueue.put(Outputs)
-            self.BallQueue.put(Outputs)
+                BallOutputs.append(OutputBuffer[0])
+                ChassisOutputs.append(OutputBuffer[3])
+            self.ChassisQueue.put(ChassisOutputs)
+            self.BallQueue.put(BallOutputs)
             # print(ChassisList)
         
             # print(Output0)

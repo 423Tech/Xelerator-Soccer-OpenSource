@@ -7,12 +7,23 @@ class TunaVision(VisionPreUntil):
     def __init__(self):
         super().__init__()
         import bpu_infer_lib
-        self.inf = bpu_infer_lib.Infer(True)
-        self.inf.load_model(str(MODEL_DIR / "yolov8n.bin"))
+        self.infer = bpu_infer_lib.Infer(False)
+        self.infer.load_model(str(MODEL_DIR / "yolov8n.bin"))
+
 
         self.YOLOQueue = queue.Queue(maxsize=1)
         self.ChassisQueue = queue.Queue(maxsize=1)
         self.BallQueue = queue.Queue(maxsize=1)
+
+
+        self.YoloProcessThread = threading.Thread(target=self.YoloProcess)
+        self.YoloProcessThread.daemon = True
+        self.YoloProcessThread.start()
+
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
+
 
     def bgr2nv12_opencv(self, image):
         height, width = image.shape[0], image.shape[1]
@@ -27,23 +38,24 @@ class TunaVision(VisionPreUntil):
         return nv12
 
     def YoloProcess(self):
-        while(1):
+        # while(1):
             BindingsList = []
             for i in range(4):
                 Frame = self.Frames[i]
                 if Frame is not None:
                     BindingsList.append(self.bgr2nv12_opencv(Frame))
             if self.YOLOQueue.full():
-                continue
+                pass
             else:
                 self.PreProcessTF = self.PreProcessTF + 1
                 self.YOLOQueue.put(BindingsList)
             time.sleep(0.01)
         
     def ModelInfer(self):
-        FrameCount = 0
-        LastTime = time.time()
         while(1):
+            FrameCount = 0
+            LastTime = time.time()
+            # while(1):
             FrameCount += 1
             CurrentTime = time.time()
             if CurrentTime - LastTime >= 1.0:
@@ -53,13 +65,18 @@ class TunaVision(VisionPreUntil):
             BindingsList = self.YOLOQueue.get()
             self.InferTF = self.InferTF + 1
             # 确保在传递给 BindingsList 之前执行此操作
-            self.infer.forward(True)
-            Outputs = []
+            BallOutputs = []
             ChassisList = []
             for Bindings in BindingsList:
-                self.inf.set_input(Bindings)
-                self.inf.forward()
-                OutputBuffer = self.inf.outputs[0].data
-                Outputs.append(OutputBuffer)            
-            self.ChassisQueue.put(Outputs[0])
-            self.BallQueue.put(Outputs[1])
+                self.infer.read_input(Bindings, 0)
+                self.infer.forward(True)
+                time.sleep(0.02)          
+                self.infer.get_output()
+                # TODO finish data after-process
+                BallOutputBuffer = self.infer.outputs[1].data
+
+                BallOutputs.append(BallOutputBuffer[0])  
+                ChassisOutputBuffer = self.infer.outputs[3].data
+                ChassisList.append(ChassisOutputBuffer)  
+            self.ChassisQueue.put(ChassisList)
+            self.BallQueue.put(BallOutputs)

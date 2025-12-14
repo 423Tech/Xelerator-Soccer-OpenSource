@@ -5,6 +5,7 @@ import cv2
 from ReasonData import Settings
 
 from vision_utils import Detect_Method, DATA_DIR
+
 class UnitedVision(Detect_Method):
     def __init__(self):
 
@@ -26,14 +27,6 @@ class UnitedVision(Detect_Method):
             P2CVB = NumpyData['p2c'][2]
             self.P2CVB.append(P2CVB)
 
-
-        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-        self.ChassisDetectionThread.daemon = True
-        self.ChassisDetectionThread.start()
-
-        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-        self.BallDetectionThread.daemon = True
-        self.BallDetectionThread.start()
 
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
@@ -103,7 +96,7 @@ class UnitedVision(Detect_Method):
             ChassisList = []
             # Process ChassisList
             for i in range(4):
-                List = OutputBuffer[i][3]
+                List = OutputBuffer[i]
                 if List.shape[0] > 0:
                     for Chassis in List:
                         if Chassis[4] < 0.5:
@@ -178,7 +171,7 @@ class UnitedVision(Detect_Method):
             OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
-                List = OutputBuffer[i][0]
+                List = OutputBuffer[i]
                 if List.shape[0] > 0:
                     for Ball in List:
                         if Ball[4] < 0.4:
