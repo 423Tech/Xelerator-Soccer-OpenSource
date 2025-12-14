@@ -26,7 +26,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bmi088.h"
+#include "motor.h"
+#include "protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,7 +104,10 @@ int main(void)
   MX_TIM9_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-
+  bmi088_init_gyro();
+  HAL_Delay(500);
+  bmi088_calibrate_gyro_offset(3000);
+  motor_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,7 +168,54 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	switch ((uint32_t)htim->Instance) {
+	case (uint32_t)TIM6:
+		motor_update_wheels_pwm();
+		break;
+	default:
+		break;
+	}
+}
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    switch(GPIO_Pin)
+    {
+    case GPIO_PIN_8:
+    	BMI088_CAPTURE_DRDY_TIMESTAMP();
+    	bmi088_burst_read_gyro(0x02, 6);
+        break;
+    default:
+        break;
+    }
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    switch ((uint32_t)hspi->Instance)
+    {
+    case (uint32_t)SPI2:
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+    	bmi088_process_gyro_angle();
+        break;
+    default:
+        break;
+    }
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	switch((uint32_t)huart->Instance) {
+	case (uint32_t)UART4:
+		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
+			protocol_process_received_frame();
+		break;
+	default:
+		break;
+	}
+}
 /* USER CODE END 4 */
 
 /**

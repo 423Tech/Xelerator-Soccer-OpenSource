@@ -4,6 +4,7 @@
 "./Core/Src/gpio.o"
 "./Core/Src/main.o"
 "./Core/Src/motor.o"
+"./Core/Src/protocol.o"
 "./Core/Src/spi.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
 "./Core/Src/stm32f4xx_it.o"
