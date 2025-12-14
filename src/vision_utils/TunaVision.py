@@ -8,7 +8,7 @@ class TunaVision(VisionPreUntil):
         super().__init__()
         import bpu_infer_lib
         self.inf = bpu_infer_lib.Infer(True)
-        self.inf.load_model(MODEL_DIR / "yolov8s.bin")
+        self.inf.load_model(str(MODEL_DIR / "yolov8n.bin"))
 
         self.YOLOQueue = queue.Queue(maxsize=1)
         self.ChassisQueue = queue.Queue(maxsize=1)

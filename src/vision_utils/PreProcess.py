@@ -1,6 +1,4 @@
-from . import Settings, logger, DATA_DIR
-
-from ..ReasonData import Settings, logger, Path
+from .VisionDatas import Settings, logger, Path
 import threading
 import queue
 import time
@@ -9,7 +7,7 @@ import numpy as np
 import pathlib
 
 APP_DIR = Path(__file__).parent
-DATA_DIR = APP_DIR / "utils" / "ReasonData" / "data"
+DATA_DIR = APP_DIR / "VisionDatas" / "data"
 MODEL_DIR = APP_DIR / "models"
 
 class VisionPreUntil:
@@ -37,16 +35,6 @@ class VisionPreUntil:
         self.InferTF = 0
         self.PostProcessTF = 0
 
-        for i in range(4):
-            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
-            PerspectiveMatrix = NumpyData['matrix']
-            self.PerspectiveMatrices.append(PerspectiveMatrix)
-            P2CK = NumpyData['p2c'][0]
-            self.P2CK.append(P2CK)
-            P2CHB = NumpyData['p2c'][1]
-            self.P2CHB.append(P2CHB)
-            P2CVB = NumpyData['p2c'][2]
-            self.P2CVB.append(P2CVB)
 
         self.ReadCamsThread = threading.Thread(target=self.ReadCams)
         self.ReadCamsThread.daemon = True

@@ -4,13 +4,7 @@ import cv2
 
 from ReasonData import Settings
 
-if Settings.RoboInfo.Rec == 'AI':
-    from vision_utils import ArisuIntelligence as Detect_Method
-elif Settings.RoboInfo.Rec == 'TV':
-    from vision_utils import TunaVision as Detect_Method
-else:
-    from vision_utils import BlobBased as Detect_Method
-
+from vision_utils import Detect_Method, DATA_DIR
 class UnitedVision(Detect_Method):
     def __init__(self):
 
@@ -20,6 +14,18 @@ class UnitedVision(Detect_Method):
         self.P2CK = []
         self.P2CHB = []
         self.P2CVB = []
+
+        for i in range(4):
+            NumpyData = np.load(str(DATA_DIR)+"/Calibration/CalibrationData"+ str(self.CamPorts[i]) +".npz")
+            PerspectiveMatrix = NumpyData['matrix']
+            self.PerspectiveMatrices.append(PerspectiveMatrix)
+            P2CK = NumpyData['p2c'][0]
+            self.P2CK.append(P2CK)
+            P2CHB = NumpyData['p2c'][1]
+            self.P2CHB.append(P2CHB)
+            P2CVB = NumpyData['p2c'][2]
+            self.P2CVB.append(P2CVB)
+
 
         self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
         self.ChassisDetectionThread.daemon = True
