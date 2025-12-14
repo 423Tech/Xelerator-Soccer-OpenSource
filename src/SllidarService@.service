@@ -1,0 +1,15 @@
+[Unit]
+Description=Sllidar Instance for user %i
+
+
+[Service]
+Type=simple
+# 动态设置用户：启动命令中的 "instance名" 会自动赋值给 %i
+User=%i
+Group=%i
+WorkingDirectory=/home/%i/
+# 示例：执行该用户目录下的脚本
+ExecStart=/bin/bash -c 'export DOMAIN_ID=99 && ros2 launch sllidar_ros2 sllidar_s1_launch.py'
+
+[Install]
+WantedBy=multi-user.target

@@ -15,7 +15,7 @@ from ReasonData import Settings, logger, Path
 
 APP_DIR = Path(__file__).parent
 DATA_DIR = APP_DIR / "ReasonData" / "data"
-MODEL_DIR = APP_DIR / "models"
+MODEL_DIR = APP_DIR  / "vision_utils" / "models"
 
 class ArisuIntelligence:
     '''
