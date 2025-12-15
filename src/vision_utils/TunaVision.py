@@ -24,7 +24,7 @@ class TunaVision(VisionPreUntil):
         self.ModelInferThread.daemon = True
         self.ModelInferThread.start()
 
-    def post_process_bpu_output(raw_output: np.ndarray, width: int, height: int) -> np.ndarray:
+    def post_process_bpu_output(self,raw_output: np.ndarray, width: int, height: int) -> np.ndarray:
         """
         将 BPU 原始输出（80个元素）进行后处理，得到最终的检测框列表。
         输出的框坐标是相对于像素的 (x1, y1, x2, y2)。
@@ -34,6 +34,7 @@ class TunaVision(VisionPreUntil):
         try:
             # candidates 的 shape: (16, 5)
             candidates = raw_output.flatten().reshape(-1, 5)
+            return candidates
         except ValueError:
             print(f"错误: 原始输出长度 {raw_output.size} 无法重塑为 N x 5 结构。")
             return np.empty((0, 5))
@@ -87,7 +88,7 @@ class TunaVision(VisionPreUntil):
                 self.infer.get_output()
                 # TODO finish data after-process
                 BallOutputBuffer = self.infer.outputs[1].data
-                print(self.post_process_bpu_output(BallOutputBuffer))
+                print(self.post_process_bpu_output(BallOutputBuffer,15,15))
                 breakpoint()
                 BallOutputs.append(BallOutputBuffer[0])  
                 ChassisOutputBuffer = self.infer.outputs[3].data
