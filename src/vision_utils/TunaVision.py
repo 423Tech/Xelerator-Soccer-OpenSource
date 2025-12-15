@@ -24,47 +24,70 @@ class TunaVision(VisionPreUntil):
         self.ModelInferThread.daemon = True
         self.ModelInferThread.start()
 
-    def post_process_bpu_output(self,raw_output: np.ndarray, width: int, height: int) -> np.ndarray:
+    def yolov8_post_process(self,raw_output: np.ndarray) -> np.ndarray:
         """
-        将 BPU 原始输出（80个元素）进行后处理，得到最终的检测框列表。
-        输出的框坐标是相对于像素的 (x1, y1, x2, y2)。
+        将 BPU 的原始扁平输出 (409600 元素) 转换为最终的检测框列表。
+        输出格式: (N, 5) 数组，每行: [x1, x2, y1, y2, confidence]
         """
-        IMAGE_WIDTH = 640
-        IMAGE_HEIGHT = 640
+        IMAGE_SIZE = 640
         CONFIDENCE_THRESHOLD = 0.5  # 置信度筛选阈值
-        NMS_IOU_THRESHOLD = 0.45    # NMS (非极大值抑制) 的 IoU 阈值
-        BPU_OUTPUT_SIZE = 80
-        if raw_output.size != BPU_OUTPUT_SIZE:
-            print(f"⚠️ 警告: 原始输出长度 {raw_output.size} 不等于预期 {BPU_OUTPUT_SIZE}。")
+        NMS_IOU_THRESHOLD = 0.45    # NMS IOU 阈值
+        # 警告: BPU_RAW_SIZE 是 409600，我们假设这个数对应于 YOLOv8 的某个特征图的元素总数
+        BPU_RAW_SIZE = 409600
+        if raw_output.size != BPU_RAW_SIZE:
+            print(f"⚠️ 错误: 原始输出长度 {raw_output.size} 不等于预期 {BPU_RAW_SIZE}。无法进行YOLOv8解码。")
             return np.empty((0, 5))
 
-        # 1. Reshape: 假设是 (N, 5) 结构，这里 N=16
+        # --- 阶段 1: 解码 (Decoding) ---
+        
+        # ⚠️ 占位符：YOLOv8 DFL 解码是核心且复杂的步骤。
+        # 
+        # 这一步的目标是：
+        # 1. 将 raw_output (409600) 重塑为逻辑张量 (例如 80x80x64 或 80x80x(4+64+1))
+        # 2. 对 DFL 通道应用 Softmax 和加权求和，解码出 d_l, d_t, d_r, d_b 四个距离。
+        # 3. 结合网格坐标，计算出 N 个预测框的 (x_center, y_center, w, h)。
+        # 4. 提取 N 个预测框的置信度 (Confidence)。
+        
+        # --- 模拟解码结果 (实际需要替换为复杂的 DFL 解码代码) ---
+        
+        # 假设解码后得到了 6400 个预测（80x80），每个预测有 5 个属性：
+        # (x_center, y_center, width, height, confidence)
+        
         try:
-            # candidates 的 shape: (16, 5)
-            candidates = raw_output.flatten().reshape(-1, 5)
-        except ValueError:
-            print(f"错误: 原始输出长度 {raw_output.size} 无法重塑为 N x 5 结构。")
+            # 假设解码函数返回了 6400 个预测框的原始数据 (6400, 5)
+            # 注意：实际中，您需要将 DFL 解码后的结果放在这里
+            # 为了演示 NMS 和最终格式，我们在这里创建模拟数据：
+            NUM_PREDICTIONS = 6400
+            
+            # 模拟解码结果 (归一化坐标 0-1)
+            simulated_detections = np.random.rand(NUM_PREDICTIONS, 5).astype(np.float32)
+            
+            # 将大部分置信度设置为低值，以便筛选
+            simulated_detections[:, 4] *= 0.1
+            
+            # 植入几个高置信度的球
+            simulated_detections[100, :] = [0.5, 0.5, 0.1, 0.1, 0.95]
+            simulated_detections[101, :] = [0.51, 0.51, 0.1, 0.1, 0.90] # 重叠框
+            
+            
+        except Exception as e:
+            print(f"解码错误或模拟失败: {e}")
             return np.empty((0, 5))
-
-        # 假设 BPU 输出的 5 个值是归一化的 (0到1) 的 (cx, by, w, h, conf)
+            
+        # 将格式转换为 NMS 所需的 (x1, y1, x2, y2, conf)
+        x_center, y_center, w, h, conf = simulated_detections.T
         
-        # 2. 转换为像素坐标并提取 NMS 所需数据 (x1, y1, x2, y2, conf)
+        # 转换为归一化像素坐标 (0到1) 的 (x1, y1, x2, y2)
+        x1 = x_center - w / 2
+        y1 = y_center - h / 2
+        x2 = x_center + w / 2
+        y2 = y_center + h / 2
         
-        # 从原始输出中分离各个属性
-        cx, by, w, h, conf = candidates.T
-        
-        # 将归一化坐标转换为像素坐标 (Ball_Bottom_Y -> by)
-        # y1 = by - h, y2 = by
-        x1 = (cx - w / 2) * width
-        y1 = (by - h) * height
-        x2 = (cx + w / 2) * width
-        y2 = by * height
-        
-        # 结合成 NMS 输入格式
         boxes_for_nms = np.stack([x1, y1, x2, y2], axis=1)
+
+        # --- 阶段 2: 筛选 (Thresholding) ---
         
-        # 3. Thresholding: 筛选置信度高的框
-        # 注意：这里直接操作置信度数组，以便同时筛选 boxes_for_nms
+        # 筛选置信度高于阈值的候选框
         valid_indices = conf > CONFIDENCE_THRESHOLD
         
         high_conf_boxes = boxes_for_nms[valid_indices]
@@ -73,29 +96,45 @@ class TunaVision(VisionPreUntil):
         if high_conf_boxes.shape[0] == 0:
             return np.empty((0, 5))
 
-        # 4. NMS (非极大值抑制)
-        # cv2.dnn.NMSBoxes 要求输入是 int 坐标，所以我们需要四舍五入
-        # NMSBoxes 返回的是保留下来的框的索引
+        # --- 阶段 3: 非极大值抑制 (NMS) ---
+        
+        # NMS 仅在保留的框中运行
+        # 注意: NMSBoxes 需要 (x1, y1, x2, y2) 列表，我们使用 float32 传入
         indices = cv2.dnn.NMSBoxes(
-            high_conf_boxes.astype(np.float32).tolist(), # NMS 需要 float32 列表
+            high_conf_boxes.astype(np.float32).tolist(), 
             high_conf_scores.tolist(), 
             CONFIDENCE_THRESHOLD, 
             NMS_IOU_THRESHOLD
-        )
+        ).flatten()
         
         if len(indices) == 0:
             return np.empty((0, 5))
         
-        indices = indices.flatten()
+        # 提取最终的框和置信度
+        final_boxes_xyxy = high_conf_boxes[indices]
+        final_scores = high_conf_scores[indices]
         
-        # 最终的检测结果 (格式: x1, y1, x2, y2, conf)
-        final_detections_xyxy = np.concatenate(
-            [high_conf_boxes[indices], high_conf_scores[indices].reshape(-1, 1)], 
-            axis=1
-        )
+        # --- 阶段 4: 格式化输出 ---
 
-        return final_detections_xyxy
-
+        # 您的目标格式是 [start_x, end_x, start_y, end_y, confidence]
+        # NMS 输出的 final_boxes_xyxy 已经是 [x1, y1, x2, y2]
+        
+        # 重新排列并合并为最终的 (N, 5) 数组
+        # final_boxes_xyxy[:, 0] 是 x1 (start_x)
+        # final_boxes_xyxy[:, 2] 是 x2 (end_x)
+        # final_boxes_xyxy[:, 1] 是 y1 (start_y)
+        # final_boxes_xyxy[:, 3] 是 y2 (end_y)
+        
+        # 重新组合张量以满足 [start_x, end_x, start_y, end_y, confidence] 顺序
+        output_array = np.stack([
+            final_boxes_xyxy[:, 0], # x_start
+            final_boxes_xyxy[:, 2], # x_end
+            final_boxes_xyxy[:, 1], # y_start
+            final_boxes_xyxy[:, 3], # y_end
+            final_scores           # confidence
+        ], axis=1)
+        
+        return output_array
     def bgr2nv12_opencv(self, image):
         height, width = image.shape[0], image.shape[1]
         area = height * width
@@ -145,7 +184,7 @@ class TunaVision(VisionPreUntil):
                 self.infer.get_output()
                 # TODO finish data after-process
                 BallOutputBuffer = self.infer.outputs[1].data
-                print(self.post_process_bpu_output(BallOutputBuffer,15,15))
+                print(self.yolov8_post_process(BallOutputBuffer))
                 breakpoint()
                 BallOutputs.append(BallOutputBuffer[0])  
                 ChassisOutputBuffer = self.infer.outputs[3].data
