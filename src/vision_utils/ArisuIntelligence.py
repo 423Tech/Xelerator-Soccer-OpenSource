@@ -140,7 +140,6 @@ class ArisuIntelligence(VisionPreUntil):
                     Ball_Center_X = int((Ball_X_Min + Ball_X_Max) / 2)
                     Ball_Confidence = OutputBuffer[0][4]
                     BallOutputs.append([
-                        CameraIndex, 
                         Ball_Center_X, 
                         Ball_Bottom_Y, 
                         Ball_Width, 
@@ -159,7 +158,6 @@ class ArisuIntelligence(VisionPreUntil):
                     Chassis_Center_X = int((Chassis_X_Min + Chassis_X_Max) / 2)
                     Chassis_Confidence = OutputBuffer[3][4]
                     ChassisOutputs.append([
-                        CameraIndex,
                         Chassis_Center_X,
                         Chassis_Bottom_Y, 
                         Chassis_Width, 

@@ -96,8 +96,11 @@ class UnitedVision(Detect_Method):
             ChassisList = []
             # Process ChassisList
             for i in range(4):
-                CameraIndex, CenterX, BottomY, ChassisWidth, ChassisHeight, Confidence = OutputBuffer[i]
-
+                try:
+                    CenterX, BottomY, ChassisWidth, ChassisHeight, Confidence = OutputBuffer[i]
+                except:
+                    return [0,0]
+                CameraIndex = i
                 X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
                 # X,Y = CenterX, BottomY
                 if i == 0:
@@ -158,7 +161,8 @@ class UnitedVision(Detect_Method):
             OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
-                CameraIndex, CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                CameraIndex = i
                 X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
                 # X,Y = CenterX, BottomY
                 if i == 0:
@@ -173,11 +177,6 @@ class UnitedVision(Detect_Method):
                 elif i == 3:
                     BY = X
                     BX = -Y
-
-                if Ball[0] > 150 or Ball[1] > 150:
-                    continue
-
-                Confidence = Ball[4]
                 BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)
                 
                 Balls.append(BallTuple)

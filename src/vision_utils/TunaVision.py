@@ -133,8 +133,17 @@ class TunaVision(VisionPreUntil):
             final_boxes_xyxy[:, 3], # y_end
             final_scores           # confidence
         ], axis=1)
-        
-        return output_array
+
+        Ball_Y_Min = int(output_array[0,1] * 640) - 80 + 15
+        Ball_X_Min = int(output_array[0,0] * 640) + 15
+        Ball_Y_Max = int(output_array[0,3] * 640) - 80 -15
+        Ball_X_Max = int(output_array[0,2] * 640) -15
+        Ball_Bottom_Y = Ball_Y_Max
+        Ball_Width = Ball_X_Max - Ball_X_Min
+        Ball_Height = Ball_Y_Max - Ball_Y_Min
+        Ball_Center_X = int((Ball_X_Min + Ball_X_Max) / 2)
+
+        return [Ball_Center_X,Ball_Bottom_Y,Ball_Width,Ball_Height,final_scores]
     def bgr2nv12_opencv(self, image):
         height, width = image.shape[0], image.shape[1]
         area = height * width
@@ -177,6 +186,7 @@ class TunaVision(VisionPreUntil):
             # 确保在传递给 BindingsList 之前执行此操作
             BallOutputs = []
             ChassisList = []
+            count = 0
             for Bindings in BindingsList:
                 self.infer.read_input(Bindings, 0)
                 self.infer.forward(True)
@@ -184,10 +194,15 @@ class TunaVision(VisionPreUntil):
                 self.infer.get_output()
                 # TODO finish data after-process
                 BallOutputBuffer = self.infer.outputs[1].data
-                print(self.yolov8_post_process(BallOutputBuffer))
-                breakpoint()
-                BallOutputs.append(BallOutputBuffer[0])  
-                ChassisOutputBuffer = self.infer.outputs[3].data
-                ChassisList.append(ChassisOutputBuffer)  
+                BallOutputs.append(self.yolov8_post_process(self.infer.outputs[1].data))
+                # 0 512000
+                # 1 409600
+                # 2 128000
+                # 3 102400
+                # 4 32000
+                # 5 25600
+                ChassisOutputBuffer = self.infer.outputs[5].data
+                ChassisList.append(self.yolov8_post_process(ChassisOutputBuffer))  
+                count += 1
             self.ChassisQueue.put(ChassisList)
             self.BallQueue.put(BallOutputs)
