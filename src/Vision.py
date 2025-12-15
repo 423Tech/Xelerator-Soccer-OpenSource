@@ -96,40 +96,27 @@ class UnitedVision(Detect_Method):
             ChassisList = []
             # Process ChassisList
             for i in range(4):
-                List = OutputBuffer[i]
-                if List.shape[0] > 0:
-                    for Chassis in List:
-                        if Chassis[4] < 0.5:
-                            continue
-                        YMin = int(Chassis[0] * 640) - 80
-                        XMin = int(Chassis[1] * 640)
-                        YMax = int(Chassis[2] * 640) - 80
-                        XMax = int(Chassis[3] * 640)
-                        BottomY = YMax
-                        CenterX = int((XMin + XMax) / 2)
-                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
-                        # X,Y = CenterX, BottomY
-                        if i == 0:
-                            CX = X
-                            CY = Y
-                        elif i == 1:
-                            CY = -X
-                            CX = Y
-                        elif i == 2:
-                            CX = -X
-                            CY = -Y
-                        elif i == 3:
-                            CY = X
-                            CX = -Y
+                CameraIndex, CenterX, BottomY, ChassisWidth, ChassisHeight, Confidence = OutputBuffer[i]
 
-                        Width = XMax - XMin
-                        Height = YMax - YMin
+                X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
+                # X,Y = CenterX, BottomY
+                if i == 0:
+                    CX = X
+                    CY = Y
+                elif i == 1:
+                    CY = -X
+                    CX = Y
+                elif i == 2:
+                    CX = -X
+                    CY = -Y
+                elif i == 3:
+                    CY = X
+                    CX = -Y
 
-                        Confidence = Chassis[4]
-                        ChassisTuple = (CY, -CX, Width, Height, Confidence)
-                        # 20251118 already changed X forward,Y left dimension
-                        
-                        self.MergedChassisList.append(ChassisTuple)
+                ChassisTuple = (CY, -CX, ChassisWidth, ChassisHeight, Confidence)
+                # 20251118 already changed X forward,Y left dimension
+                
+                self.MergedChassisList.append(ChassisTuple)
                         # ChassisList.append(ChassisTuple)
             # if ChassisList:
             #     ChassisList = sorted(ChassisList, key=lambda x: x[0], reverse=False)
@@ -171,48 +158,35 @@ class UnitedVision(Detect_Method):
             OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
-                List = OutputBuffer[i]
-                if List.shape[0] > 0:
-                    for Ball in List:
-                        if Ball[4] < 0.4:
-                            continue
-                        YMin = int(Ball[0] * 640) - 80 + 15
-                        XMin = int(Ball[1] * 640) + 15
-                        YMax = int(Ball[2] * 640) - 80 - 15
-                        XMax = int(Ball[3] * 640) - 15
-                        BottomY = YMax
-                        CenterX = int((XMin + XMax) / 2)
-                        X,Y = self.Pixel2CM(CenterX, BottomY, i)
-                        # X,Y = CenterX, BottomY
-                        if i == 0:
-                            BX = X
-                            BY = Y
-                        elif i == 1:
-                            BY = -X
-                            BX = Y
-                        elif i == 2:
-                            BX = -X
-                            BY = -Y
-                        elif i == 3:
-                            BY = X
-                            BX = -Y
+                CameraIndex, CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
+                # X,Y = CenterX, BottomY
+                if i == 0:
+                    BX = X
+                    BY = Y
+                elif i == 1:
+                    BY = -X
+                    BX = Y
+                elif i == 2:
+                    BX = -X
+                    BY = -Y
+                elif i == 3:
+                    BY = X
+                    BX = -Y
 
-                        Width = XMax - XMin
-                        Height = YMax - YMin
+                if Ball[0] > 150 or Ball[1] > 150:
+                    continue
 
-                        if Ball[0] > 150 or Ball[1] > 150:
-                            continue
-
-                        Confidence = Ball[4]
-                        BallTuple = (BX, BY, Width, Height, Confidence)
-                        
-                        Balls.append(BallTuple)
+                Confidence = Ball[4]
+                BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)
+                
+                Balls.append(BallTuple)
             if Balls:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [-BY, BX]
-                # 20251118 已修改坐标 x forward,y left
+                self.BallPos = [BY, -BX]
+                # 20251215 已修改坐标 x forward,y left [TBT]
             else:
                 self.BallPos = [0, 0]       
 

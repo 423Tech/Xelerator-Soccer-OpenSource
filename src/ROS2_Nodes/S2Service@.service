@@ -1,0 +1,36 @@
+[Unit]
+Description=Sllidar ROS2 Launch Service [S1] for user %i
+Documentation=man:ros2(1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/home/%i/
+
+# 环境变量配置
+Environment="DOMAIN_ID=99"
+Environment="ROS_DOMAIN_ID=99"
+
+# 加载用户 bashrc 和 ROS2 环境后执行 ros2 launch
+ExecStart=/bin/bash -c 'source /home/%i/.bashrc && source /opt/ros/humble/setup.bash && exec ros2 launch sllidar_ros2 sllidar_s2_launch.py'
+
+# 日志和错误处理
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sllidar-%i
+
+# 服务重启策略
+Restart=on-failure
+RestartSec=10s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 启动和停止超时
+TimeoutStartSec=30s
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target

@@ -124,10 +124,48 @@ class ArisuIntelligence(VisionPreUntil):
                 self.ModelInfer()
             BallOutputs = []
             ChassisOutputs = []
+            CameraIndex = 0
             for Bindings in BindingsList:
                 OutputBuffer = Bindings.output().get_buffer()
-                BallOutputs.append(OutputBuffer[0])
-                ChassisOutputs.append(OutputBuffer[3])
+                if OutputBuffer[0].shape[0] > 0:
+                    if OutputBuffer[0][4] < 0.4:
+                        continue
+                    Ball_Y_Min = int(OutputBuffer[0][0] * 640) - 80 + 15
+                    Ball_X_Min = int(OutputBuffer[0][1] * 640) + 15
+                    Ball_Y_Max = int(OutputBuffer[0][2] * 640) - 80 -15
+                    Ball_X_Max = int(OutputBuffer[0][3] * 640) -15
+                    Ball_Bottom_Y = Ball_Y_Max
+                    Ball_Width = Ball_X_Max - Ball_X_Min
+                    Ball_Height = Ball_Y_Max - Ball_Y_Min
+                    Ball_Center_X = int((Ball_X_Min + Ball_X_Max) / 2)
+                    Ball_Confidence = OutputBuffer[0][4]
+                    BallOutputs.append([
+                        CameraIndex, 
+                        Ball_Center_X, 
+                        Ball_Bottom_Y, 
+                        Ball_Width, 
+                        Ball_Height, 
+                        Ball_Confidence])
+                if OutputBuffer[3].shape[0] > 0:
+                    if OutputBuffer[3][4] < 0.5:
+                        continue
+                    Chassis_Y_Min = int(OutputBuffer[3][0] * 640) - 80 
+                    Chassis_X_Min = int(OutputBuffer[3][1] * 640)
+                    Chassis_Y_Max = int(OutputBuffer[3][2] * 640) - 80 
+                    Chassis_X_Max = int(OutputBuffer[3][3] * 640)
+                    Chassis_Bottom_Y = Chassis_Y_Max
+                    Chassis_Width = Chassis_X_Max - Chassis_X_Min
+                    Chassis_Height = Chassis_Y_Max - Chassis_Y_Min
+                    Chassis_Center_X = int((Chassis_X_Min + Chassis_X_Max) / 2)
+                    Chassis_Confidence = OutputBuffer[3][4]
+                    ChassisOutputs.append([
+                        CameraIndex,
+                        Chassis_Center_X,
+                        Chassis_Bottom_Y, 
+                        Chassis_Width, 
+                        Chassis_Height, 
+                        Chassis_Confidence])
+                CameraIndex += 1
             self.ChassisQueue.put(ChassisOutputs)
             self.BallQueue.put(BallOutputs)
             # print(ChassisList)
