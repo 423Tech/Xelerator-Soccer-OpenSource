@@ -107,7 +107,7 @@ class Positions:
         self.ballPos = vision.GetBallPos()
         if self.ballPos == [0,0]:
             self.ballPosOut = [0xfff,0xfff]
-        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange:
+        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) == 0 and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange/2:
             self.ballPosOut = [0xddd,0xddd]
         else:
             self.ballPosOut = self.ballPos

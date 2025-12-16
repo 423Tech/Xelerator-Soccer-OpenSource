@@ -69,6 +69,8 @@ class Car:
         vector movement (SpeedX,SpeedY,SpeedZ) with YawCorrect
         '''
         Yaw = self.GetYaw()
+        # TODO change facing
+        # FacingAngle = 360 - FacingAngle
         Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
         if not Kp:

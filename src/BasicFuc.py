@@ -65,8 +65,15 @@ class LockSeries:
         chassis.AbsMoveVetor(iBX*4,iBY*4,0)
 
     def LockBallSlip(self):
-        iBX,iBY = Positions().AbsBallPos()
-        Compass = chassis.GetYaw()
+        iBX,iBY = Positions().Relative_Ball_Position()
+        if [iBX,iBY] == [4095,4095]:
+            chassis.stop()
+            return
+        elif [iBX,iBY] == [0xddd,0xddd]:
+            chassis.stop()
+            return
+
+        Compass = compass()
         Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
         Fangle = Angle + Compass
         if iBX > 75 or iBY > 75:
@@ -89,7 +96,8 @@ class LockSeries:
         #     SpeedX = -300
         # if SpeedY < -300:
         #     SpeedY = -300
-        chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+        logger.info(str(SpeedX)+" "+str(SpeedY)+' '+str(Fangle))
+        chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle-90,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def CircleAround(iAimAngle):
     iCompass = int(compass())
