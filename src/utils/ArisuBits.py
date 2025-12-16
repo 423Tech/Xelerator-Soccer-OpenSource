@@ -1195,7 +1195,7 @@ class ArisBit(object):
         return roll, pitch, yaw
     
     def GetYaw(self):
-        return (360 - int(self.get_imu_attitude_data()[2])) % 360
+        return (int(self.get_imu_attitude_data()[2])) % 360
 
     # 获取小车速度，val_vx, val_vy, val_vz
     # Get the car speed, val_vx, val_vy, val_vz

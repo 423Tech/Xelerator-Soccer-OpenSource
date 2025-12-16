@@ -62,7 +62,7 @@ class Preference:
                     "Home": [-70,0,0],
                 },
                 "ExpectedVals": {
-                    "CatchVal" : [0,9], # Position when Robo Cathch the ball
+                    "CatchVal" : [9,0], # Position when Robo Cathch the ball
                     "ErrorRange": 10,
                     "MaxWarnCount": 3,
                     "MaxSpeedValue": 500,
@@ -181,7 +181,7 @@ class Prompts(object):
 
     class _expectedvals(object):
         def __init__(self):
-            self.CatchVal = [0,9]
+            self.CatchVal = [9,0]
             self.ErrorRange = 10
             self.MaxWarnCount = 3
             self.MaxSpeedValue = 500

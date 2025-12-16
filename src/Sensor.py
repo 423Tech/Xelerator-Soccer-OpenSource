@@ -5,8 +5,8 @@ from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 
-from ReasonData import Settings, logger, DATA_DIR
-import time, math, serial, queue, threading
+from ReasonData import Settings, logger
+import time, math, queue, threading, os, signal, subprocess
 
 def GetLineStandardEquation(Line):
 
@@ -90,7 +90,72 @@ class ROSLidarParser(Node):
         self.Queue.put(self.dirDistance)
 
 class Lidar:
+    def start_sllidar_driver(self):
+        """
+        使用 subprocess.Popen 启动 sllidar_ros2 驱动
+        """
+        
+        # 1. 设置 ROS 2 环境
+        # 这一步至关重要，因为 'ros2' 命令只有在环境被 source 后才能找到。
+        # 假设您的 ROS 2 安装在 /opt/ros/humble/setup.bash (请替换为您的版本)
+        # 并且您的工作空间 (colcon workspace) 在 ~/ros2_ws/install/setup.bash
+        
+        # 确保您知道您的 ROS 2 环境路径
+        # ros2_setup_path = '/opt/ros/humble/setup.bash' 
+        workspace_setup_path = os.path.expanduser('~/.bashrc') # 假设路径
+        
+        # 构建要在 shell 中执行的完整命令
+        command = [
+            '/bin/bash', 
+            '-c', 
+            f'"source {workspace_setup_path} && export ROS_DOMAIN_ID=99 && ros2 launch sllidar_ros2 sllidar_s1_launch.py"'
+        ]
+        
+        print(f"Starting ROS 2 launch command: {' '.join(command)}")
+
+        # 2. 启动进程
+        # shell=False (推荐): 安全地直接执行命令
+        # preexec_fn=os.setsid: 启动一个独立于 Python 进程的新会话，方便后续统一关闭
+        try:
+            self.process = subprocess.Popen(
+                command,
+                preexec_fn=os.setsid,  # 创建新进程组，方便统一终止
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT
+            )
+            print(f"ROS 2 driver started with PID: {self.process.pid}")
+            return self.process
+        except FileNotFoundError:
+            print("Error: /bin/bash not found. Check your system path.")
+            return None
+        except Exception as e:
+            print(f"An error occurred while launching ROS 2 driver: {e}")
+            return None
+
+    def stop_process_group(self,process):
+        """
+        通过发送 SIGINT/SIGTERM 信号来终止整个进程组 (包括子进程)
+        """
+        if process is None or process.poll() is not None:
+            print("Process is already stopped or was not started.")
+            return
+            
+        try:
+            # 终止整个进程组
+            os.killpg(os.getpgid(process.pid), signal.SIGINT)
+            print(f"Sent SIGINT to process group {os.getpgid(process.pid)}. Waiting for termination...")
+            process.wait(timeout=5) # 等待进程优雅关闭
+        except ProcessLookupError:
+            print("Process or process group not found.")
+        except subprocess.TimeoutExpired:
+            print("Process did not terminate gracefully. Sending SIGKILL...")
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            
+        print("ROS 2 driver process stopped.")
+
+
     def __init__(self,GetYaw=None):
+
         self.GetYaw = GetYaw
         self.domainID = Settings.Ports.LidarID
 
@@ -105,6 +170,11 @@ class Lidar:
         self.LidarPositioningThread = threading.Thread(target=self.LidarNormalize)
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
+
+        # self.LidarPositioningThread = threading.Thread(target=self.start_sllidar_driver)
+        # self.LidarPositioningThread.daemon = True
+        # self.LidarPositioningThread.start()
+
 
     def ParseLidar(self):
         rclpy.init(domain_id=self.domainID,signal_handler_options=SignalHandlerOptions(0))
@@ -199,6 +269,9 @@ class Lidar:
     
     def GetFullData(self):
         return self.dirLidarQueue.get()
+    
+    # def __exit__(self):
+    #     self.stop_process_group(self.lidar_service)
 
 class LidarWithoutYaw:
     def __init__(self,GetYaw):
@@ -225,3 +298,4 @@ class LidarWithoutYaw:
     def LidarPosition(self):
         Ranges = self.dirLidarQueue.get()
         # TODO
+
