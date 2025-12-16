@@ -20,7 +20,7 @@ static union {
 static volatile bool is_calibrating_gyro_offset = false;
 static volatile int gyro_target_samples;
 static volatile int gyro_calibrated_samples;
-static int32_t gyro_offset_sum[3];
+static volatile int32_t gyro_offset_sum[3];
 static float gyro_offset[3] = {0, 0, 0};
 
 volatile uint32_t bmi088_drdy_timestamp = 0;
@@ -103,7 +103,7 @@ void bmi088_process_gyro_angle(void)
 void bmi088_calibrate_gyro_offset(int calibration_samples_num)
 {
 	gyro_calibrated_samples = 0;
-	memset(gyro_offset_sum, 0, sizeof(gyro_offset_sum));
+	memset((void *)gyro_offset_sum, 0, sizeof(gyro_offset_sum));
 	gyro_target_samples = calibration_samples_num;
 	is_calibrating_gyro_offset = true;
 	while (is_calibrating_gyro_offset);
