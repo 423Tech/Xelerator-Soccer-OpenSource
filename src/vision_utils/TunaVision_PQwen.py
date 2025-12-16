@@ -70,6 +70,20 @@ def simple_decode(raw_data, img_width=640, img_height=640, conf_threshold=0.5):
     
     return results
 
+# ================== 调用 ==================
+# 1. 读取 bin
+with open("your_output.bin", "rb") as f:
+    # 注意：这里必须确认 bin 里存的是 float32 还是 int8
+    # 如果是 int8，需要先转 float32 并归一化
+    raw = np.frombuffer(f.read(), dtype=np.float32) 
+
+# 2. 解码 (假设原图是 640x640)
+boxes = simple_decode(raw, img_width=640, img_height=640)
+
+# 3. 打印结果
+for box in boxes:
+    print(f"画框坐标: {box:.2f}, {box:.2f}, {box:.2f}, {box:.2f} | 置信度: {box:.2f} | 类别: {box}")
+
 
 class TunaVision(VisionPreUntil):
     '''
@@ -147,7 +161,7 @@ class TunaVision(VisionPreUntil):
                 self.infer.get_output()
                 # TODO finish data after-process
                 # breakpoint()
-                print(simple_decode(self.infer.outputs[0].data, img_width=640, img_height=640))
+                print(simple_decode(self.infer.outputs.data, img_width=640, img_height=640))
                 breakpoint()
                 # self.infer.outputs.data
                 # x_start, x_end, y_start, y_end, confidence, class_id = detection

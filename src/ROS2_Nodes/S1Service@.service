@@ -15,7 +15,7 @@ Environment="DOMAIN_ID=99"
 Environment="ROS_DOMAIN_ID=99"
 
 # 加载用户 bashrc 和 ROS2 环境后执行 ros2 launch
-ExecStart=/bin/bash -c 'source /home/%i/.bashrc && source /opt/ros/humble/setup.bash && exec ros2 launch sllidar_ros2 sllidar_s1_launch.py'
+ExecStart=/bin/bash -c 'source /home/%i/.bashrc && exec ros2 launch sllidar_ros2 sllidar_s1_launch.py'
 
 # 日志和错误处理
 StandardOutput=journal
