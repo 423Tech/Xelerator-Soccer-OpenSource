@@ -7,7 +7,7 @@
 
 #include "tim.h"
 
-float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
+volatile float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
 
 static void start_all_pwm_channels(void)
 {
@@ -111,7 +111,12 @@ static void pid_wheels_pwm(int32_t (*target_pwm_array_ptr)[4], int32_t (*delta_a
 		PID_ACTIVE,
 		PID_OBSERVING,
 		PID_INACTIVE
-	} pid_state[4] = {PID_INACTIVE, PID_INACTIVE, PID_INACTIVE, PID_INACTIVE};
+	} pid_state[4] = {
+		PID_INACTIVE, 
+		PID_INACTIVE, 
+		PID_INACTIVE, 
+		PID_INACTIVE
+	};
 
 	for (i = 0; i < 4; i++) {
 		float error = motor_target_wheels_rpm[i] - (float)(*delta_array_ptr)[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f);

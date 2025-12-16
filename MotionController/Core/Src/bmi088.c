@@ -13,14 +13,14 @@
 static uint8_t tx_buff[6 + 1];
 static uint8_t rx_buff[6 + 1];
 
-static bool is_calibrating_gyro_offset = false;
-static int gyro_target_samples;
-static int gyro_calibrated_samples;
-static int32_t gyro_offset_sum[3];
+static volatile bool is_calibrating_gyro_offset = false;
+static volatile int gyro_target_samples;
+static volatile int gyro_calibrated_samples;
+static volatile int32_t gyro_offset_sum[3];
 static float gyro_offset[3] = {0, 0, 0};
 
-uint32_t bmi088_drdy_timestamp = 0;
-float bmi088_gyro_angle[3] = {0, 0, 0};
+volatile uint32_t bmi088_drdy_timestamp = 0;
+volatile float bmi088_gyro_angle[3] = {0, 0, 0};
 
 static void bmi088_write_gyro(uint8_t reg, uint8_t data)
 {
@@ -60,6 +60,7 @@ void bmi088_init_gyro(void)
 void bmi088_process_gyro_angle(void)
 {
 	int i;
+	volatile uint8_t *v_rx = (volatile uint8_t *)rx_buff;
 	static bool is_first_call = true;
 	uint32_t current_dwt_cycle = bmi088_drdy_timestamp;
 	static uint32_t last_dwt_cycle = 0;
@@ -68,13 +69,13 @@ void bmi088_process_gyro_angle(void)
 
 	if (is_first_call) {
 		for (i = 0; i < 3; i++) {
-			int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
+			int16_t raw = (int16_t)((&v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
 			last_rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
 		}
 		is_first_call = false;
 	} else {
 		for (i = 0; i < 3; i++) {
-			int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
+			int16_t raw = (int16_t)(v_rx[2 * i + 2] << 8 | v_rx[2 * i + 1]);
 			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples)
 				gyro_offset_sum[i] += raw;
 			rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);

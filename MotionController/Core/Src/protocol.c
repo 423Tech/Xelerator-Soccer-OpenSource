@@ -23,8 +23,9 @@ void protocol_start_receive_host(void)
 
 void protocol_process_received_frame(void)
 {
-	tx_buff[0] = rx_buff[0] | 0x80;
-	switch(rx_buff[0]) {
+	volatile uint8_t *v_rx = (volatile uint8_t *)rx_buff;
+	tx_buff[0] = v_rx[0] | 0x80;
+	switch(v_rx[0]) {
 	case 0x01:
 		HAL_UART_Transmit_IT(&huart4, tx_buff, 1 + 0);
 		break;
