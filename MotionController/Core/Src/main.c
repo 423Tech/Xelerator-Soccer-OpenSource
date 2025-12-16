@@ -108,6 +108,7 @@ int main(void)
   HAL_Delay(500);
   bmi088_calibrate_gyro_offset(3000);
   motor_init();
+  protocol_start_receive_host();
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -16,6 +16,11 @@
 static uint8_t tx_buff[TX_MAX_LEN];
 static uint8_t rx_buff[RX_MAX_LEN];
 
+void protocol_start_receive_host(void)
+{
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff, RX_MAX_LEN);
+}
+
 void protocol_process_received_frame(void)
 {
 	tx_buff[0] = rx_buff[0] | 0x80;
