@@ -40,11 +40,11 @@ class Car:
     def Compass(self):
         return self.GetYaw()
 
-    def RelMoveVetor(self,SpeedX,SpeedY,SpeedZ):
+    def RelMoveVetor(self,SpeedY,SpeedX,SpeedZ):
         '''
         a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
         '''
-        SpeedX = -SpeedX
+        SpeedX = - SpeedX
         Speed1 = SpeedX + SpeedY + SpeedZ
         Speed2 = SpeedY - SpeedX + SpeedZ
         Speed3 = SpeedY - SpeedX - SpeedZ
@@ -62,9 +62,9 @@ class Car:
         rad = math.radians(MovingAngle+360-Yaw)
         SpeedX = int(math.sin(rad) * Speed)
         SpeedY = int(math.cos(rad) * Speed)
-        self.AbsMoveVetor(SpeedX,SpeedY,FacingAngle,Kp)
+        self.AbsMoveVetor(SpeedY,SpeedX,FacingAngle,Kp)
         
-    def AbsMoveVetor(self,SpeedX,SpeedY,FacingAngle,Kp:float|None = None):
+    def AbsMoveVetor(self,SpeedY,SpeedX,FacingAngle,Kp:float|None = None):
         '''
         vector movement (SpeedX,SpeedY,SpeedZ) with YawCorrect
         '''
@@ -74,13 +74,13 @@ class Car:
         if not Kp:
             Kp = self.Kp
         SpeedZ = - Error * Kp
-        self.RelMoveVetor(SpeedX, SpeedY, SpeedZ)
+        self.RelMoveVetor(SpeedY, SpeedX, SpeedZ)
     
     def RelXMove(self,Angle,Speed):
-        self.RelMoveVetor(Angle,90,Speed)
+        self.RelMoveVetor(90,Angle,Speed)
    
     def RelYMove(self,Angle,Speed,Kp=None):
-        self.AbsMoveAngle(Angle,0,Speed,Kp)
+        self.AbsMoveAngle(0,Angle,Speed,Kp)
 
     def AbsTurn(self,Angle,Kp=None):
         if self.GetYaw is None:
@@ -108,8 +108,6 @@ class Car:
     def stop(self):
         self.SetMotor([0,0,0,0])
 
-    def __del__(self):
-        self.SetMotor([0,0,0,0])
         
 
 class Peripherals:

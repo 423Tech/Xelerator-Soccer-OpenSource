@@ -40,7 +40,7 @@ def linear_map(value, input_range, output_range):
     return mapped_value
 
 def ChasingBall():
-    iBX,iBY = Positions.Relative_Ball_Position()
+    iBX,iBY = Positions().AbsBallPos()
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     AbsAngle = Angle + Compass
@@ -50,21 +50,21 @@ def ChasingBall():
     chassis.AbsMoveVetor(SpeedX,SpeedY,AbsAngle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 class LockSeries:
-    def Lockballangle():#贝尔巴托夫转身
+    def Lockballangle(self):#贝尔巴托夫转身
         lBallPos = Positions().AbsBallPos()#获取球的位置
         iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
         Compass = chassis.GetYaw()#获取机器人的航向
         Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
         Fangle = -(Angle - Compass)
         logger.debug("Ball Angle: %f" % Fangle)
-        chassis.GoZ(Fangle)
+        chassis.AbsMoveAngle(Fangle)
 
-    def Lockballmove():
+    def Lockballmove(self):
         lBallPos = Positions().AbsBallPos()
         iBX,iBY = lBallPos[0],lBallPos[1]
-        chassis.GoV(iBX*4,iBY*4,0)
+        chassis.AbsMoveVetor(iBX*4,iBY*4,0)
 
-    def LockBallSlip():
+    def LockBallSlip(self):
         iBX,iBY = Positions().AbsBallPos()
         Compass = chassis.GetYaw()
         Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
@@ -102,8 +102,8 @@ def CircleAround(iAimAngle):
         iX, iY = lBallPos[0], lBallPos[1]
         if iY > 0:
             iDeltaAngle = -int(math.degrees(math.atan2(iY, iX)) - 90)     
-        print(iX,iY,iDeltaAngle,compass.read())
-        if roundThresholdJudger(compass.read(), 360, iAimAngle, 3):
+        print(iX,iY,iDeltaAngle,compass())
+        if roundThresholdJudger(compass(), 360, iAimAngle, 3):
             break
         else:
             chassis.SetMotor(iDirectionFactor * 30,-iDirectionFactor * (130 - iDeltaAngle),-iDirectionFactor * 30,iDirectionFactor * (130 - iDeltaAngle))

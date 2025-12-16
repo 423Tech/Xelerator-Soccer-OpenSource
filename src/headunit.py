@@ -336,8 +336,8 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [-BY, BX]
-                # 20251111 已修改坐标
+                self.BallPos = [int(BY), -int(BX)]
+                # 20251216 已修改坐标 [tested]
             else:
                 self.BallPos = [0, 0]
 
