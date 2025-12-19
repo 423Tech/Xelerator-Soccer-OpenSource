@@ -33,12 +33,17 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+enum task_type {
+	TASK_NONE,
+	TASK_UPDATE_WHEELS_PWM,
+	TASK_PROCESS_GYRO_ANGLE,
+	TASK_PROCESS_RECEIVED_FRAME
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TASK_QUEUE_SIZE (8)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,7 +54,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile int read_idx = 0, write_idx = 0;
+volatile enum task_type task_queue[TASK_QUEUE_SIZE] = {TASK_NONE};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,6 +121,22 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if (read_idx != write_idx) {
+		  switch (task_queue[read_idx]) {
+	  	  case TASK_UPDATE_WHEELS_PWM:
+		  	  motor_update_wheels_pwm();
+		  	  break;
+	  	  case TASK_PROCESS_GYRO_ANGLE:
+		  	  bmi088_process_gyro_angle();
+		  	  break;
+	  	  case TASK_PROCESS_RECEIVED_FRAME:
+		  	  protocol_process_received_frame();
+		  	  break;
+	  	  default:
+		  	  break;
+	  	  }
+	  	  read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -169,11 +191,19 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void add_task(enum task_type task)
+{
+	__disable_irq();
+	task_queue[write_idx] = task;
+	write_idx = (write_idx + 1) % TASK_QUEUE_SIZE;
+	__enable_irq();
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-		motor_update_wheels_pwm();
+		add_task(TASK_UPDATE_WHEELS_PWM);
 		break;
 	default:
 		break;
@@ -199,7 +229,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
     case (uint32_t)SPI2:
     	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-    	bmi088_process_gyro_angle();
+    	add_task(TASK_PROCESS_GYRO_ANGLE);
         break;
     default:
         break;
@@ -211,7 +241,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
 		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
-			protocol_process_received_frame();
+			add_task(TASK_PROCESS_RECEIVED_FRAME);
 		break;
 	default:
 		break;
