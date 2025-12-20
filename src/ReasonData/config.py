@@ -33,6 +33,7 @@ class Preference:
                     "type": "OP", # OffencePlayer/DefencePlayer
                     "Bit" : "AB", # AB(Arisu Bits)/QB (3Q Bits RPI)/ 3Q (3Q Bits) .etc
                     "Rec" : "AI", # AI(Arisu Intelligence)/TV(Tuna Vision)/BB(Blob Based)
+                    "LidarType": "s2", # "s1" or "s2" to select lidar launch file
                 },
                 "Ports": {
                     "LowTigger" : 0, 
@@ -147,6 +148,7 @@ class Prompts(object):
             self.type = 'OP'
             self.Bit = 'AB'
             self.Rec = 'AI'
+            self.LidarType = 's2'  # default lidar type: 's1' or 's2'
 
     class _ports(object):
         def __init__(self):

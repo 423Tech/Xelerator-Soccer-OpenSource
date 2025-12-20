@@ -5,7 +5,8 @@ from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 
-from ReasonData import Settings, logger
+from ReasonData import Settings, logger, LOG_FILE, Preference, DATA_DIR
+from pathlib import Path
 import time, math, queue, threading, os, signal, subprocess
 
 def GetLineStandardEquation(Line):
@@ -90,41 +91,59 @@ class ROSLidarParser(Node):
         self.Queue.put(self.dirDistance)
 
 class Lidar:
-    def start_sllidar_driver(self):
+    def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = '~/.bashrc'):
         """
-        使用 subprocess.Popen 启动 sllidar_ros2 驱动
+        使用 subprocess.Popen 启动 sllidar_ros2 驱动并将输出重定向到统一的项目 log 目录
+        如果 enforce_settings=True，则强制使用 Settings 中的配置（LidarID、LidarType）
+        返回 Popen 对象并更新 self.lidar_process / self.lidar_log_files / self.current_launch / self.current_domain
         """
-        
-        # 1. 设置 ROS 2 环境
-        # 这一步至关重要，因为 'ros2' 命令只有在环境被 source 后才能找到。
-        # 假设您的 ROS 2 安装在 /opt/ros/humble/setup.bash (请替换为您的版本)
-        # 并且您的工作空间 (colcon workspace) 在 ~/ros2_ws/install/setup.bash
-        
-        # 确保您知道您的 ROS 2 环境路径
-        # ros2_setup_path = '/opt/ros/humble/setup.bash' 
-        workspace_setup_path = os.path.expanduser('~/.bashrc') # 假设路径
-        
-        # 构建要在 shell 中执行的完整命令
-        command = [
-            '/bin/bash', 
-            '-c', 
-            f'"source {workspace_setup_path} && export ROS_DOMAIN_ID=99 && ros2 launch sllidar_ros2 sllidar_s1_launch.py"'
-        ]
-        
-        print(f"Starting ROS 2 launch command: {' '.join(command)}")
+        bashrc = os.path.expanduser(bashrc)
 
-        # 2. 启动进程
-        # shell=False (推荐): 安全地直接执行命令
-        # preexec_fn=os.setsid: 启动一个独立于 Python 进程的新会话，方便后续统一关闭
+        # Read values from Settings (live) when enforcing
+        if enforce_settings:
+            try:
+                domain = int(Preference().read('Ports', 'LidarID'))
+            except Exception:
+                domain = 99
+            try:
+                lidar_type = Preference().read('RoboInfo', 'LidarType')
+            except Exception:
+                lidar_type = getattr(Settings.RoboInfo, 'LidarType', 's2')
+            if str(lidar_type).lower() == 's1':
+                launch_file = 'sllidar_s1_launch.py'
+            else:
+                launch_file = 'sllidar_s2_launch.py'
+        else:
+            # fallback to current attributes
+            domain = getattr(self, 'domainID', Settings.Ports.LidarID)
+            launch_file = getattr(self, 'current_launch', 'sllidar_s2_launch.py')
+
+        cmd = f'source {bashrc} && export ROS_DOMAIN_ID={domain} && exec ros2 launch sllidar_ros2 {launch_file}'
+
+        # place logs into ReasonData data directory under logs/sllidar
+        log_dir = Path(DATA_DIR) / 'logs' / 'sllidar'
+        os.makedirs(str(log_dir), exist_ok=True)
+        # filename: <launch_without_ext>_d<domain>.out/.err
+        out_path = str(log_dir / f'{launch_file.replace(".py","")}_d{domain}.out')
+        err_path = str(log_dir / f'{launch_file.replace(".py","")}_d{domain}.err')
+
+        print(f"Starting ROS2 launch (domain={domain}, launch={launch_file}): {cmd}")
+
         try:
-            self.process = subprocess.Popen(
-                command,
-                preexec_fn=os.setsid,  # 创建新进程组，方便统一终止
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
+            out = open(out_path, 'ab')
+            err = open(err_path, 'ab')
+            p = subprocess.Popen(
+                ['/bin/bash', '-lc', cmd],
+                preexec_fn=os.setsid,
+                stdout=out,
+                stderr=err
             )
-            print(f"ROS 2 driver started with PID: {self.process.pid}")
-            return self.process
+            print(f"ROS 2 driver started with PID: {p.pid}, stdout->{out_path}, stderr->{err_path}")
+            self.lidar_log_files = (out, err)
+            self.lidar_process = p
+            self.current_launch = launch_file
+            self.current_domain = domain
+            return p
         except FileNotFoundError:
             print("Error: /bin/bash not found. Check your system path.")
             return None
@@ -132,27 +151,48 @@ class Lidar:
             print(f"An error occurred while launching ROS 2 driver: {e}")
             return None
 
-    def stop_process_group(self,process):
+    def stop_process_group(self, process):
         """
         通过发送 SIGINT/SIGTERM 信号来终止整个进程组 (包括子进程)
         """
         if process is None or process.poll() is not None:
             print("Process is already stopped or was not started.")
             return
-            
+
         try:
-            # 终止整个进程组
             os.killpg(os.getpgid(process.pid), signal.SIGINT)
             print(f"Sent SIGINT to process group {os.getpgid(process.pid)}. Waiting for termination...")
-            process.wait(timeout=5) # 等待进程优雅关闭
+            process.wait(timeout=5)
         except ProcessLookupError:
             print("Process or process group not found.")
         except subprocess.TimeoutExpired:
             print("Process did not terminate gracefully. Sending SIGKILL...")
             os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-            
+
         print("ROS 2 driver process stopped.")
 
+    def stop(self):
+        """Stop the sllidar driver and close log files"""
+        if hasattr(self, 'lidar_process') and self.lidar_process is not None:
+            self.stop_process_group(self.lidar_process)
+            self.lidar_process = None
+        if hasattr(self, 'lidar_log_files'):
+            try:
+                for f in self.lidar_log_files:
+                    try:
+                        f.flush()
+                        f.close()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    def __del__(self):
+        # 尽量在对象销毁时清理外部进程
+        try:
+            self.stop()
+        except Exception:
+            pass
 
     def __init__(self,GetYaw=None):
 
@@ -171,15 +211,39 @@ class Lidar:
         self.LidarPositioningThread.daemon = True
         self.LidarPositioningThread.start()
 
-        # self.LidarPositioningThread = threading.Thread(target=self.start_sllidar_driver)
-        # self.LidarPositioningThread.daemon = True
-        # self.LidarPositioningThread.start()
+        # 自动启动 sllidar 驱动（强制基于 Settings）
+        try:
+            self.lidar_process = None
+            self.lidar_log_files = None
+            # initialize current settings values
+            try:
+                self.domainID = int(Preference().read('Ports', 'LidarID'))
+            except Exception:
+                self.domainID = int(Settings.Ports.LidarID)
+            self.current_launch = None
+            self.current_domain = None
+
+            p = self.start_sllidar_driver(enforce_settings=True)
+            if p is None:
+                print("Warning: failed to start sllidar driver")
+
+            # start settings watcher thread to update on config changes
+            self._watcher_thread = threading.Thread(target=self._settings_watcher)
+            self._watcher_thread.daemon = True
+            self._watcher_thread.start()
+        except Exception as e:
+            print(f"Exception while starting sllidar driver: {e}")
+
 
 
     def ParseLidar(self):
-        rclpy.init(domain_id=self.domainID,signal_handler_options=SignalHandlerOptions(0))
-        Parser = ROSLidarParser(self.dirLidarQueue)
-        rclpy.spin(Parser)
+        try:
+            logger.info(f"Initializing ROS parser with domain_id={self.domainID}")
+            rclpy.init(domain_id=self.domainID, signal_handler_options=SignalHandlerOptions(0))
+            Parser = ROSLidarParser(self.dirLidarQueue)
+            rclpy.spin(Parser)
+        except Exception as e:
+            logger.error(f"ParseLidar exception: {e}")
     
     def LidarNormalize(self):
         step = 2
@@ -269,6 +333,50 @@ class Lidar:
     
     def GetFullData(self):
         return self.dirLidarQueue.get()
+
+    def _settings_watcher(self):
+        """Background thread: watch config (via Preference) and restart lidar driver / parser if LidarID or LidarType changes."""
+        while True:
+            # read fresh Preference each loop so that external changes are seen
+            try:
+                desired_domain = int(Preference().read('Ports', 'LidarID'))
+            except Exception:
+                desired_domain = self.domainID
+            try:
+                desired_type = Preference().read('RoboInfo', 'LidarType')
+                desired_launch = 'sllidar_s1_launch.py' if str(desired_type).lower() == 's1' else 'sllidar_s2_launch.py'
+            except Exception:
+                desired_launch = self.current_launch
+
+            if (self.current_domain != desired_domain) or (self.current_launch != desired_launch):
+                logger.info(f"Lidar settings changed: domain {self.current_domain}->{desired_domain}, launch {self.current_launch}->{desired_launch}")
+                # restart lidar driver to apply new settings
+                try:
+                    self.stop()
+                except Exception:
+                    pass
+                try:
+                    p = self.start_sllidar_driver(enforce_settings=True)
+                    if p is None:
+                        logger.warning("Failed to restart sllidar driver after settings change")
+                except Exception as e:
+                    logger.error(f"Error restarting sllidar driver: {e}")
+
+                # if domain changed, restart ROS parser as well
+                if self.domainID != desired_domain:
+                    try:
+                        rclpy.shutdown()
+                    except Exception:
+                        pass
+                    self.domainID = desired_domain
+                    try:
+                        self.ParseLidarThread = threading.Thread(target=self.ParseLidar)
+                        self.ParseLidarThread.daemon = True
+                        self.ParseLidarThread.start()
+                    except Exception as e:
+                        logger.error(f"Failed to restart ParseLidarThread: {e}")
+
+            time.sleep(5)
     
     # def __exit__(self):
     #     self.stop_process_group(self.lidar_service)
