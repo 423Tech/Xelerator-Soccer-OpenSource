@@ -12,6 +12,7 @@
 
 #define TX_MAX_LEN (32)
 #define RX_MAX_LEN (32)
+#define RX_BUFF_NUM (2)
 
 static union {
 	uint8_t n[TX_MAX_LEN];
@@ -21,17 +22,20 @@ static union {
 static union {
 	uint8_t n[RX_MAX_LEN];
 	volatile uint8_t v[RX_MAX_LEN];
-} rx_buff;
+} rx_buff[RX_BUFF_NUM];
+
+int protocol_current_rx_buff_idx = 0;
 
 void protocol_start_receive_host(void)
 {
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff.n, RX_MAX_LEN);
+	protocol_current_rx_buff_idx = (protocol_current_rx_buff_idx + 1) % RX_BUFF_NUM;
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff[protocol_current_rx_buff_idx].n, RX_MAX_LEN);
 }
 
 void protocol_process_received_frame(void)
 {
-	tx_buff.n[0] = rx_buff.v[0] | 0x80;
-	switch(rx_buff.v[0]) {
+	tx_buff.n[0] = rx_buff[protocol_current_rx_buff_idx].v[0] | 0x80;
+	switch(rx_buff[protocol_current_rx_buff_idx].v[0]) {
 	case 0x01:
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + 0);
 		break;
@@ -41,11 +45,10 @@ void protocol_process_received_frame(void)
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp));
 		break;
 	case 0x03:
-		memcpy(motor_target_wheels_rpm, rx_buff.n + 1, sizeof(motor_target_wheels_rpm));
+		memcpy(motor_target_wheels_rpm, rx_buff[protocol_current_rx_buff_idx].n + 1, sizeof(motor_target_wheels_rpm));
 		break;
 	default:
 		break;
 	}
-	
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff.n, RX_MAX_LEN);
+	protocol_start_receive_host();
 }
