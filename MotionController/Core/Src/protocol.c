@@ -12,7 +12,6 @@
 
 #define TX_MAX_LEN (32)
 #define RX_MAX_LEN (32)
-#define RX_BUFF_NUM (2)
 
 static union {
 	uint8_t n[TX_MAX_LEN];
@@ -22,13 +21,13 @@ static union {
 static union {
 	uint8_t n[RX_MAX_LEN];
 	volatile uint8_t v[RX_MAX_LEN];
-} rx_buff[RX_BUFF_NUM];
+} rx_buff[2];
 
-int protocol_current_rx_buff_idx = 0;
+static int protocol_current_rx_buff_idx = 0;
 
 void protocol_start_receive_host(void)
 {
-	protocol_current_rx_buff_idx = (protocol_current_rx_buff_idx + 1) % RX_BUFF_NUM;
+	protocol_current_rx_buff_idx = protocol_current_rx_buff_idx == 0 ? 1 : 0;
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff[protocol_current_rx_buff_idx].n, RX_MAX_LEN);
 }
 
