@@ -43,8 +43,6 @@ enum task_type {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TASK
-#define IRQ
 #define TASK_QUEUE_SIZE (8)
 /* USER CODE END PD */
 
@@ -115,18 +113,16 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
-  HAL_Delay(500);
-  bmi088_calibrate_gyro_offset(3000);
   motor_init();
   protocol_start_receive_host();
+  HAL_Delay(500);
+  bmi088_calibrate_gyro_offset(3000);
   time = DWT->CYCCNT; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-#ifdef TASK
+  while (1) {
 	  if (read_idx != write_idx) {
 		  switch (task_queue[read_idx]) {
 	  	  case TASK_UPDATE_WHEELS_PWM:
@@ -136,23 +132,21 @@ int main(void)
 		  	  bmi088_process_gyro_angle();
 		  	  break;
 	  	  case TASK_PROCESS_RECEIVED_FRAME:
-		  	  protocol_process_received_frame();
+	  		  if (!is_calibrating_gyro_offset)
+	  			  protocol_process_received_frame();
 		  	  break;
 	  	  default:
 		  	  break;
 	  	  }
 	  	  read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
 	  }
-#endif
 	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-	  if (DWT->CYCCNT - time > 168000000) {
-		  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)bmi088_gyro_angle[0], (int)bmi088_gyro_angle[1], (int)bmi088_gyro_angle[2]);
-  	  	  HAL_UART_Transmit_DMA(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
+	  if (DWT->CYCCNT - time > 168000000 && !is_calibrating_gyro_offset) {
   	  	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)(bmi088_gyro_angle[0] * 1000), (int)(bmi088_gyro_angle[1] * 1000), (int)(bmi088_gyro_angle[2] * 1000));
   	  	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
   	  	  time = DWT->CYCCNT;
 	  }
-  	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -209,26 +203,18 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void add_task(enum task_type task)
 {
-#ifdef IRQ
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
-#endif
 	task_queue[write_idx] = task;
 	write_idx = (write_idx + 1) % TASK_QUEUE_SIZE;
-#ifdef IRQ
 	__set_PRIMASK(primask);
-#endif
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-#ifdef TASK
 		add_task(TASK_UPDATE_WHEELS_PWM);
-#else
-		motor_update_wheels_pwm();
-#endif
 		break;
 	default:
 		break;
@@ -254,11 +240,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
     case (uint32_t)SPI2:
     	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-#ifdef TASK
     	add_task(TASK_PROCESS_GYRO_ANGLE);
-#else
-    	bmi088_process_gyro_angle();
-#endif
         break;
     default:
         break;
@@ -270,11 +252,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
 		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
-#ifdef TASK
 			add_task(TASK_PROCESS_RECEIVED_FRAME);
-#else
-			protocol_process_received_frame();
-#endif
 		break;
 	default:
 		break;

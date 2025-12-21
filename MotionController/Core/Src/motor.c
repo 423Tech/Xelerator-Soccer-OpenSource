@@ -7,7 +7,7 @@
 
 #include "tim.h"
 
-volatile float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
+float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
 
 static void start_all_pwm_channels(void)
 {

@@ -36,12 +36,12 @@ void protocol_process_received_frame(void)
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + 0);
 		break;
 	case 0x02:
-		memcpy(tx_buff.n + 1, (void *)bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
+		memcpy(tx_buff.n + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
 		memcpy(tx_buff.n + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp));
 		break;
 	case 0x03:
-		memcpy((void *)motor_target_wheels_rpm, rx_buff.n + 1, sizeof(motor_target_wheels_rpm));
+		memcpy(motor_target_wheels_rpm, rx_buff.n + 1, sizeof(motor_target_wheels_rpm));
 		break;
 	default:
 		break;
