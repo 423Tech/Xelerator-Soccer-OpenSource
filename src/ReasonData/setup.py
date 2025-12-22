@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import time
+import os
 
 # try to import loguru for rich logging; if not available provide a minimal compatible fallback
 try:

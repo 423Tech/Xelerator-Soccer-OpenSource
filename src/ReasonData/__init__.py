@@ -24,4 +24,17 @@ logger.add(
     catch=True)
 logger.info("ReasonData(%s) loaded."%__version__)
 
-__all__ = ['Preference', 'Positions', 'setup', 'Settings', 'logger', "DATA_DIR"]
+import os
+base = "/opt/ros"
+if not os.path.isdir(base):
+    raise ImportError
+
+setups = []
+for distro in os.listdir(base):
+    setup = os.path.join(base, distro, "setup.bash")
+    if os.path.isfile(setup):
+        setups.append((distro, setup))
+
+ROS_ENV = setups[0][1]
+
+__all__ = ['Preference', 'Positions', 'setup', 'Settings', 'logger', "DATA_DIR",'ROS_ENV']

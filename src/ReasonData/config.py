@@ -63,7 +63,7 @@ class Preference:
                     "Home": [-70,0,0],
                 },
                 "ExpectedVals": {
-                    "CatchVal" : [9,0], # Position when Robo Cathch the ball
+                    "CatchVal" : [-18,-5], # Position when Robo Cathch the ball
                     "ErrorRange": 10,
                     "MaxWarnCount": 3,
                     "MaxSpeedValue": 500,
@@ -148,7 +148,7 @@ class Prompts(object):
             self.type = 'OP'
             self.Bit = 'AB'
             self.Rec = 'AI'
-            self.LidarType = 's2'  # default lidar type: 's1' or 's2'
+            self.LidarType = 's1'  # default lidar type: 's1' or 's2'
 
     class _ports(object):
         def __init__(self):
@@ -183,7 +183,7 @@ class Prompts(object):
 
     class _expectedvals(object):
         def __init__(self):
-            self.CatchVal = [9,0]
+            self.CatchVal = [-18,-5]
             self.ErrorRange = 10
             self.MaxWarnCount = 3
             self.MaxSpeedValue = 500

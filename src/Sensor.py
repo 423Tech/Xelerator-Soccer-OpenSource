@@ -5,7 +5,7 @@ from sensor_msgs.msg import LaserScan
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 
-from ReasonData import Settings, logger, LOG_FILE, Preference, DATA_DIR
+from ReasonData import Settings, logger, LOG_FILE, Preference, DATA_DIR, ROS_ENV
 from pathlib import Path
 import time, math, queue, threading, os, signal, subprocess
 
@@ -91,7 +91,7 @@ class ROSLidarParser(Node):
         self.Queue.put(self.dirDistance)
 
 class Lidar:
-    def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = '/opt/ros/jazzy/setup.bash'):
+    def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = ROS_ENV):
         """
         使用 subprocess.Popen 启动 sllidar_ros2 驱动并将输出重定向到统一的项目 log 目录
         如果 enforce_settings=True，则强制使用 Settings 中的配置（LidarID、LidarType）
@@ -232,7 +232,7 @@ class Lidar:
             self._watcher_thread.daemon = True
             self._watcher_thread.start()
         except Exception as e:
-            print(f"Exception while starting sllidar driver: {e}")
+            raise(f"Exception while starting sllidar driver: {e}")
 
 
 
