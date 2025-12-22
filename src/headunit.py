@@ -333,8 +333,8 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [-int(BY), int(BX)]
-                # 20251216 已修改坐标 [tested]
+                self.BallPos = [int(BY), int(BX)]
+                # 20251221 已修改坐标 [tested]
             else:
                 self.BallPos = [0, 0]
 
@@ -517,8 +517,8 @@ class ArisuIntelligence:
             else:
                 BX = 0
                 BY = 0
-            self.BallPos = [-BY, BX]
-            # 20251111 已修改坐标
+            self.BallPos = [BY, BX]
+            # 20251221 已修改坐标 [tested]
             time.sleep(0.03)
     
     def GetBallPos(self):
