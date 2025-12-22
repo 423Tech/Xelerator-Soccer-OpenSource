@@ -161,7 +161,10 @@ class UnitedVision(Detect_Method):
             OutputBuffer = self.BallQueue.get()
             Balls = []
             for i in range(4):
-                CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                try:
+                    CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                except:
+                    pass
                 CameraIndex = i
                 X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
                 # X,Y = CenterX, BottomY

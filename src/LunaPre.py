@@ -7,11 +7,11 @@ from ReasonData import logger, Settings
 cfg = Settings
 
 # from Vision import ArisuIntelligence
-# from headunit import ArisuIntelligence
-# vision = ArisuIntelligence()
+from headunit import ArisuIntelligence
+vision = ArisuIntelligence()
 
-from Vision import UnitedVision
-vision = UnitedVision()
+# from Vision import UnitedVision
+# vision = UnitedVision()
 
 from Sensor import Lidar
 from chassis import Car,Peripherals # Universal-Movement-Standard
@@ -107,7 +107,7 @@ class Positions:
         self.ballPos = vision.GetBallPos()
         if self.ballPos == [0,0]:
             self.ballPosOut = [0xfff,0xfff]
-        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) == 0 and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange/2:
+        elif abs(self.ballPos[1]-cfg.ExpectedVals.CatchVal[1]) <= cfg.ExpectedVals.ErrorRange/4 and abs(self.ballPos[0]-cfg.ExpectedVals.CatchVal[0]) <= cfg.ExpectedVals.ErrorRange/4:
             self.ballPosOut = [0xddd,0xddd]
         else:
             self.ballPosOut = self.ballPos

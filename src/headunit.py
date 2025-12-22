@@ -1,8 +1,6 @@
-try:
-    from hailo_platform import VDevice, HailoSchedulingAlgorithm
-    HAILO = 1
-except ImportError:
-    HAILO = 0
+
+from hailo_platform import VDevice, HailoSchedulingAlgorithm
+HAILO = 1
 # TODO transform to RDK
 
 import threading
@@ -195,7 +193,6 @@ class ArisuIntelligence:
             except Exception as e:
                 self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
                 self.logger.error(f"Hailo Inference BindingList: {len(BindingsList)}")
-                breakpoint
                 raise e
                 # self.ModelInfer()
             Outputs = []

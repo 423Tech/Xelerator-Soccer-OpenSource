@@ -4,9 +4,9 @@ import time
 import math
 from pathlib import Path
 
-CamIndex = 0
+CamIndex = 4
 # Change your camera index here
-Intercept = 16.5
+Intercept = 15
 # The distance from the chessboard's lower-left corner of the bottom rank to the robot’s
 
 
@@ -50,7 +50,7 @@ if Corners is not None:
     fPixelToCM = 12 / fDistance
     
 
-    fHorizontalSlope = (lCorners[0][1] - lCorners[3][1]) / (lCorners[0][0] - lCorners[3][0])
+    fHorizontalSlope = (lCorners[0][1] - lCorners[3][1]) / (lCorners[0][0] - lCorners[3][0]) 
     fVerticalSlope = -1 / fHorizontalSlope
     if fVerticalSlope > 0:
         iTheta = math.atan(fVerticalSlope)

@@ -91,7 +91,7 @@ class ROSLidarParser(Node):
         self.Queue.put(self.dirDistance)
 
 class Lidar:
-    def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = '~/.bashrc'):
+    def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = '/opt/ros/jazzy/setup.bash'):
         """
         使用 subprocess.Popen 启动 sllidar_ros2 驱动并将输出重定向到统一的项目 log 目录
         如果 enforce_settings=True，则强制使用 Settings 中的配置（LidarID、LidarType）
@@ -149,7 +149,7 @@ class Lidar:
             return None
         except Exception as e:
             print(f"An error occurred while launching ROS 2 driver: {e}")
-            return None
+            raise e
 
     def stop_process_group(self, process):
         """
@@ -225,7 +225,7 @@ class Lidar:
 
             p = self.start_sllidar_driver(enforce_settings=True)
             if p is None:
-                print("Warning: failed to start sllidar driver")
+                logger.error("Warning: failed to start sllidar driver")
 
             # start settings watcher thread to update on config changes
             self._watcher_thread = threading.Thread(target=self._settings_watcher)

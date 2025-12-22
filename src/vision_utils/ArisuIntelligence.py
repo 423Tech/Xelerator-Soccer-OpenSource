@@ -1,4 +1,5 @@
 from .PreProcess import Settings, logger, MODEL_DIR, VisionPreUntil, threading, queue, time, cv2, np
+from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
 class ArisuIntelligence(VisionPreUntil):
     '''
@@ -10,7 +11,6 @@ class ArisuIntelligence(VisionPreUntil):
 
         self.logger = logger
 
-        from hailo_platform import VDevice, HailoSchedulingAlgorithm
 
         self.PreProcessTF = 0
         self.InferTF = 0
@@ -128,44 +128,46 @@ class ArisuIntelligence(VisionPreUntil):
             for Bindings in BindingsList:
                 OutputBuffer = Bindings.output().get_buffer()
                 if OutputBuffer[0].shape[0] > 0:
-                    if OutputBuffer[0][4] < 0.4:
-                        continue
-                    Ball_Y_Min = int(OutputBuffer[0][0] * 640) - 80 + 15
-                    Ball_X_Min = int(OutputBuffer[0][1] * 640) + 15
-                    Ball_Y_Max = int(OutputBuffer[0][2] * 640) - 80 -15
-                    Ball_X_Max = int(OutputBuffer[0][3] * 640) -15
-                    Ball_Bottom_Y = Ball_Y_Max
-                    Ball_Width = Ball_X_Max - Ball_X_Min
-                    Ball_Height = Ball_Y_Max - Ball_Y_Min
-                    Ball_Center_X = int((Ball_X_Min + Ball_X_Max) / 2)
-                    Ball_Confidence = OutputBuffer[0][4]
-                    BallOutputs.append([
-                        Ball_Center_X, 
-                        Ball_Bottom_Y, 
-                        Ball_Width, 
-                        Ball_Height, 
-                        Ball_Confidence])
+                    for _ball in OutputBuffer[0]:
+                        if _ball[4] < 0.4:
+                            continue
+                        Ball_Y_Min = int(_ball[0] * 640) - 80 + 15
+                        Ball_X_Min = int(_ball[1] * 640) + 15
+                        Ball_Y_Max = int(_ball[2] * 640) - 80 -15
+                        Ball_X_Max = int(_ball[3] * 640) -15
+                        Ball_Bottom_Y = Ball_Y_Max
+                        Ball_Width = Ball_X_Max - Ball_X_Min
+                        Ball_Height = Ball_Y_Max - Ball_Y_Min
+                        Ball_Center_X = int((Ball_X_Min + Ball_X_Max) / 2)
+                        Ball_Confidence = _ball[4]
+                        BallOutputs.append([
+                            Ball_Center_X, 
+                            Ball_Bottom_Y, 
+                            Ball_Width, 
+                            Ball_Height, 
+                            Ball_Confidence])
                 if OutputBuffer[3].shape[0] > 0:
-                    if OutputBuffer[3][4] < 0.5:
-                        continue
-                    Chassis_Y_Min = int(OutputBuffer[3][0] * 640) - 80 
-                    Chassis_X_Min = int(OutputBuffer[3][1] * 640)
-                    Chassis_Y_Max = int(OutputBuffer[3][2] * 640) - 80 
-                    Chassis_X_Max = int(OutputBuffer[3][3] * 640)
-                    Chassis_Bottom_Y = Chassis_Y_Max
-                    Chassis_Width = Chassis_X_Max - Chassis_X_Min
-                    Chassis_Height = Chassis_Y_Max - Chassis_Y_Min
-                    Chassis_Center_X = int((Chassis_X_Min + Chassis_X_Max) / 2)
-                    Chassis_Confidence = OutputBuffer[3][4]
-                    ChassisOutputs.append([
-                        Chassis_Center_X,
-                        Chassis_Bottom_Y, 
-                        Chassis_Width, 
-                        Chassis_Height, 
-                        Chassis_Confidence])
-                CameraIndex += 1
-            self.ChassisQueue.put(ChassisOutputs)
-            self.BallQueue.put(BallOutputs)
+                    for chassis in OutputBuffer[3]:
+                        if chassis[4] < 0.5:
+                            continue
+                        Chassis_Y_Min = int(chassis[0] * 640) - 80 
+                        Chassis_X_Min = int(chassis[1] * 640)
+                        Chassis_Y_Max = int(chassis[2] * 640) - 80 
+                        Chassis_X_Max = int(chassis[3] * 640)
+                        Chassis_Bottom_Y = Chassis_Y_Max
+                        Chassis_Width = Chassis_X_Max - Chassis_X_Min
+                        Chassis_Height = Chassis_Y_Max - Chassis_Y_Min
+                        Chassis_Center_X = int((Chassis_X_Min + Chassis_X_Max) / 2)
+                        Chassis_Confidence = chassis[4]
+                        ChassisOutputs.append([
+                            Chassis_Center_X,
+                            Chassis_Bottom_Y, 
+                            Chassis_Width, 
+                            Chassis_Height, 
+                            Chassis_Confidence])
+                    CameraIndex += 1
+                self.ChassisQueue.put(ChassisOutputs)
+                self.BallQueue.put(BallOutputs)
             # print(ChassisList)
         
             # print(Output0)
