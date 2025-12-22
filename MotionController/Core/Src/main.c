@@ -114,9 +114,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
   motor_init();
-  protocol_start_receive_host();
   HAL_Delay(500);
   bmi088_calibrate_gyro_offset(3000);
+  protocol_start_receive_host();
   time = DWT->CYCCNT; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
   /* USER CODE END 2 */
 
