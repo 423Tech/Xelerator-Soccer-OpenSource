@@ -9,6 +9,9 @@ from ReasonData import Settings, logger, LOG_FILE, Preference, DATA_DIR, ROS_ENV
 from pathlib import Path
 import time, math, queue, threading, os, signal, subprocess
 
+import open3d as o3d
+import numpy as np
+
 def GetLineStandardEquation(Line):
 
     x1, y1, x2, y2 = Line
@@ -189,10 +192,8 @@ class Lidar:
 
     def __del__(self):
         # 尽量在对象销毁时清理外部进程
-        try:
-            self.stop()
-        except Exception:
-            pass
+        self.stop()
+
 
     def __init__(self,GetYaw=None):
 
@@ -406,4 +407,152 @@ class LidarWithoutYaw:
     def LidarPosition(self):
         Ranges = self.dirLidarQueue.get()
         # TODO
+
+
+class NexusPosition:
+    def __init__(self):
+        pass
+
+    def create_rectangular_map(length=Settings.Bounds.Long, width=Settings.Bounds.Short, resolution=0.02):
+        """
+        创建一个长方形场地的地图点云（仅四条边）
+        :param length: 场地长度（X方向）
+        :param width:  场地宽度（Y方向）
+        :param resolution: 点间距（米）
+        :return: Open3D PointCloud
+        """
+        points = []
+
+        # 底边 y=0
+        x_bottom = np.arange(0, length + resolution, resolution)
+        points.extend([(x, 0.0, 0.0) for x in x_bottom])
+
+        # 顶边 y=width
+        x_top = np.arange(0, length + resolution, resolution)
+        points.extend([(x, width, 0.0) for x in x_top])
+
+        # 左边 x=0
+        y_left = np.arange(0, width + resolution, resolution)
+        points.extend([(0.0, y, 0.0) for y in y_left])
+
+        # 右边 x=length
+        y_right = np.arange(0, width + resolution, resolution)
+        points.extend([(length, y, 0.0) for y in y_right])
+
+        map_pcd = o3d.geometry.PointCloud()
+        map_pcd.points = o3d.utility.Vector3dVector(np.array(points))
+        return map_pcd
+    def polar_to_open3d_pointcloud(polar_data, max_dist=5.0):
+        """
+        将 [(angle_deg, distance), ...] 转换为 Open3D 点云
+        :param polar_data: list of (angle, distance)
+        :param max_dist: 过滤掉太远的点（如 >5m）
+        :return: Open3D PointCloud
+        """
+        points = []
+        for angle_deg, dist in polar_data:
+            if dist < 0.1 or dist > max_dist:  # 过滤无效点
+                continue
+            angle_rad = np.radians(angle_deg)
+            x = dist * np.cos(angle_rad)
+            y = dist * np.sin(angle_rad)
+            points.append([x, y, 0.0])  # z=0
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(np.array(points))
+        return pcd
+
+    def localize_with_icp(scan_pcd, map_pcd, initial_guess=np.eye(4)):
+        """
+        使用 ICP 将 scan 对齐到 map
+        :param scan_pcd: 当前扫描点云
+        :param map_pcd: 全局地图点云
+        :param initial_guess: 初始位姿猜测（4x4 变换矩阵）
+        :return: 最终变换矩阵 T (4x4)
+        """
+        # 可选：下采样加速
+        scan_down = scan_pcd.voxel_down_sample(voxel_size=0.02)
+        map_down = map_pcd.voxel_down_sample(voxel_size=0.02)
+
+        # 设置 ICP 参数
+        threshold = 0.1  # 匹配距离阈值（米）
+        reg = o3d.pipelines.registration.registration_icp(
+            source=scan_down,
+            target=map_down,
+            max_correspondence_distance=threshold,
+            init=initial_guess,
+            estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+            criteria=o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=50)
+        )
+        return reg.transformation
+
+    def extract_pose_from_transform(self,T):
+        """
+        从 4x4 变换矩阵中提取 x, y, yaw
+        :param T: 4x4 SE(3) 变换矩阵
+        :return: (x, y, yaw_radians)
+        """
+        x = T[0, 3]
+        y = T[1, 3]
+        
+        # 从旋转矩阵提取 yaw（绕 Z 轴）
+        yaw = np.arctan2(T[1, 0], T[0, 0])
+        
+        # 归一化到 [0, 2π)
+        if yaw < 0:
+            yaw += 2 * np.pi
+            
+        return x, y, yaw
+
+    def N_AbsRoboPosition(self):
+        '''
+        Get the [Absolute] Position of the Robot using Lidar Full Data
+        获取[机器人几何中心]相对于[场地几何中心]的位置 [x_forward,y_left,yaw]
+        #### Args:
+            None
+
+        #### Returns:
+            RobotPosition: [x, y, yaw] | absolute position and heading
+        #### Note:
+            `0xfff` stand for `No Position`
+            Uses lidar.GetFullData() to detect field boundaries
+        '''
+        import numpy as np
+        # 1. 创建地图
+        map_pcd = self.create_rectangular_map(length=3.0, width=2.0)
+
+        # 2. 模拟一次激光扫描（假设机器人在 (1.0, 1.0)，朝向 45°）
+        true_x, true_y, true_yaw = 1.0, 1.0, np.radians(45)
+        angles = np.linspace(-135, 135, 360)  # RPLIDAR 视野
+        distances = []
+
+        for ang in angles:
+            rad = np.radians(ang)
+            # 射线与四条墙求交，取最近交点（简化版）
+            d1 = (0 - true_x) / np.cos(rad) if np.cos(rad) != 0 else np.inf
+            d2 = (3.0 - true_x) / np.cos(rad) if np.cos(rad) != 0 else np.inf
+            d3 = (0 - true_y) / np.sin(rad) if np.sin(rad) != 0 else np.inf
+            d4 = (2.0 - true_y) / np.sin(rad) if np.sin(rad) != 0 else np.inf
+            
+            candidates = []
+            for d in [d1, d2, d3, d4]:
+                if d > 0:
+                    x_hit = true_x + d * np.cos(rad)
+                    y_hit = true_y + d * np.sin(rad)
+                    if 0 <= x_hit <= 3.0 and 0 <= y_hit <= 2.0:
+                        candidates.append(d)
+            
+            dist = min(candidates) if candidates else 5.0
+            distances.append(dist)
+
+        polar_data = list(zip(angles, distances))
+        scan_pcd = self.polar_to_open3d_pointcloud(polar_data)
+
+        # 3. 执行 ICP（使用上一帧作为初值，这里用 identity）
+        T = self.localize_with_icp(scan_pcd, map_pcd, initial_guess=np.eye(4))
+
+        # 4. 提取位姿
+        x, y, yaw = self.extract_pose_from_transform(T)
+        print(f"Estimated: x={x:.2f}, y={y:.2f}, yaw={np.degrees(yaw):.1f}°")
+        print(f"True:      x={true_x}, y={true_y}, yaw={np.degrees(true_yaw):.1f}°")
 

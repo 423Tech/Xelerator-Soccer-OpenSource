@@ -8,7 +8,7 @@ def find_available_cameras():
     """
     available_cameras = []
     # 检查索引 0 到 9
-    for i in range(10):
+    for i in range(20):
         # 尝试打开摄像头
         cap = cv2.VideoCapture(i)
         if cap.isOpened():

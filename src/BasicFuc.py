@@ -51,13 +51,14 @@ def ChasingBall():
 
 class LockSeries:
     def Lockballangle(self):#贝尔巴托夫转身
-        lBallPos = Positions().AbsBallPos()#获取球的位置
-        iBX,iBY = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
-        Compass = chassis.GetYaw()#获取机器人的航向
-        Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
-        Fangle = -(Angle - Compass)
-        logger.debug("Ball Angle: %f" % Fangle)
-        chassis.AbsMoveAngle(Fangle)
+        iBX,iBY = Positions().AbsBallPos()#获取球的位置
+        #  = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
+        
+        # Compass = chassis.GetYaw()#获取机器人的航向
+        Angle = (math.degrees(math.atan2(iBX, iBY))) % 360
+        # Fangle = -(Angle - Compass)
+        # logger.debug("Ball Angle: %f" % Fangle)
+        chassis.AbsTurn(Angle)
 
     def Lockballmove(self):
         lBallPos = Positions().AbsBallPos()
@@ -74,7 +75,7 @@ class LockSeries:
             return
 
         Compass = compass()
-        Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
+        Angle = 360 - ((math.degrees(math.atan2(iBX, iBY))) % 360)
         Fangle = Angle + Compass
         if iBX > 75 or iBY > 75:
             Kp = 2
@@ -88,16 +89,16 @@ class LockSeries:
 
         SpeedX = iBX * Kp
         SpeedY = iBY * Kp
-        # if SpeedX > 300:
-        #     SpeedX = 300
-        # if SpeedY > 300:
-        #     SpeedY = 300
-        # if SpeedX < -300:
-        #     SpeedX = -300
-        # if SpeedY < -300:
-        #     SpeedY = -300
+        if SpeedX > 300:
+            SpeedX = 300
+        if SpeedY > 300:
+            SpeedY = 300
+        if SpeedX < -300:
+            SpeedX = -300
+        if SpeedY < -300:
+            SpeedY = -300
         logger.info(str(SpeedX)+" "+str(SpeedY)+' '+str(Fangle))
-        chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle-90,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+        chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def CircleAround(iAimAngle):
     iCompass = int(compass())

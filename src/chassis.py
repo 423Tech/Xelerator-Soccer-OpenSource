@@ -40,15 +40,16 @@ class Car:
     def Compass(self):
         return self.GetYaw()
 
-    def RelMoveVetor(self,SpeedY,SpeedX,SpeedZ):
+    def RelMoveVetor(self,SpeedX,SpeedY,SpeedZ):
         '''
         a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
         '''
-        SpeedX = - SpeedX
-        Speed1 = SpeedX + SpeedY + SpeedZ
-        Speed2 = SpeedY - SpeedX + SpeedZ
-        Speed3 = SpeedY - SpeedX - SpeedZ
-        Speed4 = SpeedX + SpeedY - SpeedZ
+        # SpeedY = - SpeedY
+        # SpeedX = - SpeedX
+        Speed1 = SpeedX - SpeedY + SpeedZ
+        Speed2 = SpeedX + SpeedY + SpeedZ
+        Speed3 = SpeedX + SpeedY - SpeedZ
+        Speed4 = SpeedX - SpeedY - SpeedZ
         if self.cfg.Debug.FullLog:
             self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
         output = [Speed1, Speed2, Speed3, Speed4]
@@ -62,9 +63,9 @@ class Car:
         rad = math.radians(MovingAngle+360-Yaw)
         SpeedX = int(math.sin(rad) * Speed)
         SpeedY = int(math.cos(rad) * Speed)
-        self.AbsMoveVetor(SpeedY,SpeedX,FacingAngle,Kp)
+        self.AbsMoveVetor(SpeedX,SpeedY,FacingAngle,Kp)
         
-    def AbsMoveVetor(self,SpeedY,SpeedX,FacingAngle,Kp:float|None = None):
+    def AbsMoveVetor(self,SpeedX,SpeedY,FacingAngle,Kp:float|None = None):
         '''
         vector movement (SpeedX,SpeedY,SpeedZ) with YawCorrect
         '''
@@ -75,8 +76,8 @@ class Car:
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
         if not Kp:
             Kp = self.Kp
-        SpeedZ = - Error * Kp
-        self.RelMoveVetor(SpeedY, SpeedX, SpeedZ)
+        SpeedZ = Error * Kp
+        self.RelMoveVetor(SpeedX, SpeedY, SpeedZ)
     
     def RelXMove(self,Angle,Speed):
         self.RelMoveVetor(90,Angle,Speed)

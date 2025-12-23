@@ -19,7 +19,7 @@ class VisionPreUntil:
         self.logger = logger
 
         #TODO put into settings
-        self.CamPorts = [6,4,2,0]
+        self.CamPorts = [2,0,6,4]
         self.StopRecord = 0
 
         self.Cams = []

@@ -6,12 +6,11 @@ import math, time, threading
 from ReasonData import logger, Settings
 cfg = Settings
 
-# from Vision import ArisuIntelligence
-from headunit import ArisuIntelligence
-vision = ArisuIntelligence()
+# from headunit import ArisuIntelligence
+# vision = ArisuIntelligence()
 
-# from Vision import UnitedVision
-# vision = UnitedVision()
+from Vision import UnitedVision
+vision = UnitedVision()
 
 from Sensor import Lidar
 from chassis import Car,Peripherals # Universal-Movement-Standard
@@ -437,25 +436,26 @@ class Positions:
             return [0xfff,0xfff]
         if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
             return [0xddd,0xddd]
-        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
-        ballDistance = math.sqrt(ballX**2 + ballY**2)
-        if ballY == 0:
-            ballRltAngle = 0
-        try:
-            ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
-        except ZeroDivisionError:
-            ballRltAngle =  0
-        ballAbsAngle = (ballRltAngle + SelfZ)%360
-        if ballAbsAngle > 180:
-            k = -1
         else:
-            k = 1
-        AbsBallPositon = [
-            ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
-            ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
-            ]
-        # 20251017 already changed X,Y dimension
-        return AbsBallPositon
+            SelfX,SelfY,SelfZ = self.AbsRoboPosition()
+            ballDistance = math.sqrt(ballX**2 + ballY**2)
+            if ballY == 0:
+                ballRltAngle = 0
+            try:
+                ballRltAngle =  -int(math.degrees(math.atan2(ballY,ballX)) - 90)
+            except ZeroDivisionError:
+                ballRltAngle =  0
+            ballAbsAngle = (ballRltAngle + SelfZ)%360
+            if ballAbsAngle > 180:
+                k = -1
+            else:
+                k = 1
+            AbsBallPositon = [
+                ballDistance * math.cos(math.radians(ballAbsAngle)) + SelfX,
+                ballDistance * math.sin(math.radians(ballAbsAngle)) + SelfY
+                ]
+            # 20251017 already changed X,Y dimension
+            return AbsBallPositon
 
     def RelChassisAngle(self):
         '''

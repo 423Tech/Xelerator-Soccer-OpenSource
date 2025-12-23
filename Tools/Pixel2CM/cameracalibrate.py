@@ -4,9 +4,9 @@ import time
 import math
 from pathlib import Path
 
-CamIndex = 4
+CamIndex = 0
 # Change your camera index here
-Intercept = 15
+Intercept = 4
 # The distance from the chessboard's lower-left corner of the bottom rank to the robot’s
 
 

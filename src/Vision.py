@@ -98,59 +98,59 @@ class UnitedVision(Detect_Method):
             for i in range(4):
                 try:
                     CenterX, BottomY, ChassisWidth, ChassisHeight, Confidence = OutputBuffer[i]
-                except:
-                    return [0,0]
-                CameraIndex = i
-                X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                # X,Y = CenterX, BottomY
-                if i == 0:
-                    CX = X
-                    CY = Y
-                elif i == 1:
-                    CY = -X
-                    CX = Y
-                elif i == 2:
-                    CX = -X
-                    CY = -Y
-                elif i == 3:
-                    CY = X
-                    CX = -Y
+                    CameraIndex = i
+                    X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
+                    # X,Y = CenterX, BottomY
+                    if i == 0:
+                        CX = X
+                        CY = Y
+                    elif i == 1:
+                        CY = -X
+                        CX = Y
+                    elif i == 2:
+                        CX = -X
+                        CY = -Y
+                    elif i == 3:
+                        CY = X
+                        CX = -Y
 
-                ChassisTuple = (CY, -CX, ChassisWidth, ChassisHeight, Confidence)
-                # 20251118 already changed X forward,Y left dimension
-                
-                self.MergedChassisList.append(ChassisTuple)
-                        # ChassisList.append(ChassisTuple)
-            # if ChassisList:
-            #     ChassisList = sorted(ChassisList, key=lambda x: x[0], reverse=False)
-            #     LastMerged = False
-            #     for i in range(len(ChassisList)):
-            #         if not i == len(ChassisList) - 1:
-            #             ChassisX = ChassisList[i][0]
-            #             ChassisY = ChassisList[i][1]
-            #             NextChassisX = ChassisList[i+1][0]
-            #             NextChassisY = ChassisList[i+1][1]
-
-            #         if LastMerged:
-            #             Chassis = ChassisList[len(ChassisList) - 1]
-            #             self.MergedChassisList.append(Chassis)
-
-            #         elif abs(ChassisX - NextChassisX) < 20 and abs(ChassisY - NextChassisY) < 20:
-            #             CX = (ChassisX + NextChassisX) / 2
-            #             CY = (ChassisY + NextChassisY) / 2
-            #             CW = (ChassisList[i][2] + ChassisList[i+1][2]) / 2
-            #             CH = (ChassisList[i][3] + ChassisList[i+1][2]) / 2
-            #             Confidence = (ChassisList[i][4] + ChassisList[i+1][4]) / 2
-            #             Chassis = (CX, CY, CW, CH, Confidence)
-            #             self.MergedChassisList.append(Chassis)
-            #             if i == len(ChassisList) - 2:
-            #                 LastMerged = True
-            #         else:
-            #             Chassis = ChassisList[i]
-            #             self.MergedChassisList.append(Chassis)
+                    ChassisTuple = (CY, -CX, ChassisWidth, ChassisHeight, Confidence)
+                    # 20251118 already changed X forward,Y left dimension
                     
+                    self.MergedChassisList.append(ChassisTuple)
+                            # ChassisList.append(ChassisTuple)
+                # if ChassisList:
+                #     ChassisList = sorted(ChassisList, key=lambda x: x[0], reverse=False)
+                #     LastMerged = False
+                #     for i in range(len(ChassisList)):
+                #         if not i == len(ChassisList) - 1:
+                #             ChassisX = ChassisList[i][0]
+                #             ChassisY = ChassisList[i][1]
+                #             NextChassisX = ChassisList[i+1][0]
+                #             NextChassisY = ChassisList[i+1][1]
 
-            # print(self.MergedChassisList)
+                #         if LastMerged:
+                #             Chassis = ChassisList[len(ChassisList) - 1]
+                #             self.MergedChassisList.append(Chassis)
+
+                #         elif abs(ChassisX - NextChassisX) < 20 and abs(ChassisY - NextChassisY) < 20:
+                #             CX = (ChassisX + NextChassisX) / 2
+                #             CY = (ChassisY + NextChassisY) / 2
+                #             CW = (ChassisList[i][2] + ChassisList[i+1][2]) / 2
+                #             CH = (ChassisList[i][3] + ChassisList[i+1][2]) / 2
+                #             Confidence = (ChassisList[i][4] + ChassisList[i+1][4]) / 2
+                #             Chassis = (CX, CY, CW, CH, Confidence)
+                #             self.MergedChassisList.append(Chassis)
+                #             if i == len(ChassisList) - 2:
+                #                 LastMerged = True
+                #         else:
+                #             Chassis = ChassisList[i]
+                #             self.MergedChassisList.append(Chassis)
+                        
+
+                # print(self.MergedChassisList)
+                except:
+                    pass
 
     def GetChassisPos(self):
         # 20251118 already changed X,Y dimension
@@ -163,31 +163,31 @@ class UnitedVision(Detect_Method):
             for i in range(4):
                 try:
                     CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
+                    CameraIndex = i
+                    X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
+                    # X,Y = CenterX, BottomY
+                    if i == 0:
+                        BX = X
+                        BY = Y
+                    elif i == 1:
+                        BY = -X
+                        BX = Y
+                    elif i == 2:
+                        BX = -X
+                        BY = -Y
+                    elif i == 3:
+                        BY = X
+                        BX = -Y
+                    BallTuple = ((BX), (BY), BallWidth, BallHeight, Confidence)
+                    
+                    Balls.append(BallTuple)
                 except:
                     pass
-                CameraIndex = i
-                X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                # X,Y = CenterX, BottomY
-                if i == 0:
-                    BX = X
-                    BY = Y
-                elif i == 1:
-                    BY = -X
-                    BX = Y
-                elif i == 2:
-                    BX = -X
-                    BY = -Y
-                elif i == 3:
-                    BY = X
-                    BX = -Y
-                BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)
-                
-                Balls.append(BallTuple)
             if Balls:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [BY, -BX]
+                self.BallPos = [-BX, BY]
                 # 20251215 已修改坐标 x forward,y left [TBT]
             else:
                 self.BallPos = [0, 0]       
