@@ -23,7 +23,7 @@ class ArisuIntelligence:
         self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
-        self.CamPorts = [0,2,4,6]
+        self.CamPorts = [5,1,10,8]
 
         self.Cams = []
         self.Frames = []
@@ -231,16 +231,16 @@ class ArisuIntelligence:
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
                         # X,Y = CenterX, BottomY
-                        if i == 0:
+                        if i == 1:
                             CX = X
                             CY = Y
-                        elif i == 1:
+                        elif i == 0:
                             CY = -X
                             CX = Y
-                        elif i == 2:
+                        elif i == 3:
                             CX = -X
                             CY = -Y
-                        elif i == 3:
+                        elif i == 2:
                             CY = X
                             CX = -Y
 
@@ -333,7 +333,7 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [int(BY), int(BX)]
+                self.BallPos = [int(BY), -int(BX)]
                 # 20251221 已修改坐标 [tested]
             else:
                 self.BallPos = [0, 0]

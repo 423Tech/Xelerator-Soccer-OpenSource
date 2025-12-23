@@ -186,4 +186,5 @@ data/
 Records/*
 resource/*
 ROS_Nodes/*
+src/ROS2_Nodes/*
 AB/

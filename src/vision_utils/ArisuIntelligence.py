@@ -131,6 +131,13 @@ class ArisuIntelligence(VisionPreUntil):
                     for _ball in OutputBuffer[0]:
                         if _ball[4] < 0.4:
                             continue
+                        else:
+                            BallOutputs.append([
+                                0, 
+                                0, 
+                                0, 
+                                0, 
+                                0])
                         Ball_Y_Min = int(_ball[0] * 640) - 80 + 15
                         Ball_X_Min = int(_ball[1] * 640) + 15
                         Ball_Y_Max = int(_ball[2] * 640) - 80 -15

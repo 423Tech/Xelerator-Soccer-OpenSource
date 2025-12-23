@@ -4,9 +4,9 @@ import time
 import math
 from pathlib import Path
 
-CamIndex = 0
+CamIndex = 1
 # Change your camera index here
-Intercept = 4
+Intercept = 15
 # The distance from the chessboard's lower-left corner of the bottom rank to the robot’s
 
 
@@ -81,7 +81,7 @@ if Corners is not None:
     # print(applyPerspectiveTransform(320,240,aPerspectiveMatrix))
 
     APP_DIR = Path(__file__).parent
-    DATA_DIR = APP_DIR / "CalibrationData"
+    DATA_DIR = APP_DIR / "Calibration"
 
     np.savez(DATA_DIR / f'CalibrationData{CamIndex}.npz', 
             matrix=aPerspectiveMatrix, 
