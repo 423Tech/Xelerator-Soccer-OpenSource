@@ -80,7 +80,7 @@ void bmi088_process_gyro_angle(void)
 	} else {
 		for (i = 0; i < 3; i++) {
 			int16_t raw = (int16_t)(rx_buff.v[2 * i + 2] << 8 | rx_buff.v[2 * i + 1]);
-			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples && gyro_target_samples >= gyro_target_skip_samples)
+			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples && gyro_calibrated_samples >= gyro_target_skip_samples)
 				gyro_offset_sum[i] += raw;
 			rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
 			bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock * 0.5f;
@@ -94,7 +94,7 @@ void bmi088_process_gyro_angle(void)
 		gyro_calibrated_samples++;
 	if (is_calibrating_gyro_offset && gyro_calibrated_samples == gyro_target_samples) {
 		for (i = 0; i < 3; i++) {
-			gyro_offset[i] = (float)gyro_offset_sum[i] / (float)gyro_calibrated_samples;
+			gyro_offset[i] = (float)gyro_offset_sum[i] / (float)(gyro_calibrated_samples - gyro_target_skip_samples);
 			bmi088_gyro_angle[i] = 0;
 		}
 		is_calibrating_gyro_offset = false;
