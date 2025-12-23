@@ -55,7 +55,6 @@ enum task_type {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-bool is_initialized = false;
 volatile int read_idx = 0, write_idx = 0;
 volatile enum task_type task_queue[TASK_QUEUE_SIZE];
 /* USER CODE END PV */
@@ -113,11 +112,9 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   protocol_start_receive_host();
-  HAL_Delay(500);
-  //motor_init();
-  //bmi088_init_gyro();
-  //bmi088_calibrate_gyro_offset(3000);
-  is_initialized = true;
+  motor_init();
+  bmi088_init_gyro();
+  bmi088_calibrate_gyro_offset(3500, 500);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -195,8 +192,6 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void add_task(enum task_type task)
 {
-	if (!is_initialized)
-		return;
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
 	task_queue[write_idx] = task;

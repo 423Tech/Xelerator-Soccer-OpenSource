@@ -19,6 +19,6 @@ extern float bmi088_gyro_angle[3];
 void bmi088_burst_read_gyro(uint8_t reg, int size);
 void bmi088_init_gyro(void);
 void bmi088_process_gyro_angle(void);
-void bmi088_calibrate_gyro_offset(int calibration_samples_num);
+void bmi088_calibrate_gyro_offset(int calibration_samples, int skip_first);
 
 #endif /* INC_BMI088_H_ */

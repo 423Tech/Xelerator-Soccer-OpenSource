@@ -1,8 +1,0 @@
-../Core/Src/main.c:153:6:SystemClock_Config	3
-../Core/Src/main.c:78:5:main	5
-../Core/Src/main.c:196:6:add_task	2
-../Core/Src/main.c:207:6:HAL_TIM_PeriodElapsedCallback	3
-../Core/Src/main.c:218:6:HAL_GPIO_EXTI_Callback	2
-../Core/Src/main.c:231:6:HAL_SPI_TxRxCpltCallback	3
-../Core/Src/main.c:244:6:HAL_UARTEx_RxEventCallback	4
-../Core/Src/main.c:261:6:Error_Handler	1
