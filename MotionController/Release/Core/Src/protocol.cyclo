@@ -1,0 +1,2 @@
+../Core/Src/protocol.c:28:6:protocol_start_receive_host	1
+../Core/Src/protocol.c:34:6:protocol_process_received_frame	4

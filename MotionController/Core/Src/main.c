@@ -66,9 +66,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#include <stdio.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-#include <string.h> /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-char uart_buff[64]; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
 /* USER CODE END 0 */
 
 /**
@@ -79,7 +77,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	uint32_t time; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -114,10 +112,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bmi088_init_gyro();
   motor_init();
+  protocol_start_receive_host();
   HAL_Delay(500);
   bmi088_calibrate_gyro_offset(3000);
-  protocol_start_receive_host();
-  time = DWT->CYCCNT; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -140,13 +137,6 @@ int main(void)
 	  	  }
 	  	  read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
 	  }
-	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-	  if (DWT->CYCCNT - time > 168000000 && !is_calibrating_gyro_offset) {
-  	  	  sprintf(uart_buff, "x: %d, y: %d, z: %d\r\n", (int)(bmi088_gyro_angle[0] * 1000), (int)(bmi088_gyro_angle[1] * 1000), (int)(bmi088_gyro_angle[2] * 1000));
-  	  	  HAL_UART_Transmit_IT(&huart4, (uint8_t *)uart_buff, strlen(uart_buff));
-  	  	  time = DWT->CYCCNT;
-	  }
-	  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

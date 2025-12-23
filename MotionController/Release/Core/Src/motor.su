@@ -1,0 +1,2 @@
+../Core/Src/motor.c:156:6:motor_init	24	static
+../Core/Src/motor.c:164:6:motor_update_wheels_pwm	20	static

@@ -35,7 +35,8 @@ void protocol_process_received_frame(void)
 {
 	tx_buff.n[0] = rx_buff[protocol_current_rx_buff_idx].v[0] | 0x80;
 	switch(rx_buff[protocol_current_rx_buff_idx].v[0]) {
-	case 0x01:
+	case 'a':
+		tx_buff.n[0] = 'a';
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + 0);
 		break;
 	case 0x02:
@@ -43,8 +44,9 @@ void protocol_process_received_frame(void)
 		memcpy(tx_buff.n + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
 		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp));
 		break;
-	case 0x03:
+	case 'c':
 		memcpy(motor_target_wheels_rpm, rx_buff[protocol_current_rx_buff_idx].n + 1, sizeof(motor_target_wheels_rpm));
+		motor_target_wheels_rpm[0] = 120;
 		break;
 	default:
 		break;

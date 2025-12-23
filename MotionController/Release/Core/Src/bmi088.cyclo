@@ -1,0 +1,4 @@
+../Core/Src/bmi088.c:39:6:bmi088_burst_read_gyro	1
+../Core/Src/bmi088.c:47:6:bmi088_init_gyro	1
+../Core/Src/bmi088.c:64:6:bmi088_process_gyro_angle	7
+../Core/Src/bmi088.c:103:6:bmi088_calibrate_gyro_offset	1
