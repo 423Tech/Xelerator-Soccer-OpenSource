@@ -73,32 +73,32 @@ class LockSeries:
         elif [iBX,iBY] == [0xddd,0xddd]:
             chassis.stop()
             return
-
-        Compass = compass()
-        Angle = 360 - ((math.degrees(math.atan2(iBX, iBY))) % 360)
-        Fangle = Angle + Compass
-        if iBX > 75 or iBY > 75:
-            Kp = 2
-            KpZ = 0.3
-        elif 25 < iBX <= 75 or 25 < iBY <= 75:
-            Kp = 3
-            KpZ = 0.5
         else:
-            Kp = 4
-            KpZ = 0.9
+            Compass = compass()
+            Angle = 360 - ((math.degrees(math.atan2(iBX, iBY))) % 360)
+            Fangle = Angle + Compass
+            if iBX > 75 or iBY > 75:
+                Kp = 2
+                KpZ = 0.3
+            elif 25 < iBX <= 75 or 25 < iBY <= 75:
+                Kp = 3
+                KpZ = 0.5
+            else:
+                Kp = 4
+                KpZ = 0.9
 
-        SpeedX = iBX * Kp
-        SpeedY = iBY * Kp
-        if SpeedX > 300:
-            SpeedX = 300
-        if SpeedY > 300:
-            SpeedY = 300
-        if SpeedX < -300:
-            SpeedX = -300
-        if SpeedY < -300:
-            SpeedY = -300
-        logger.info(str(SpeedX)+" "+str(SpeedY)+' '+str(Fangle))
-        chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
+            SpeedX = iBX * Kp
+            SpeedY = iBY * Kp
+            if SpeedX > 300:
+                SpeedX = 300
+            if SpeedY > 300:
+                SpeedY = 300
+            if SpeedX < -300:
+                SpeedX = -300
+            if SpeedY < -300:
+                SpeedY = -300
+            logger.info(str(SpeedX)+" "+str(SpeedY)+' '+str(Fangle))
+            chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def CircleAround(iAimAngle):
     iCompass = int(compass())
