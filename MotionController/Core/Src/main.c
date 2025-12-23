@@ -129,8 +129,7 @@ int main(void)
 		  	  bmi088_process_gyro_angle();
 		  	  break;
 	  	  case TASK_PROCESS_RECEIVED_FRAME:
-	  		  if (!is_calibrating_gyro_offset)
-	  			  protocol_process_received_frame();
+	  		  protocol_process_received_frame();
 		  	  break;
 	  	  default:
 		  	  break;

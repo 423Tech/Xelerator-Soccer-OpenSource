@@ -1245,35 +1245,35 @@ LOAD C:/ST/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.exte
                 0x08000cb0       0xa4 ./Core/Src/main.o
                 0x08000cb0                SystemClock_Config
  .text.startup.main
-                0x08000d54       0xb4 ./Core/Src/main.o
+                0x08000d54       0xa8 ./Core/Src/main.o
                 0x08000d54                main
  .text.HAL_TIM_PeriodElapsedCallback
-                0x08000e08       0x44 ./Core/Src/main.o
-                0x08000e08                HAL_TIM_PeriodElapsedCallback
+                0x08000dfc       0x44 ./Core/Src/main.o
+                0x08000dfc                HAL_TIM_PeriodElapsedCallback
  .text.HAL_GPIO_EXTI_Callback
-                0x08000e4c       0x20 ./Core/Src/main.o
-                0x08000e4c                HAL_GPIO_EXTI_Callback
+                0x08000e40       0x20 ./Core/Src/main.o
+                0x08000e40                HAL_GPIO_EXTI_Callback
  .text.HAL_SPI_TxRxCpltCallback
-                0x08000e6c       0x58 ./Core/Src/main.o
-                0x08000e6c                HAL_SPI_TxRxCpltCallback
+                0x08000e60       0x58 ./Core/Src/main.o
+                0x08000e60                HAL_SPI_TxRxCpltCallback
  .text.HAL_UARTEx_RxEventCallback
-                0x08000ec4       0x4c ./Core/Src/main.o
-                0x08000ec4                HAL_UARTEx_RxEventCallback
+                0x08000eb8       0x4c ./Core/Src/main.o
+                0x08000eb8                HAL_UARTEx_RxEventCallback
  .text.Error_Handler
-                0x08000f10        0x4 ./Core/Src/main.o
-                0x08000f10                Error_Handler
+                0x08000f04        0x4 ./Core/Src/main.o
+                0x08000f04                Error_Handler
  .text.motor_init
-                0x08000f14       0xe0 ./Core/Src/motor.o
-                0x08000f14                motor_init
+                0x08000f08       0xe0 ./Core/Src/motor.o
+                0x08000f08                motor_init
  .text.motor_update_wheels_pwm
-                0x08000ff4      0x6e0 ./Core/Src/motor.o
-                0x08000ff4                motor_update_wheels_pwm
+                0x08000fe8      0x6e0 ./Core/Src/motor.o
+                0x08000fe8                motor_update_wheels_pwm
  .text.protocol_start_receive_host
-                0x080016d4       0x2c ./Core/Src/protocol.o
-                0x080016d4                protocol_start_receive_host
+                0x080016c8       0x2c ./Core/Src/protocol.o
+                0x080016c8                protocol_start_receive_host
  .text.protocol_process_received_frame
-                0x08001700       0xa8 ./Core/Src/protocol.o
-                0x08001700                protocol_process_received_frame
+                0x080016f4       0xb4 ./Core/Src/protocol.o
+                0x080016f4                protocol_process_received_frame
  .text.MX_SPI2_Init
                 0x080017a8       0x48 ./Core/Src/spi.o
                 0x080017a8                MX_SPI2_Init

@@ -37,7 +37,11 @@ void protocol_process_received_frame(void)
 	switch(rx_buff[protocol_current_rx_buff_idx].v[0]) {
 	case 'a':
 		tx_buff.n[0] = 'a';
-		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + 0);
+		if (is_calibrating_gyro_offset)
+			tx_buff.n[1] = 0x01;
+		else
+			tx_buff.n[1] = 0x00;
+		HAL_UART_Transmit_IT(&huart4, tx_buff.n, 1 + 1);
 		break;
 	case 0x02:
 		memcpy(tx_buff.n + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
