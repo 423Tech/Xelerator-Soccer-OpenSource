@@ -1,6 +1,6 @@
 import math
 from ReasonData.config import Settings
-import time
+import time, threading
 
 class Car:
     def __init__(self,SetMotorFunc,GetYaw=None,MotorEncoder=None):
@@ -139,4 +139,37 @@ class Peripherals:
                 self.SetIO(self.cfg.Ports.Dribble,0)
             self.DribbleStatus = Status
             self.logger.info("Dribble set to %s" % ("ON" if Status else "OFF"))
+
+class Key:
+    def __init__(self,GetKeyFunc):
+        self.KeyCount = 0
+        self.LastPressed = False
+        
+        self.GetKey = GetKeyFunc
+
+        self.KeyEventThread = threading.Thread(target=self.KeyEvent)
+        self.KeyEventThread.daemon = True
+        self.KeyEventThread.start()
+    
+    def KeyEvent(self):
+        while True:
+            if self.LastPressed == True:
+                if self.GetKey():
+                    self.KeyCount = self.KeyCount + 1
+                else:
+                    self.LastPressed = False
+            else:
+                if self.GetKey():
+                    self.LastPressed = True
+                    self.KeyCount = self.KeyCount + 1
+            time.sleep(0.01)
+    
+    def LongPress(self):
+        if self.KeyCount >= 500:
+            return True
+        else:
+            return False
+    
+    def Press(self):
+        return self.GetKey()
 

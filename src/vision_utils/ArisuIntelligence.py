@@ -68,6 +68,7 @@ class ArisuIntelligence(VisionPreUntil):
         with VDevice(self.HailoParams) as Hat:
             InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
             InferModel.set_batch_size(4)
+            logger.success("InferModel created")
             self.InputShape = InferModel.input().shape
             self.OutputShape = InferModel.output().shape
             with InferModel.configure() as ConfiguredInferModel:

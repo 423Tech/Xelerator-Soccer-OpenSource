@@ -44,12 +44,12 @@ class Key:
     def Press(self):
         return self.GetKey()
 
-Key = Key(Bits.GetKey)
+key = Key(Bits.GetKey)
 
 Role()
 
 while True:
-    if Key.Press():
+    if key.Press():
         break
 
 while True:

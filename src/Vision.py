@@ -165,31 +165,29 @@ class UnitedVision(Detect_Method):
                     CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
                     CameraIndex = i
                     X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                    self.logger.warning(str(i)+' '+str(X)+str(Y))
-                    # X,Y = CenterX, BottomY
+                    X -= 15
+                    Y -= 15
                     if i == 0:
-                        BX = X
+                        BX = -X
                         BY = Y
                     elif i == 1:
-                        BY = -X
                         BX = Y
-                    elif i == 2:
-                        BX = -X
-                        BY = -Y
-                    elif i == 3:
                         BY = X
+                    elif i == 2:
+                        BX = X
+                        BY = Y
+                    elif i == 3:
                         BX = -Y
-                    BallTuple = ((BX), (BY), BallWidth, BallHeight, Confidence)
+                        BY = -X
+                    BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)
                     Balls.append(BallTuple)
                 except:
-                    BallTuple = (0,0,0,0,0)
-                    Balls.append(BallTuple)
+                    pass
             if Balls:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [-BY, BX]
-                # 20251215 已修改坐标 x forward,y left [TBT]
+                self.BallPos = [BX, BY]
             else:
                 self.BallPos = [0, 0]       
 

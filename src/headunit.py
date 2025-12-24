@@ -140,8 +140,6 @@ class ArisuIntelligence:
     
     def InitConfiguredModel(self):
         with VDevice(self.HailoParams) as Hat:
-            # InferModel = Hat.create_infer_model('/xel/yolov8s.hef')
-            # InferModel = Hat.create_infer_model( + 'yolov8s.hef')
             InferModel = Hat.create_infer_model(str(MODEL_DIR)+"/yolov8s.hef")
             InferModel.set_batch_size(4)
             self.InputShape = InferModel.input().shape
@@ -187,7 +185,6 @@ class ArisuIntelligence:
             BindingsList = self.YOLOQueue.get()
             self.InferTF = self.InferTF + 1
             # 确保在传递给 BindingsList 之前执行此操作
-            
             try:
                 self.ConfiguredInferModel.run(BindingsList, 2000)
             except Exception as e:
@@ -216,7 +213,6 @@ class ArisuIntelligence:
             self.PostProcessTF = self.PostProcessTF + 1
             self.MergedChassisList = []
             ChassisList = []
-            # Process ChassisList
             for i in range(4):
                 List = OutputBuffer[i][3]
                 if List.shape[0] > 0:
@@ -231,18 +227,18 @@ class ArisuIntelligence:
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
                         # X,Y = CenterX, BottomY
-                        if i == 1:
+                        if i == 0:
+                            CX = -X
+                            CY = Y
+                        elif i == 1:
+                            CX = Y
+                            CY = X
+                        elif i == 2:
                             CX = X
                             CY = Y
-                        elif i == 0:
-                            CY = -X
-                            CX = Y
                         elif i == 3:
-                            CX = -X
-                            CY = -Y
-                        elif i == 2:
-                            CY = X
                             CX = -Y
+                            CY = -X
 
                         Width = XMax - XMin
                         Height = YMax - YMin
@@ -305,10 +301,8 @@ class ArisuIntelligence:
                         BottomY = YMax
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
-                        # X,Y = CenterX, BottomY
-                        X = X - 15
-                        Y = Y - 15
-                        # logger.warning(f"Ball {i} : {X},{Y}")
+                        X -= 15
+                        Y -= 15
                         if i == 0:
                             BX = -X
                             BY = Y
@@ -340,9 +334,6 @@ class ArisuIntelligence:
                 # 20251221 已修改坐标 [tested]
             else:
                 self.BallPos = [0, 0]
-
-
-            
 
     def InitCam(self,CamPorts,Width=640, Height=480, AutoExposure=3, Exposure=157, Brightness=0, Contrast=32, Saturation=64):
         for Port in CamPorts:
@@ -376,7 +367,6 @@ class ArisuIntelligence:
             self.ReadCamTF = self.ReadCamTF + 1
     
     def ApplyPerspectiveTransform(self,X, Y, Matrix):
-        # 20251017 already changed X,Y dimension
         # 应用透视矩阵
         Point = np.array([X, Y, 1], dtype=np.float64)
         Transformed = Matrix @ Point
@@ -384,7 +374,6 @@ class ArisuIntelligence:
         return int(Transformed[1]), int(Transformed[0])
 
     def Pixel2CM(self,X,Y,CamIndex):
-        # 20251017 already changed X,Y dimension
         P2CK = self.P2CK[CamIndex]
         P2CHB = self.P2CHB[CamIndex]
         P2CVB = self.P2CVB[CamIndex]
