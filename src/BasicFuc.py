@@ -50,6 +50,9 @@ def ChasingBall():
     chassis.AbsMoveVetor(SpeedX,SpeedY,AbsAngle) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 class LockSeries:
+    def __init__(self):
+        self.D_time = 0
+
     def Lockballangle(self):#贝尔巴托夫转身
         iBX,iBY = Positions().AbsBallPos()#获取球的位置
         #  = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
@@ -69,35 +72,43 @@ class LockSeries:
         iBX,iBY = Positions().Relative_Ball_Position()
         if [iBX,iBY] == [4095,4095]:
             chassis.stop()
+            self.D_time = 0
             return
         elif [iBX,iBY] == [0xddd,0xddd]:
             chassis.stop()
+            self.D_time = 0
             return
         else:
             Compass = compass()
-            Angle = 360 - ((math.degrees(math.atan2(iBX, iBY))) % 360)
+            Angle = ((math.degrees(math.atan2(iBY, iBX))) % 360)
             Fangle = Angle + Compass
-            if iBX > 75 or iBY > 75:
-                Kp = 2
-                KpZ = 0.3
-            elif 25 < iBX <= 75 or 25 < iBY <= 75:
-                Kp = 3
-                KpZ = 0.5
-            else:
-                Kp = 4
-                KpZ = 0.9
-
+            # if iBX > 75 or iBY > 75:
+            #     logger.success('Method 1')
+            #     Kp = 15
+            #     KpZ = 0.9
+            # elif 25 < iBX <= 75 or 25 < iBY <= 75:
+            #     logger.success('Method 2')
+            #     Kp = 12
+            #     KpZ = 0.5
+            # else:
+                # logger.success('Method 3')
+            #     Kp = 10
+            #     KpZ = 2
+            self.D_time += 1
+            Kp = 10 + iBX/100 + iBY/100 + (iBX+iBY)*self.D_time/10
+            KpZ = Fangle*self.D_time/500
+            logger.success(Kp)
+            logger.warning(KpZ)
             SpeedX = iBX * Kp
             SpeedY = iBY * Kp
-            if SpeedX > 300:
-                SpeedX = 300
-            if SpeedY > 300:
-                SpeedY = 300
-            if SpeedX < -300:
-                SpeedX = -300
-            if SpeedY < -300:
-                SpeedY = -300
-            logger.info(str(SpeedX)+" "+str(SpeedY)+' '+str(Fangle))
+            # if SpeedX > 300:
+            #     SpeedX = 300
+            # if SpeedY > 300:
+            #     SpeedY = 300
+            # if SpeedX < -300:
+            #     SpeedX = -300
+            # if SpeedY < -300:
+            #     SpeedY = -300
             chassis.AbsMoveVetor(SpeedX,SpeedY,Fangle,KpZ) # 1.5 is a factor to make the robot turn faster, you can adjust it as needed
 
 def CircleAround(iAimAngle):

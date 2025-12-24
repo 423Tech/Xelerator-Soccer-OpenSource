@@ -63,7 +63,7 @@ class Preference:
                     "Home": [-70,0,0],
                 },
                 "ExpectedVals": {
-                    "CatchVal" : [-18,-5], # Position when Robo Cathch the ball
+                    "CatchVal" : [10,0], # Position when Robo Cathch the ball
                     "ErrorRange": 10,
                     "MaxWarnCount": 3,
                     "MaxSpeedValue": 500,

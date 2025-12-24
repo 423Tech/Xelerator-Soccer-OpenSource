@@ -248,7 +248,7 @@ class ArisuIntelligence:
                         Height = YMax - YMin
 
                         Confidence = Chassis[4]
-                        ChassisTuple = (CY, CX, Width, Height, Confidence)
+                        ChassisTuple = (CY, -CX, Width, Height, Confidence)
                         # 20251017 already changed X,Y dimension
                         
                         self.MergedChassisList.append(ChassisTuple)
@@ -306,18 +306,21 @@ class ArisuIntelligence:
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
                         # X,Y = CenterX, BottomY
+                        X = X - 15
+                        Y = Y - 15
+                        # logger.warning(f"Ball {i} : {X},{Y}")
                         if i == 0:
-                            BX = X
+                            BX = -X
                             BY = Y
                         elif i == 1:
-                            BY = -X
                             BX = Y
-                        elif i == 2:
-                            BX = -X
-                            BY = -Y
-                        elif i == 3:
                             BY = X
+                        elif i == 2:
+                            BX = X
+                            BY = Y
+                        elif i == 3:
                             BX = -Y
+                            BY = -X
 
                         Width = XMax - XMin
                         Height = YMax - YMin
@@ -333,7 +336,7 @@ class ArisuIntelligence:
                 Ball = Balls[0]
                 BX = Ball[0]
                 BY = Ball[1]
-                self.BallPos = [int(BY), -int(BX)]
+                self.BallPos = [int(BX), int(BY)]
                 # 20251221 已修改坐标 [tested]
             else:
                 self.BallPos = [0, 0]
