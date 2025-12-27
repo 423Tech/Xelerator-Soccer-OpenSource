@@ -10,11 +10,11 @@
 
 #include <stdbool.h>
 
-#define BMI088_CAPTURE_DRDY_TIMESTAMP() bmi088_drdy_timestamp = DWT->CYCCNT
-
 extern volatile uint32_t bmi088_drdy_timestamp;
 extern bool is_calibrating_gyro_offset;
 extern float bmi088_gyro_angle[3];
+
+#define BMI088_CAPTURE_DRDY_TIMESTAMP() bmi088_drdy_timestamp = DWT->CYCCNT
 
 void bmi088_burst_read_gyro(uint8_t reg, int size);
 void bmi088_init_gyro(void);

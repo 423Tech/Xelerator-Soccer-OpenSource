@@ -6,7 +6,9 @@
  */
 
 #include "tim.h"
+#include "pid.h"
 
+static struct pid_context pid_context_wheels[4];
 float motor_target_wheels_rpm[4] = {0, 0, 0, 0};
 
 static void start_all_pwm_channels(void)
@@ -45,6 +47,16 @@ static void start_all_encoder_channels(void)
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
 	__HAL_TIM_SET_COUNTER(&htim3, 0);
 	__HAL_TIM_SET_COUNTER(&htim5, 0);
+}
+
+static void init_pid_context(void)
+{
+	int i;
+	for (i = 0; i < 4; i++) {
+		pid_init_context(&pid_context_wheels[i]);
+		pid_set_gains(&pid_context_wheels[i], 50, 7, 5);
+		pid_set_zero_deadband(&pid_context_wheels[i], 1);
+	}
 }
 
 static void set_wheels_pwm(int32_t (*pwm_array_ptr)[4])
@@ -97,57 +109,8 @@ static void get_wheels_encoder_count_delta(int32_t (*delta_array_ptr)[4])
 static void pid_wheels_pwm(int32_t (*target_pwm_array_ptr)[4], int32_t (*delta_array_ptr)[4])
 {
 	int i;
-	static struct {
-		float last_error;
-		float integral;
-		float derivative;
-	} pid_arr[4] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	static enum {
-		PID_ACTIVE,
-		PID_OBSERVING,
-		PID_INACTIVE
-	} pid_state[4] = {
-		PID_INACTIVE, 
-		PID_INACTIVE, 
-		PID_INACTIVE, 
-		PID_INACTIVE
-	};
-
 	for (i = 0; i < 4; i++) {
-		float error = motor_target_wheels_rpm[i] - (float)(*delta_array_ptr)[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f);
-
-		switch(pid_state[i]) {
-		case PID_ACTIVE:
-			if (motor_target_wheels_rpm[i] == 0 && error > -1 && error < 1)
-				pid_state[i] = PID_OBSERVING;
-			break;
-		case PID_OBSERVING:
-			if (motor_target_wheels_rpm[i] == 0 && error > -1 && error < 1) {
-				pid_state[i] = PID_INACTIVE;
-				error = 0;
-				pid_arr[i].integral = 0;
-				pid_arr[i].last_error = 0;
-			} else
-				pid_state[i] = PID_ACTIVE;
-			break;
-		case PID_INACTIVE:
-			if (motor_target_wheels_rpm[i] != 0 || error <= -1 || error >= 1)
-				pid_state[i] = PID_ACTIVE;
-			break;
-		default:
-			break;
-		}
-
-		pid_arr[i].integral += error;
-		pid_arr[i].derivative = error - pid_arr[i].last_error;
-		pid_arr[i].last_error = error;
-
-		(*target_pwm_array_ptr)[i] = (int)(50 * error + 7 * pid_arr[i].integral + 5 * pid_arr[i].derivative);
+		(*target_pwm_array_ptr)[i] = (int)pid(&pid_context_wheels[i], motor_target_wheels_rpm[i], (float)(*delta_array_ptr)[i] * (100.0f * 60.0f / 8.0f / 4.0f / 20.0f));
 		(*target_pwm_array_ptr)[i] = (*target_pwm_array_ptr)[i] > 42000 ? 42000 : (*target_pwm_array_ptr)[i];
 		(*target_pwm_array_ptr)[i] = (*target_pwm_array_ptr)[i] < -42000 ? -42000 : (*target_pwm_array_ptr)[i];
 	}
@@ -157,6 +120,7 @@ void motor_init(void)
 {
 	start_all_pwm_channels();
 	start_all_encoder_channels();
+	init_pid_context();
 	__HAL_TIM_SET_COUNTER(&htim6, 0);
 	HAL_TIM_Base_Start_IT(&htim6);
 }
