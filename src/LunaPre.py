@@ -6,11 +6,11 @@ import math, time, threading
 from ReasonData import logger, Settings
 cfg = Settings
 
-# from headunit import ArisuIntelligence
-# vision = ArisuIntelligence()
+from headunit import ArisuIntelligence
+vision = ArisuIntelligence()
 
-from Vision import UnitedVision
-vision = UnitedVision()
+# from Vision import UnitedVision
+# vision = UnitedVision()
 
 from Sensor import Lidar
 from chassis import Car, Peripherals, Key # Universal-Movement-Standard
@@ -28,10 +28,10 @@ elif cfg.RoboInfo.Bit == "IL":
     from utils.IceLoongBits import IceLoongBits
     Bits = IceLoongBits()
     lidar = Lidar(Bits.GetYaw)
-    peripheral = Peripherals(Bits.SetIO) #TODO
-    chassis = Car(Bits.SetRpmFour,Bits.GetYaw)
+    # peripheral = Peripherals(Bits.SetIO) #TODO
+    chassis = Car(Bits.SetWheelSpeed,Bits.GetYaw)
     compass = Bits.GetYaw
-    Odometer = Bits.Odometer #TODO add odometer support
+    # Odometer = Bits.Odometer #TODO add odometer support
     logger.info("IceLoongBits Bit loaded.")
 # elif cfg.RoboInfo.Bit == "3Q":
 #     logger.info("3Q Bit loaded.")

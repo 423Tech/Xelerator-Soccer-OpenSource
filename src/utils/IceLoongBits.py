@@ -14,7 +14,7 @@ class IceLoongBits:
     方法命名使用大驼峰（PascalCase）。
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, timeout: float = 0.02):
+    def __init__(self, port: str = "/dev/ttyUSB1", baudrate: int = 115200, timeout: float = 0.02):
         """初始化串口参数（不自动打开）。
 
         Args:
@@ -167,12 +167,12 @@ class IceLoongBits:
         # 检查响应长度
         if len(resp) < resp_len:
             self.logger.warning("响应长度不足，期望%d字节，实际收到%d字节", resp_len, len(resp))
-            return 0.0, 0
+            return 0.0
 
         # 检查响应头
         if resp[0] != 0x82:
             self.logger.warning("响应头错误，期望0x82，实际收到0x%02x", resp[0])
-            return 0.0, 0
+            return 0.0
 
         try:
             # 解析数据部分（跳过第一个字节的响应头）
@@ -182,7 +182,7 @@ class IceLoongBits:
             # 确保数据部分长度足够
             if len(data_part) < 16:
                 self.logger.error("数据部分长度不足，期望16字节，实际%d字节", len(data_part))
-                return 0.0, 0
+                return 0.0
 
             # 解析所有数据
             # <fffI: 3个float + 1个unsigned int，都是小端
@@ -193,13 +193,13 @@ class IceLoongBits:
                               float1, float2, float3, timestamp)
 
             # 返回第三个float（yaw）和时间戳
-            return float3, timestamp
+            return float3
 
         except struct.error as e:
             self.logger.exception("解析数据失败: %s，原始数据: %s", e, resp.hex())
-            return 0.0, 0
+            return 0.0
 
-    def SetWheelSpeed(self, speeds: List[float]) -> None:
+    def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
         """设置四个轮子的转速。
         
         发送: 0x03 + 4个float(小端)
@@ -211,6 +211,7 @@ class IceLoongBits:
         earaises:
             ValueError: 如果输入不是4个浮点数
         """
+        speeds = [speeds1,speeds2,speeds3,speeds4]
         if len(speeds) != 4:
             raise ValueError(f"需要4个轮子的速度，但收到了{len(speeds)}个")
         
