@@ -57,13 +57,14 @@ class Positions:
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
-        self.UpdateLidarPositionThread = threading.Thread(target=self._UpdateLidarPosition)
+        self.UpdateLidarPositionThread = threading.Thread(target=self._UpdatePosition)
         self.UpdateLidarPositionThread.daemon = True
         self.UpdateLidarPositionThread.start()
 
     def _UpdatePosition(self):
         while(1):
-            self.LidarPos = self.UpdateAbsRoboPosition()
+            self.LidarPos = self._UpdateAbsRoboPosition()
+            time.sleep(0.06)
 
     class Calculate:
         def Local2Angle(lAimPos:list[int,int]) -> int:
@@ -72,7 +73,7 @@ class Positions:
             '''
             iAimX = lAimPos[0]
             iAimY = lAimPos[1]
-            iLocX,iLocY = Positions.UpdateAbsRoboPosition()[0]
+            iLocX,iLocY = Positions._UpdateAbsRoboPosition()[0]
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
             try:

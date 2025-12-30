@@ -23,7 +23,12 @@ class ArisuIntelligence:
         self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
-        self.CamPorts = [4,6,0,2]
+        self.CamPorts = [
+                    Settings.VisionVals.Front,
+                    Settings.VisionVals.Right,
+                    Settings.VisionVals.Back,
+                    Settings.VisionVals.Left,
+                    ]
         # self.CamPorts = [8,10,1,5]
 
         self.Cams = []
@@ -71,43 +76,34 @@ class ArisuIntelligence:
         self.ReadCamsThread.daemon = True
         self.ReadCamsThread.start()
 
-        time.sleep(3)
+        # time.sleep(3) # TODO Beta test for undo this delay
 
-        self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
-        self.VideoRecordThread.daemon = True
-        self.VideoRecordThread.start()
+        # self.VideoRecordThread = threading.Thread(target=self.VideoRecord)
+        # self.VideoRecordThread.daemon = True
+        # self.VideoRecordThread.start()
 
+        self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
+        self.InitConfiguredModelThread.daemon = True
+        self.InitConfiguredModelThread.start()
 
-        if HAILO:
-            self.InitConfiguredModelThread = threading.Thread(target=self.InitConfiguredModel)
-            self.InitConfiguredModelThread.daemon = True
-            self.InitConfiguredModelThread.start()
+        # 报错会阻塞程序 try&except
+        time.sleep(2)
 
-            # 报错会阻塞程序 try&except
-            time.sleep(2)
+        self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
+        self.ModelPreProcessThread.daemon = True
+        self.ModelPreProcessThread.start()
 
-            self.ModelPreProcessThread = threading.Thread(target=self.ModelPreProcess)
-            self.ModelPreProcessThread.daemon = True
-            self.ModelPreProcessThread.start()
+        self.ModelInferThread = threading.Thread(target=self.ModelInfer)
+        self.ModelInferThread.daemon = True
+        self.ModelInferThread.start()
 
-            self.ModelInferThread = threading.Thread(target=self.ModelInfer)
-            self.ModelInferThread.daemon = True
-            self.ModelInferThread.start()
+        self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
+        self.ChassisDetectionThread.daemon = True
+        self.ChassisDetectionThread.start()
 
-            self.ChassisDetectionThread = threading.Thread(target=self.ChassisDetection)
-            self.ChassisDetectionThread.daemon = True
-            self.ChassisDetectionThread.start()
-
-            self.BallDetectionThread = threading.Thread(target=self.BallDetection)
-            self.BallDetectionThread.daemon = True
-            self.BallDetectionThread.start()
-
-        else:
-            self.FindBallThread = threading.Thread(target=self.FindBall)
-            self.FindBallThread.daemon = True
-            self.FindBallThread.start()
-            # 色块识别 设计逻辑为无HAILO时启动
-        
+        self.BallDetectionThread = threading.Thread(target=self.BallDetection)
+        self.BallDetectionThread.daemon = True
+        self.BallDetectionThread.start()
 
 
     def InitVideo(self):
@@ -152,26 +148,31 @@ class ArisuIntelligence:
     def ModelPreProcess(self):
         while(1):
             BindingsList = []
-            for i in range(4):
-                Bindings = self.ConfiguredInferModel.create_bindings()
-                OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
-                Frame = self.Frames[i]
-                if Frame is not None:
-                    Frame = self.Resize(Frame, (640, 640))
-                    Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
-                    # cv2.imshow(f"Frame {i}", Frame)
-                    # Frame = Frame.astype(np.uint8)
-                    # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
-                    # print(Frame.shape)
-                    Bindings.input().set_buffer(Frame)
-                    Bindings.output().set_buffer(OutputBuffer)
-                    BindingsList.append(Bindings)
-            if self.YOLOQueue.full():
-                continue
-            else:
-                self.PreProcessTF = self.PreProcessTF + 1
-                self.YOLOQueue.put(BindingsList)
-            time.sleep(0.01)
+            try:
+                for i in range(4):
+                    Bindings = self.ConfiguredInferModel.create_bindings()
+                    OutputBuffer = np.empty(self.OutputShape, dtype=np.float32)
+                    Frame = self.Frames[i]
+                    if Frame is not None:
+                        Frame = self.Resize(Frame, (640, 640))
+                        Frame = cv2.cvtColor(Frame, cv2.COLOR_BGR2RGB)
+                        # cv2.imshow(f"Frame {i}", Frame)
+                        # Frame = Frame.astype(np.uint8)
+                        # Frame = np.ascontiguousarray(Frame, dtype=np.uint8)
+                        # print(Frame.shape)
+                        Bindings.input().set_buffer(Frame)
+                        Bindings.output().set_buffer(OutputBuffer)
+                        BindingsList.append(Bindings)
+                if self.YOLOQueue.full():
+                    continue
+                else:
+                    self.PreProcessTF = self.PreProcessTF + 1
+                    self.YOLOQueue.put(BindingsList)
+            except Exception as e:
+                time.sleep(0.5)
+                self.ModelPreProcess()
+            finally:
+                time.sleep(0.01)
                 
     def ModelInfer(self):
         FrameCount = 0
@@ -189,24 +190,14 @@ class ArisuIntelligence:
             try:
                 self.ConfiguredInferModel.run(BindingsList, 2000)
             except Exception as e:
-                self.logger.error(f"Hailo Inference Error: {e}, automatically restarting inference thread.")
-                self.logger.error(f"Hailo Inference BindingList: {len(BindingsList)}")
-                raise e
-                # self.ModelInfer()
+                self.ModelInfer()
             Outputs = []
-            ChassisList = []
             for Bindings in BindingsList:
                 OutputBuffer = Bindings.output().get_buffer()
                 Outputs.append(OutputBuffer)
-                
-
-            
             self.ChassisQueue.put(Outputs)
             self.BallQueue.put(Outputs)
-            # print(ChassisList)
-        
-            # print(Output0)
-            # time.sleep(0.01)
+
 
     def ChassisDetection(self):
         while True:

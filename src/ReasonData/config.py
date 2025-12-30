@@ -47,6 +47,10 @@ class Preference:
                     "RightBack" : 4,
                 },
                 "VisionVals": {
+                    'Front' : 4,
+                    'Right' : 6,
+                    'Back' : 0,
+                    'Left' : 2,
                     "Record" : False, # False to Disable Record video
                     "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
                     "AutoExpose" : 0,  # 0: Manual, 1: Auto
@@ -84,14 +88,8 @@ class Preference:
                     "PWD" : "MisakaNetwork20001/",
                 },
                 "Debug": {
-                    "DebugWifi": "RoboCup",
-                    "DebugIP": "192.168.1.109",
-                    "DebugPSWD": "12345",
                     "FullLog": True,
                     "Database": True,
-                },
-                "Advanced": {
-                    "Cover2Start": False,
                 }
             }
         try:
@@ -164,6 +162,10 @@ class Prompts(object):
 
     class _visionvals(object):
         def __init__(self):
+            self.Front = 4,
+            self.Right = 6,
+            self.Back = 0,
+            self.Left = 2,
             self.Record = False
             self.ExposeVal = 100
             self.AutoExpose = 0
@@ -183,7 +185,7 @@ class Prompts(object):
 
     class _expectedvals(object):
         def __init__(self):
-            self.CatchVal = [-18,-5]
+            self.CatchVal = [10,0]
             self.ErrorRange = 10
             self.MaxWarnCount = 3
             self.MaxSpeedValue = 500
@@ -208,15 +210,8 @@ class Prompts(object):
 
     class _debug(object):
         def __init__(self):
-            self.DebugWifi = "RoboCup"
-            self.DebugIP = "192.168.1.109"
-            self.DebugPSWD = "RoboCup9"
             self.FullLog = True
             self.Database = True
-
-    class _advanced(object):
-        def __init__(self):
-            self.Cover2Start = False
 
     def __init__(self):
         self.RoboInfo = self._roboinfo()
@@ -229,7 +224,6 @@ class Prompts(object):
         self.BLE = self._ble()
         self.WIFI = self._wifi()
         self.Debug = self._debug()
-        self.Advanced = self._advanced()
 
 
 Settings: Prompts = ParseJsonToObj()
