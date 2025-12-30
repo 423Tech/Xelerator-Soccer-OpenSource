@@ -147,7 +147,7 @@ def GoBack():
 
 
 def NormalShoot(x=1,HomePos=[0,-20,0]):
-    BX, BY = Positions().AbsRoboPosition
+    BX, BY = Positions().UpdateAbsRoboPosition
     logger.debug("Current Position: %s" % [BX, BY])
     logger.debug("Ball Position: %s" % [BX, BY])
     if BX == 0 and BY == 0:
@@ -167,7 +167,7 @@ def NormalShoot(x=1,HomePos=[0,-20,0]):
             BX,BY = Positions().AbsBallPos()
             if not BX == 0 and BY <= 9:
                 break
-            X,Y,_ = Positions().AbsRoboPosition()
+            X,Y,_ = Positions().UpdateAbsRoboPosition()
             DeltaY = cfg.Bounds.Long/2 - Y
             DeltaX = X
             Theta = math.atan2(DeltaY, DeltaX)
@@ -230,7 +230,7 @@ def OHMYBACK(HomePos=[0,-20,0]):
     #正常
     if Positions().AbsBallPos() == [0xddd,0xddd]:
         peripheral.Dribble(True)
-        iLocX,iLocY,_ = Positions().AbsRoboPosition()
+        iLocX,iLocY,_ = Positions().UpdateAbsRoboPosition()
         Cx ,Cy = Positions().AbsChassisPos()
         if [Cx ,Cy] == [0,0]:
             if iLocX > 0:
@@ -249,7 +249,7 @@ def OHMYBACK(HomePos=[0,-20,0]):
             ShootX = -65
         if abs(ShootX - iLocX) < 5 :
             if abs(iLocY - 75) < 5:
-                X,Y,_ = Positions().AbsRoboPosition()
+                X,Y,_ = Positions().UpdateAbsRoboPosition()
                 DeltaY = cfg.Bounds.Long/2 - Y
                 DeltaX = X
                 Theta = math.atan2(DeltaY, DeltaX)

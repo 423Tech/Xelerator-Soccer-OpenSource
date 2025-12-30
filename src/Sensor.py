@@ -190,10 +190,6 @@ class Lidar:
             except Exception:
                 pass
 
-    def __del__(self):
-        # 尽量在对象销毁时清理外部进程
-        self.stop()
-
 
     def __init__(self,GetYaw=None):
 

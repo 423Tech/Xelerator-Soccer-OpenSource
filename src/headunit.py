@@ -23,8 +23,8 @@ class ArisuIntelligence:
         self.GetPos = GetPos
         self.cfg = Settings
         self.logger = logger
-        # self.CamPorts = [4,6,0,2]
-        self.CamPorts = [8,10,1,5]
+        self.CamPorts = [4,6,0,2]
+        # self.CamPorts = [8,10,1,5]
 
         self.Cams = []
         self.Frames = []

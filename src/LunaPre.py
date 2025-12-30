@@ -53,9 +53,17 @@ class Positions:
         self.LidarScale = 10
         self.BoundsScale = 1
         # Values for timer
-        self.WaitTime = 1
+        self.WaitTime = 1.5
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
+
+        self.UpdateLidarPositionThread = threading.Thread(target=self._UpdateLidarPosition)
+        self.UpdateLidarPositionThread.daemon = True
+        self.UpdateLidarPositionThread.start()
+
+    def _UpdatePosition(self):
+        while(1):
+            self.LidarPos = self.UpdateAbsRoboPosition()
 
     class Calculate:
         def Local2Angle(lAimPos:list[int,int]) -> int:
@@ -64,7 +72,7 @@ class Positions:
             '''
             iAimX = lAimPos[0]
             iAimY = lAimPos[1]
-            iLocX,iLocY = Positions.AbsRoboPosition()[0]
+            iLocX,iLocY = Positions.UpdateAbsRoboPosition()[0]
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
             try:
@@ -112,7 +120,6 @@ class Positions:
         else:
             self.ballPosOut = self.ballPos
         logger.debug("[Relative] Ball Position: %s"%self.ballPos)
-        logger.info("[Relative] Ball Position Output: %s"%self.ballPosOut)
         return self.ballPosOut
 
     def direct_distance(self):
@@ -128,7 +135,6 @@ class Positions:
             `0xfff` stand for `NoPosition`
         '''
         self.BoundsDistance = lidar.GetDists()
-        logger.debug("Lidar Raw Data: %s"%self.BoundsDistance)
         if self.BoundsDistance == [0, 0, 0, 0]:
             self.WarnedLidarCount +=1
             time.sleep(self.WaitTime) # wait 1 second for starting lidar
@@ -140,13 +146,13 @@ class Positions:
         else:
             if self.WarnedLidarCount:
                 self.WarnedLidarCount = 0
+                logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
             else:
                 pass
-            logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
-        logger.info("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
+        logger.debug("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         return self.BoundsDistance
 
-    def AbsRoboPosition(self,lower:bool|None = False):
+    def _UpdateAbsRoboPosition(self,lower:bool|None = False):
         '''
         Get the [Absolute] Position of the Robot
         获取[机器人几何中心]相对于[场地几何中心]的位置 [x_forward,y_left,yaw]
@@ -158,29 +164,34 @@ class Positions:
         #### Note:
             `0xfff` stand for `No Position`
         '''
-        if not lower:# if use lidar datas
-            _distance = self.direct_distance()
-            if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
-                if _distance[0] > _distance[2]:
-                    Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
-                else:
-                    Y = _distance[2] - cfg.Bounds.Long*self.LidarScale/2
+        _distance = self.direct_distance()
+        if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
+            if _distance[0] > _distance[2]:
+                Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
             else:
-                Y = ((cfg.Bounds.Long*self.LidarScale/2 - _distance[0]) + (_distance[2] - cfg.Bounds.Long*self.LidarScale/2))/2
-            if _distance[1]+_distance[3] < (cfg.Bounds.Short - 50)*self.LidarScale*self.BoundsScale:
-                if _distance[1] > _distance[3]:
-                    X = -(cfg.Bounds.Short*self.LidarScale/2 - _distance[1])
-                else:
-                    X = -(_distance[3] - cfg.Bounds.Short*self.LidarScale/2)
+                Y = _distance[2] - cfg.Bounds.Long*self.LidarScale/2
+        else:
+            Y = ((cfg.Bounds.Long*self.LidarScale/2 - _distance[0]) + (_distance[2] - cfg.Bounds.Long*self.LidarScale/2))/2
+        if _distance[1]+_distance[3] < (cfg.Bounds.Short - 50)*self.LidarScale*self.BoundsScale:
+            if _distance[1] > _distance[3]:
+                X = -(cfg.Bounds.Short*self.LidarScale/2 - _distance[1])
             else:
-                X = -((cfg.Bounds.Short*self.LidarScale/2 - _distance[1]) + (_distance[3] - cfg.Bounds.Short*self.LidarScale/2))/2
-            self.LidarPos = [Y/10,X/10,compass()]
-            logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
-            # 20251216 already changed X_forward,Y_left dimension  [tested]
-            return [Y/10,X/10,compass()]
-        elif Bits.Odometer is not None:# if use odometer datas
-            # TODO finish lower Positions
+                X = -(_distance[3] - cfg.Bounds.Short*self.LidarScale/2)
+        else:
+            X = -((cfg.Bounds.Short*self.LidarScale/2 - _distance[1]) + (_distance[3] - cfg.Bounds.Short*self.LidarScale/2))/2
+        self.LidarPos = [Y/10,X/10,compass()]
+        logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
+        # 20251216 already changed X_forward,Y_left dimension  [tested]
+        try:
+            if Bits.Odometer:# if use odometer datas
+                # TODO finish lower Positions
+                pass
+        except:
             pass
+        return [Y/10,X/10,compass()]
+
+    def AbsRoboPosition(self):
+        return self.LidarPos
 
     def AbsChassisPos(self):
         '''
@@ -196,7 +207,7 @@ class Positions:
         '''
         # 20251017 already changed X,Y dimension
         ChassisRawList = vision.GetChassisPos()
-        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
+        SelfX,SelfY,SelfZ = self.LidarPos()
         OutputDistanceList = []
         for c in ChassisRawList:
             cDistance = math.sqrt(c[0]**2 + c[1]**2)
@@ -261,7 +272,7 @@ class Positions:
             `0xddd` stand for `CatchBall`
         '''
         BallX, BallY = self.Relative_Ball_Position()
-        x, y, _ = self.AbsRoboPosition()
+        x, y, _ = self.LidarPos()
         if [BallX, BallY] == [0xfff,0xfff]:
             self.BallDistance = 0xfff
         elif [BallX, BallY] == [0xddd,0xddd]:
@@ -289,7 +300,7 @@ class Positions:
         if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
             return [0xddd,0xddd]
         else:
-            SelfX,SelfY,SelfZ = self.AbsRoboPosition()
+            SelfX,SelfY,SelfZ = self.LidarPos()
             ballDistance = math.sqrt(ballX**2 + ballY**2)
             if ballY == 0:
                 ballRltAngle = 0
@@ -350,7 +361,7 @@ class Positions:
 
 
     def MoveToPosition(self, Position: list[int, int, int], Kp: float | None = None):
-        selfPosition = self.AbsRoboPosition()
+        selfPosition = self.LidarPos()
         dX = Position[0] - selfPosition[0]
         dY = Position[1] - selfPosition[1]
         dW = Position[2] - selfPosition[2]
@@ -367,7 +378,7 @@ class Positions:
         lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
         # TODO 调整PID
         '''
-        iLocX,iLocY,iLocZ = self.AbsRoboPosition()
+        iLocX,iLocY,iLocZ = self.LidarPos()
         if iLocX < 0:
             kX = -1
         else:
@@ -418,7 +429,7 @@ class Positions:
                 iAimX = i[0]
                 iAimY = i[1]
                 iAimZ = i[2]
-                lLocal = self.AbsRoboPosition()
+                lLocal = self.LidarPos()
                 iLocX = lLocal[0]
                 iLocY = lLocal[1]
                 iLocZ = lLocal[2]
@@ -479,7 +490,7 @@ class Communication:
         ### use `Sendstatus()` instead
         '''
         while (1):
-            SelfPosition = Positions.AbsRoboPosition()
+            SelfPosition = Positions.UpdateAbsRoboPosition()
             try:
                 # make sure all the values are integer
                 ball_self = int(self.BallFlag[0]) if isinstance(self.BallFlag[0], (int, float, str)) else 0

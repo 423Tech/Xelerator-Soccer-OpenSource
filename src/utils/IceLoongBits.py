@@ -1,8 +1,15 @@
 
-import logging
+from loguru import logger
 import struct
 import time
 from typing import Optional, Tuple, List
+
+from pathlib import Path
+Date = time.strftime("%Y%m", time.localtime())
+APP_DIR = Path(__file__).parent
+LOG_FILE = APP_DIR / f"{Date}.log"
+logger.add(LOG_FILE)
+
 
 try:
     import serial
@@ -14,7 +21,7 @@ class IceLoongBits:
     方法命名使用大驼峰（PascalCase）。
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB1", baudrate: int = 115200, timeout: float = 0.02):
+    def __init__(self, port: str = "/dev/ttyUSB1", baudrate: int = 921600, timeout: float = 0.02):
         """初始化串口参数（不自动打开）。
 
         Args:
@@ -25,29 +32,27 @@ class IceLoongBits:
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
+        self.Yaw =  0.0
         # 串口句柄（运行时为 serial.Serial 实例），这里不在类型注解中引用 serial 变量以避免 lint 问题
         self.ser = None
-        self.logger = logging.getLogger(self.__class__.__name__)
-        if not self.logger.handlers:
-            # 避免多次添加 handler
-            self.logger.addHandler(logging.NullHandler())
+        self.logger = logger.info
 
     def OpenPort(self) -> None:
         """打开串口（如果尚未打开）。"""
         if serial is None:
             raise RuntimeError("pyserial 未安装，请运行: pip install pyserial")
         if self.ser and getattr(self.ser, "is_open", False):
-            self.logger.debug("串口已打开: %s", self.port)
+            self.logger("串口已打开: %s", self.port)
             return
         self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-        self.logger.debug("已打开串口 %s @ %d", self.port, self.baudrate)
+        self.logger("已打开串口 %s @ %d", self.port, self.baudrate)
 
     def ClosePort(self) -> None:
         """关闭串口并释放句柄。"""
         if self.ser:
             try:
                 self.ser.close()
-                self.logger.debug("已关闭串口 %s", self.port)
+                self.logger("已关闭串口 %s", self.port)
             except Exception as e:
                 self.logger.exception("关闭串口失败: %s", e)
             finally:
@@ -87,7 +92,7 @@ class IceLoongBits:
             # 有些 serial 实现可能没有该方法
             pass
 
-        self.logger.debug("发送: %s", data.hex())
+        self.logger("发送: %s", data.hex())
         self.ser.write(data)
         self.ser.flush()
 
@@ -102,10 +107,12 @@ class IceLoongBits:
         try:
             if response_length > 0:
                 resp = self.ser.read(response_length)
+                self.logger(1)
             else:
                 # 读取直到超时
                 resp = self._ReadUntilTimeout()
-            self.logger.debug("接收: %s", resp.hex())
+                self.logger(0)
+            self.logger("接收: %s", resp.hex())
             return resp
         finally:
             if response_timeout is not None:
@@ -140,16 +147,19 @@ class IceLoongBits:
         # 检查状态字节
         status = resp[1]
         if status == 0x00:
-            self.logger.debug("下位机状态: 空闲")
+            self.logger("下位机状态: 空闲")
             return True, "空闲"
         elif status == 0x01:
-            self.logger.debug("下位机状态: 忙")
+            self.logger("下位机状态: 忙")
             return True, "忙"
         else:
             self.logger.warning("未知状态字节: 0x%02x", status)
             return True, f"未知状态: 0x{status:02x}"
 
-    def GetYaw(self) -> Tuple[float, int]:
+    def GetYaw(self):
+        return self.Yaw
+
+    def UpdateYaw(self):
         """向 F407 请求航向（Yaw），并解析为 float 和时间戳。
 
         发送: 0x02
@@ -167,12 +177,12 @@ class IceLoongBits:
         # 检查响应长度
         if len(resp) < resp_len:
             self.logger.warning("响应长度不足，期望%d字节，实际收到%d字节", resp_len, len(resp))
-            return 0.0
+            self.Yaw =  0.0
 
         # 检查响应头
         if resp[0] != 0x82:
             self.logger.warning("响应头错误，期望0x82，实际收到0x%02x", resp[0])
-            return 0.0
+            self.Yaw =  0.0
 
         try:
             # 解析数据部分（跳过第一个字节的响应头）
@@ -182,22 +192,22 @@ class IceLoongBits:
             # 确保数据部分长度足够
             if len(data_part) < 16:
                 self.logger.error("数据部分长度不足，期望16字节，实际%d字节", len(data_part))
-                return 0.0
+                self.Yaw =  0.0
 
             # 解析所有数据
             # <fffI: 3个float + 1个unsigned int，都是小端
             float1, float2, float3, timestamp = struct.unpack('<fffI', data_part)
 
             # 记录调试信息
-            self.logger.debug("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
+            self.logger("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
                               float1, float2, float3, timestamp)
 
             # 返回第三个float（yaw）和时间戳
-            return float3
+            self.Yaw = float3
 
         except struct.error as e:
             self.logger.exception("解析数据失败: %s，原始数据: %s", e, resp.hex())
-            return 0.0
+            self.Yaw =  0.0
 
     def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
         """设置四个轮子的转速。
@@ -232,10 +242,11 @@ class IceLoongBits:
         self.SendHexCommand(full_data.hex(), read_response=False)
         
         # 记录调试信息
-        self.logger.debug("设置轮子转速: [%f, %f, %f, %f] rpm", 
+        self.logger("设置轮子转速: [%f, %f, %f, %f] rpm", 
                          speed_values[0], speed_values[1], 
                          speed_values[2], speed_values[3])
-   
+        self.UpdateYaw()
+
     def __enter__(self):
         self.OpenPort()
         return self
