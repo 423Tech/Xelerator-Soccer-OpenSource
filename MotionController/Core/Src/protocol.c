@@ -50,6 +50,8 @@ void protocol_process_received_frame(void)
 	case 0x03:
 		memcpy(motor_target_wheels_rpm, rx_buff[protocol_current_rx_buff_idx].n + 1, sizeof(motor_target_wheels_rpm));
 		break;
+	case 0x04:
+		
 	default:
 		break;
 	}

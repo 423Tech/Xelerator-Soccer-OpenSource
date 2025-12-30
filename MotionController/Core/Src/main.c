@@ -26,7 +26,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stddef.h>
 #include <stdbool.h>
+#include "task.h"
 #include "bmi088.h"
 #include "motor.h"
 #include "protocol.h"
@@ -34,7 +36,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-enum task_type {
+enum task_code {
 	TASK_NONE,
 	TASK_UPDATE_WHEELS_PWM,
 	TASK_PROCESS_GYRO_ANGLE,
@@ -44,7 +46,7 @@ enum task_type {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TASK_QUEUE_SIZE (8)
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,8 +57,7 @@ enum task_type {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile int read_idx = 0, write_idx = 0;
-volatile enum task_type task_queue[TASK_QUEUE_SIZE];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,13 +116,14 @@ int main(void)
   motor_init();
   bmi088_init_gyro();
   bmi088_calibrate_gyro_offset(3500, 500);
+  /* motor_target_wheels_rpm[0] = 500; */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-	  if (read_idx != write_idx) {
-		  switch (task_queue[read_idx]) {
+	  if (task_available()) {
+		  switch (task_consume()) {
 	  	  case TASK_UPDATE_WHEELS_PWM:
 		  	  motor_update_wheels_pwm();
 		  	  break;
@@ -134,7 +136,6 @@ int main(void)
 	  	  default:
 		  	  break;
 	  	  }
-	  	  read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
 	  }
     /* USER CODE END WHILE */
 
@@ -190,20 +191,11 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void add_task(enum task_type task)
-{
-	uint32_t primask = __get_PRIMASK();
-	__disable_irq();
-	task_queue[write_idx] = task;
-	write_idx = (write_idx + 1) % TASK_QUEUE_SIZE;
-	__set_PRIMASK(primask);
-}
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-		add_task(TASK_UPDATE_WHEELS_PWM);
+		task_enqueue(TASK_UPDATE_WHEELS_PWM, NULL);
 		break;
 	default:
 		break;
@@ -217,7 +209,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     case GPIO_PIN_8:
     	BMI088_CAPTURE_DRDY_TIMESTAMP();
     	bmi088_burst_read_gyro(0x02, 6);
-        break;
+      break;
     default:
         break;
     }
@@ -229,8 +221,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
     case (uint32_t)SPI2:
     	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-    	add_task(TASK_PROCESS_GYRO_ANGLE);
-        break;
+    	task_enqueue(TASK_PROCESS_GYRO_ANGLE, NULL);
+      break;
     default:
         break;
     }
@@ -241,7 +233,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
 		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
-			add_task(TASK_PROCESS_RECEIVED_FRAME);
+			task_enqueue(TASK_PROCESS_RECEIVED_FRAME, NULL);
 		break;
 	default:
 		break;
