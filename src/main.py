@@ -4,7 +4,7 @@ Cache = False
 
 try:
     while(1):
-        Positions().Move2Path([[0,0,0],[40,40,0],[40,-40,0],[-40,-40,0],[-40,40,0]],2)
+        Positions().Move2Path([[0,0,0],[40,40,0],[40,-40,0],[-40,-40,0]],0.8)
         # print(Positions()._UpdateAbsRoboPosition())
         # time.sleep(1)
         # from BasicFuc import *    

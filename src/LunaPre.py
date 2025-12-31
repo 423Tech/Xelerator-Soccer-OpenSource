@@ -57,14 +57,7 @@ class Positions:
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
-        # self.UpdateLidarPositionThread = threading.Thread(target=self._UpdatePosition)
-        # # self.UpdateLidarPositionThread.daemon = True
-        # self.UpdateLidarPositionThread.start()
-
-    # def _UpdatePosition(self):
-    #     while(1):
-    #         self.LidarPos = self._UpdateAbsRoboPosition()
-    #         time.sleep(0.06)
+        self.P2P_I = 0
 
     class Calculate:
         def Local2Angle(lAimPos:list[int,int]) -> int:
@@ -412,15 +405,17 @@ class Positions:
         iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
         if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
+            self.P2P_I = 0
             return True
         elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
             chassis.RelTurn(iDeltaZ)
         else:
+            self.P2P_I +=1
             if Speed:
-                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,Speed)
+                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,Speed+self.P2P_I)
             else:
-                # chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+5)
-                chassis.AbsMoveVetor(iDeltaX,iDeltaY,AimPos[2])
+                chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+self.P2P_I)
+                # chassis.AbsMoveVetor(iDeltaX,iDeltaY,AimPos[2])
             return False
 
     def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
