@@ -71,7 +71,7 @@ class Car:
         # TODO change facing
         # FacingAngle = 360 - FacingAngle
         Error = Yaw - FacingAngle
-        Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
+        Error = -( (Error + 180) % 360 - 180 ) # Normalize to [-180, 180]
         self.logger.warning(Error)
         if not Kp:
             Kp = self.Kp
@@ -82,7 +82,7 @@ class Car:
         self.RelMoveVetor(90,Angle,Speed)
    
     def RelYMove(self,Angle,Speed,Kp=None):
-        self.AbsMoveAngle(0,Angle,Speed,Kp)
+        self.RelMoveVetor(0,Angle,Speed,Kp)
 
     def AbsTurn(self,Angle,Kp=None):
         if self.GetYaw is None:
