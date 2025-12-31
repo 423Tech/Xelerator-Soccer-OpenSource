@@ -57,14 +57,14 @@ class Positions:
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
-        self.UpdateLidarPositionThread = threading.Thread(target=self._UpdatePosition)
-        self.UpdateLidarPositionThread.daemon = True
-        self.UpdateLidarPositionThread.start()
+        # self.UpdateLidarPositionThread = threading.Thread(target=self._UpdatePosition)
+        # # self.UpdateLidarPositionThread.daemon = True
+        # self.UpdateLidarPositionThread.start()
 
-    def _UpdatePosition(self):
-        while(1):
-            self.LidarPos = self._UpdateAbsRoboPosition()
-            time.sleep(0.06)
+    # def _UpdatePosition(self):
+    #     while(1):
+    #         self.LidarPos = self._UpdateAbsRoboPosition()
+    #         time.sleep(0.06)
 
     class Calculate:
         def Local2Angle(lAimPos:list[int,int]) -> int:
@@ -208,7 +208,7 @@ class Positions:
         '''
         # 20251017 already changed X,Y dimension
         ChassisRawList = vision.GetChassisPos()
-        SelfX,SelfY,SelfZ = self.LidarPos()
+        SelfX,SelfY,SelfZ = self._UpdateAbsRoboPosition()
         OutputDistanceList = []
         for c in ChassisRawList:
             cDistance = math.sqrt(c[0]**2 + c[1]**2)
@@ -273,7 +273,7 @@ class Positions:
             `0xddd` stand for `CatchBall`
         '''
         BallX, BallY = self.Relative_Ball_Position()
-        x, y, _ = self.LidarPos()
+        x, y, _ = self._UpdateAbsRoboPosition()
         if [BallX, BallY] == [0xfff,0xfff]:
             self.BallDistance = 0xfff
         elif [BallX, BallY] == [0xddd,0xddd]:
@@ -301,7 +301,7 @@ class Positions:
         if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
             return [0xddd,0xddd]
         else:
-            SelfX,SelfY,SelfZ = self.LidarPos()
+            SelfX,SelfY,SelfZ = self._UpdateAbsRoboPosition()
             ballDistance = math.sqrt(ballX**2 + ballY**2)
             if ballY == 0:
                 ballRltAngle = 0
@@ -362,7 +362,7 @@ class Positions:
 
 
     def MoveToPosition(self, Position: list[int, int, int], Kp: float | None = None):
-        selfPosition = self.LidarPos()
+        selfPosition = self._UpdateAbsRoboPosition()
         dX = Position[0] - selfPosition[0]
         dY = Position[1] - selfPosition[1]
         dW = Position[2] - selfPosition[2]
@@ -379,7 +379,7 @@ class Positions:
         lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
         # TODO 调整PID
         '''
-        iLocX,iLocY,iLocZ = self.LidarPos()
+        iLocX,iLocY,iLocZ = self._UpdateAbsRoboPosition()
         if iLocX < 0:
             kX = -1
         else:
@@ -430,7 +430,7 @@ class Positions:
                 iAimX = i[0]
                 iAimY = i[1]
                 iAimZ = i[2]
-                lLocal = self.LidarPos()
+                lLocal = self.LidarPos
                 iLocX = lLocal[0]
                 iLocY = lLocal[1]
                 iLocZ = lLocal[2]

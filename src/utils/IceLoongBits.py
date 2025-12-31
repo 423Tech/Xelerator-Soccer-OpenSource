@@ -7,7 +7,7 @@ from typing import Optional, Tuple, List
 from pathlib import Path
 Date = time.strftime("%Y%m", time.localtime())
 APP_DIR = Path(__file__).parent
-LOG_FILE = APP_DIR / f"{Date}.log"
+LOG_FILE = APP_DIR / f"{Date}_IceLoong.log"
 logger.add(LOG_FILE)
 
 
@@ -35,26 +35,26 @@ class IceLoongBits:
         self.Yaw =  0.0
         # 串口句柄（运行时为 serial.Serial 实例），这里不在类型注解中引用 serial 变量以避免 lint 问题
         self.ser = None
-        self.logger = logger.info
+        self.logger = logger
 
     def OpenPort(self) -> None:
         """打开串口（如果尚未打开）。"""
         if serial is None:
             raise RuntimeError("pyserial 未安装，请运行: pip install pyserial")
         if self.ser and getattr(self.ser, "is_open", False):
-            self.logger("串口已打开: %s", self.port)
+            self.logger.info("串口已打开: %s", self.port)
             return
         self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-        self.logger("已打开串口 %s @ %d", self.port, self.baudrate)
+        self.logger.info("已打开串口 %s @ %d", self.port, self.baudrate)
 
     def ClosePort(self) -> None:
         """关闭串口并释放句柄。"""
         if self.ser:
             try:
                 self.ser.close()
-                self.logger("已关闭串口 %s", self.port)
+                self.logger.success("已关闭串口 %s", self.port)
             except Exception as e:
-                self.logger.exception("关闭串口失败: %s", e)
+                self.logger.error("关闭串口失败: %s", e)
             finally:
                 self.ser = None
 
@@ -92,7 +92,7 @@ class IceLoongBits:
             # 有些 serial 实现可能没有该方法
             pass
 
-        self.logger("发送: %s", data.hex())
+        self.logger.info("发送: "+data.hex())
         self.ser.write(data)
         self.ser.flush()
 
@@ -107,12 +107,10 @@ class IceLoongBits:
         try:
             if response_length > 0:
                 resp = self.ser.read(response_length)
-                self.logger(1)
             else:
                 # 读取直到超时
                 resp = self._ReadUntilTimeout()
-                self.logger(0)
-            self.logger("接收: %s", resp.hex())
+            self.logger.info("接收: "+resp.hex())
             return resp
         finally:
             if response_timeout is not None:
@@ -136,7 +134,7 @@ class IceLoongBits:
         resp = self.SendHexCommand("01", read_response=True, response_length=2, response_timeout=0.1)
         
         if len(resp) < 2:
-            self.logger.error("握手响应长度不足，期望2字节，实际收到%d字节", len(resp))
+            self.logger.error("握手响应长度不足，期望2字节，实际收到"+ len(resp) +"字节")
             return False, "响应长度不足"
         
         # 检查响应头
@@ -157,6 +155,7 @@ class IceLoongBits:
             return True, f"未知状态: 0x{status:02x}"
 
     def GetYaw(self):
+        self.logger.info("获取航向: "+ str(self.Yaw))
         return self.Yaw
 
     def UpdateYaw(self):
@@ -176,7 +175,7 @@ class IceLoongBits:
 
         # 检查响应长度
         if len(resp) < resp_len:
-            self.logger.warning("响应长度不足，期望%d字节，实际收到%d字节", resp_len, len(resp))
+            self.logger.warning("响应长度不足，期望"+ resp_len + "字节，实际收到"+ len(resp) +"字节")
             self.Yaw =  0.0
 
         # 检查响应头
@@ -191,7 +190,7 @@ class IceLoongBits:
 
             # 确保数据部分长度足够
             if len(data_part) < 16:
-                self.logger.error("数据部分长度不足，期望16字节，实际%d字节", len(data_part))
+                self.logger.error("数据部分长度不足，期望16字节，实际"+ len(data_part) + "字节")
                 self.Yaw =  0.0
 
             # 解析所有数据
@@ -199,14 +198,14 @@ class IceLoongBits:
             float1, float2, float3, timestamp = struct.unpack('<fffI', data_part)
 
             # 记录调试信息
-            self.logger("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
+            self.logger.info("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
                               float1, float2, float3, timestamp)
 
             # 返回第三个float（yaw）和时间戳
-            self.Yaw = float3
+            self.Yaw = float3 % 360
 
         except struct.error as e:
-            self.logger.exception("解析数据失败: %s，原始数据: %s", e, resp.hex())
+            self.logger.error("解析数据失败: %s，原始数据: %s", e, resp.hex())
             self.Yaw =  0.0
 
     def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
@@ -221,7 +220,7 @@ class IceLoongBits:
         earaises:
             ValueError: 如果输入不是4个浮点数
         """
-        speeds = [speeds1,speeds2,speeds3,speeds4]
+        speeds = [speeds1,speeds2,-speeds3,-speeds4]
         if len(speeds) != 4:
             raise ValueError(f"需要4个轮子的速度，但收到了{len(speeds)}个")
         
@@ -242,9 +241,7 @@ class IceLoongBits:
         self.SendHexCommand(full_data.hex(), read_response=False)
         
         # 记录调试信息
-        self.logger("设置轮子转速: [%f, %f, %f, %f] rpm", 
-                         speed_values[0], speed_values[1], 
-                         speed_values[2], speed_values[3])
+        self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
         self.UpdateYaw()
 
     def __enter__(self):
