@@ -35,6 +35,10 @@ class Preference:
                     "Rec" : "AI", # AI(Arisu Intelligence)/TV(Tuna Vision)/BB(Blob Based)
                 },
                 "VisionVals": {
+                    'Front' : 4,
+                    'Right' : 6,
+                    'Back' : 0,
+                    'Left' : 2,
                     "Record" : False, # False to Disable Record video
                     "ExposeVal" : 100, # 0-255, 0: Auto, 1-255: Manual
                     "AutoExpose" : 0,  # 0: Manual, 1: Auto
@@ -106,6 +110,10 @@ class Prompts(object):
 
     class _visionvals(object):
         def __init__(self):
+            self.Front = 4,
+            self.Right = 6,
+            self.Back = 0,
+            self.Left = 2,
             self.Record = False
             self.ExposeVal = 100
             self.AutoExpose = 0

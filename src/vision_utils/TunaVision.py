@@ -84,8 +84,8 @@ class TunaVision(VisionPreUntil):
                 self.inf.get_output()
                 # TODO finish data after-process
                 # breakpoint()
-
-                breakpoint()
+                
+                # breakpoint()
                 # self.infer.outputs.data
                 # x_start, x_end, y_start, y_end, confidence, class_id = detection
                 # BallOutputs.append([CenterX*self.IMAGE_SIZE/10, BottomY*self.IMAGE_SIZE/10, BallWidth*self.IMAGE_SIZE/10, BallHeight*self.IMAGE_SIZE/10, confidence])
