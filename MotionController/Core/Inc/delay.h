@@ -8,7 +8,14 @@
 #ifndef INC_DELAY_H_
 #define INC_DELAY_H_
 
-void delay_init_dwt(void);
+#include <stdbool.h>
+
+extern volatile uint32_t sys_tick_count;
+
+void delay_init(void);
 void delay_us(uint32_t us);
+void delay_task_enqueue(uint16_t delay_ms, int delay_task_code);
+bool delay_task_available(void);
+int delay_task_consume(void);
 
 #endif /* INC_DELAY_H_ */

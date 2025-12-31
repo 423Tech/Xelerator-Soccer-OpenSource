@@ -6,8 +6,10 @@
  */
 
 #include "gpio.h"
+#include "delay.h"
+#include "kick.h"
 
-void kick_init(void)
+void kick_reset(void)
 {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
 }
@@ -15,5 +17,5 @@ void kick_init(void)
 void kick(void)
 {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-    kick_init();
+    delay_task_enqueue(100, DELAY_TASK_KICK_RESET);
 }

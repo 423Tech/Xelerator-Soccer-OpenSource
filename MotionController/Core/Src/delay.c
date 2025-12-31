@@ -6,21 +6,42 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include "main.h"
 
 #define DELAY_TASK_QUEUE_SIZE (8)
 
 struct delay_task {
-	int idx;
-	uint32_t call_time;
-	void (*call)(void *);
-	void *arr;
+	uint16_t start;
+	uint16_t delay;
+	int code;
+	bool active;
 };
 
-static volatile int read_idx = 0, write_idx = 0;
 static volatile struct delay_task delay_task_queue[DELAY_TASK_QUEUE_SIZE];
+volatile uint32_t sys_tick_count = 0;
 
-void delay_init_dwt(void)
+static int compare_delay_task(const void *a, const void *b)
+{
+	const struct delay_task *ta = a, *tb = b;
+	if (ta->active && tb->active)
+		return (int)(((int32_t)ta->start - (int32_t)tb->start) + ((int32_t)ta->delay - (int32_t)tb->delay));
+	else
+		return (int)ta->active - (int)tb->active;
+}
+
+static void delay_init_task_queue(void)
+{
+	int i;
+	for (i = 0; i < DELAY_TASK_QUEUE_SIZE; i++) {
+		delay_task_queue[i].start = 0;
+		delay_task_queue[i].delay = 0;
+		delay_task_queue[i].code = 0;
+		delay_task_queue[i].active = false;
+	}
+}
+
+void delay_init(void)
 {
 	static bool dwt_is_initialized = false;
 	if (!dwt_is_initialized) {
@@ -29,6 +50,7 @@ void delay_init_dwt(void)
 		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 		dwt_is_initialized = true;
 	}
+	delay_init_task_queue();
 }
 
 void delay_us(uint32_t us)
@@ -39,12 +61,27 @@ void delay_us(uint32_t us)
     while (DWT->CYCCNT - start < cycles);
 }
 
-void delay_call_after_ms(uint32_t ms, void (*call)(void *), void *arr)
+void delay_task_enqueue(uint16_t delay_ms, int delay_task_code)
 {
-
+	uint32_t primask = __get_PRIMASK();
+	__disable_irq();
+	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].active = true;
+	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].start = sys_tick_count;
+	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].delay = delay_ms;
+	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].code = delay_task_code;
+	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue), compare_delay_task);
+	__set_PRIMASK(primask);
 }
 
-void delay_call_delay_task(void)
+bool delay_task_available(void)
 {
+	return delay_task_queue[0].active && sys_tick_count - delay_task_queue[0].start >= delay_task_queue[0].delay;
+}
 
+int delay_task_consume(void)
+{
+	int result = delay_task_queue[0].code;
+	delay_task_queue[0].active = false;
+	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue[0]), compare_delay_task);
+	return result;
 }

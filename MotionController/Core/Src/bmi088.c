@@ -47,7 +47,7 @@ void bmi088_burst_read_gyro(uint8_t reg, int size)
 
 void bmi088_init_gyro(void)
 {
-	delay_init_dwt();
+	delay_init();
 
 	delay_us(1000);
 

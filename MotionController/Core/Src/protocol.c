@@ -9,6 +9,7 @@
 #include "usart.h"
 #include "bmi088.h"
 #include "motor.h"
+#include "kick.h"
 
 #define TX_MAX_LEN (32)
 #define RX_MAX_LEN (32)
@@ -51,7 +52,8 @@ void protocol_process_received_frame(void)
 		memcpy(motor_target_wheels_rpm, rx_buff[protocol_current_rx_buff_idx].n + 1, sizeof(motor_target_wheels_rpm));
 		break;
 	case 0x04:
-		
+		kick();
+		break;
 	default:
 		break;
 	}

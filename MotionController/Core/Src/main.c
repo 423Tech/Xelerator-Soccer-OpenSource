@@ -29,6 +29,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "task.h"
+#include "delay.h"
 #include "bmi088.h"
 #include "motor.h"
 #include "protocol.h"
@@ -112,6 +113,7 @@ int main(void)
   MX_TIM9_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
+  delay_init();
   protocol_start_receive_host();
   motor_init();
   bmi088_init_gyro();
