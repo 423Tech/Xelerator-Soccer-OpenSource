@@ -42,10 +42,10 @@ class IceLoongBits:
         if serial is None:
             raise RuntimeError("pyserial 未安装，请运行: pip install pyserial")
         if self.ser and getattr(self.ser, "is_open", False):
-            self.logger.info("串口已打开: %s", self.port)
+            # self.logger.info("串口已打开: %s", self.port)
             return
         self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-        self.logger.info("已打开串口 %s @ %d", self.port, self.baudrate)
+        # self.logger.info("已打开串口 %s @ %d", self.port, self.baudrate)
 
     def ClosePort(self) -> None:
         """关闭串口并释放句柄。"""
@@ -91,9 +91,10 @@ class IceLoongBits:
         except Exception:
             # 有些 serial 实现可能没有该方法
             pass
-
-        self.logger.info("发送: "+data.hex())
+        data.hex()
+        # self.logger.info("发送: "+)
         self.ser.write(data)
+        time.sleep(0.001)
         self.ser.flush()
 
         if not read_response:
@@ -110,7 +111,8 @@ class IceLoongBits:
             else:
                 # 读取直到超时
                 resp = self._ReadUntilTimeout()
-            self.logger.info("接收: "+resp.hex())
+            resp.hex()
+            # self.logger.info("接收: "+)
             return resp
         finally:
             if response_timeout is not None:
@@ -155,7 +157,7 @@ class IceLoongBits:
             return True, f"未知状态: 0x{status:02x}"
 
     def GetYaw(self):
-        self.logger.info("获取航向: "+ str(self.Yaw))
+        # self.logger.info("获取航向: "+ str(self.Yaw))
         return self.Yaw
 
     def UpdateYaw(self):
@@ -198,8 +200,8 @@ class IceLoongBits:
             float1, float2, float3, timestamp = struct.unpack('<fffI', data_part)
 
             # 记录调试信息
-            self.logger.info("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
-                              float1, float2, float3, timestamp)
+            # self.logger.info("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
+            #                   float1, float2, float3, timestamp)
 
             # 返回第三个float（yaw）和时间戳
             self.Yaw = float3 % 360
@@ -241,7 +243,7 @@ class IceLoongBits:
         self.SendHexCommand(full_data.hex(), read_response=False)
         
         # 记录调试信息
-        self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
+        # self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
         self.UpdateYaw()
 
     def __enter__(self):

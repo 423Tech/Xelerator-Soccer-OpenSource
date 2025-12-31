@@ -53,7 +53,7 @@ class Positions:
         self.LidarScale = 10
         self.BoundsScale = 1
         # Values for timer
-        self.WaitTime = 1.5
+        self.WaitTime = 1.8
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
@@ -131,8 +131,8 @@ class Positions:
         self.BoundsDistance = lidar.GetDists()
         if self.BoundsDistance == [0, 0, 0, 0]:
             self.WarnedLidarCount +=1
-            time.sleep(self.WaitTime) # wait 1 second for starting lidar
             logger.warning("Lidar Not Started! Retry for %s time in %s second"%(self.WarnedLidarCount,self.WaitTime))
+            time.sleep(self.WaitTime) # wait 1 second for starting lidar
             if self.WarnedLidarCount >= cfg.ExpectedVals.MaxWarnCount:
                 logger.error("No Lidar Data Recieved! Please Check Lidar Modules!")
                 raise RuntimeError("No Lidar Data Recieved! Please Check Lidar Modules!")
@@ -159,6 +159,9 @@ class Positions:
             `0xfff` stand for `No Position`
         '''
         _distance = self.direct_distance()
+        if _distance == [0xfff,0xfff,0xfff,0xfff]:
+            chassis.stop()
+            return [0xfff,0xfff,0xfff]
         if (_distance[0]+_distance[2]) < (cfg.Bounds.Long)*self.LidarScale*self.BoundsScale:
             if _distance[0] > _distance[2]:
                 Y = cfg.Bounds.Long*self.LidarScale/2 - _distance[0]
@@ -373,6 +376,9 @@ class Positions:
         # TODO 调整PID
         '''
         iLocX,iLocY,iLocZ = self._UpdateAbsRoboPosition()
+        if (iLocX,iLocY,iLocZ) == (0xfff,0xfff,0xfff):
+            chassis.stop()
+            return False
         if iLocX < 0:
             kX = -1
         else:
@@ -403,11 +409,11 @@ class Positions:
             iDeltaZ = (abs(iAimZ) - abs(iLocZ))
         iErrorRange = Settings.ExpectedVals.ErrorRange
         iMovedAngle = int(math.degrees(math.atan2(iDeltaY,iDeltaX)))
-        if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
+        if iErrorRange/2 > abs(iDeltaX) and iErrorRange/2 > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
             self.P2P_I = 0
             return True
-        elif iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
+        elif iErrorRange/2 > abs(iDeltaX) and iErrorRange/2 > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
             chassis.RelTurn(iDeltaZ)
         else:
             self.P2P_I +=1
@@ -415,31 +421,19 @@ class Positions:
                 chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,Speed+self.P2P_I)
             else:
                 chassis.AbsMoveAngle(AimPos[2],90-iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+self.P2P_I)
-                # chassis.AbsMoveVetor(iDeltaX,iDeltaY,AimPos[2])
             return False
 
     def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):
-        iErrorRange = Settings.ExpectedVals.ErrorRange
         for i in Posistions:
             while (1):
-                iAimX = i[0]
-                iAimY = i[1]
-                iAimZ = i[2]
-                lLocal = self.LidarPos
-                iLocX = lLocal[0]
-                iLocY = lLocal[1]
-                iLocZ = lLocal[2]
-                iDeltaX = iAimX - iLocX
-                iDeltaY = iAimY - iLocY
-                iDeltaZ = iAimZ - iLocZ
-                if iErrorRange > abs(iDeltaX) and iErrorRange > abs(iDeltaY) and iErrorRange > abs(iDeltaZ):
+                if self.Pos2Pos(i):
                     if i == Posistions[-1]:
                         return True
                     else:
                         time.sleep(iWaitMs)
                         break
                 else:
-                    self.Pos2Pos(i)
+                    pass
 
     def Cover2Start(self):
         while 1:

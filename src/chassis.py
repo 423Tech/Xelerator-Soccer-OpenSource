@@ -44,8 +44,6 @@ class Car:
         '''
         a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
         '''
-        # SpeedY = - SpeedY
-        # SpeedX = - SpeedX
         Speed1 = SpeedX - SpeedY + SpeedZ
         Speed2 = SpeedX + SpeedY + SpeedZ
         Speed3 = SpeedX + SpeedY - SpeedZ
@@ -60,7 +58,7 @@ class Car:
         angle movement (FacingAngle,MovingAngle,speed) with YawCorrect
         '''
         Yaw = self.GetYaw()
-        rad = math.radians(MovingAngle+360-Yaw)
+        rad = math.radians(MovingAngle-Yaw)
         SpeedX = int(math.sin(rad) * Speed)
         SpeedY = int(math.cos(rad) * Speed)
         self.AbsMoveVetor(SpeedX,SpeedY,FacingAngle,Kp)
@@ -71,9 +69,10 @@ class Car:
         '''
         Yaw = self.GetYaw()
         # TODO change facing
-        FacingAngle = 360 - FacingAngle
+        # FacingAngle = 360 - FacingAngle
         Error = Yaw - FacingAngle
         Error = (Error + 180) % 360 - 180  # Normalize to [-180, 180]
+        self.logger.warning(Error)
         if not Kp:
             Kp = self.Kp
         SpeedZ = Error * Kp
