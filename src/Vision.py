@@ -100,21 +100,20 @@ class UnitedVision(Detect_Method):
                     CenterX, BottomY, ChassisWidth, ChassisHeight, Confidence = OutputBuffer[i]
                     CameraIndex = i
                     X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                    # X,Y = CenterX, BottomY
                     if i == 0:
-                        CX = X
+                        CX = -X
                         CY = Y
                     elif i == 1:
-                        CY = -X
                         CX = Y
-                    elif i == 2:
-                        CX = -X
-                        CY = -Y
-                    elif i == 3:
                         CY = X
+                    elif i == 2:
+                        CX = X
+                        CY = Y
+                    elif i == 3:
                         CX = -Y
+                        CY = -X
 
-                    ChassisTuple = (CY, -CX, ChassisWidth, ChassisHeight, Confidence)
+                    ChassisTuple = (CX, CY, ChassisWidth, ChassisHeight, Confidence)
                     # 20251118 already changed X forward,Y left dimension
                     
                     self.MergedChassisList.append(ChassisTuple)
@@ -150,7 +149,7 @@ class UnitedVision(Detect_Method):
 
                 # print(self.MergedChassisList)
                 except:
-                    pass
+                    continue
 
     def GetChassisPos(self):
         # 20251118 already changed X,Y dimension
@@ -165,8 +164,6 @@ class UnitedVision(Detect_Method):
                     CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
                     CameraIndex = i
                     X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                    X -= 15
-                    Y -= 15
                     if i == 0:
                         BX = -X
                         BY = Y
@@ -182,7 +179,7 @@ class UnitedVision(Detect_Method):
                     BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)
                     Balls.append(BallTuple)
                 except:
-                    pass
+                    continue
             if Balls:
                 Ball = Balls[0]
                 BX = Ball[0]
