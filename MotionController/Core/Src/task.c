@@ -10,20 +10,14 @@
 
 #define TASK_QUEUE_SIZE (8)
 
-struct task_type {
-  int code;
-  void *arr;
-};
-
 static volatile int read_idx = 0, write_idx = 0;
-static volatile struct task_type task_queue[TASK_QUEUE_SIZE];
+static volatile int task_queue[TASK_QUEUE_SIZE];
 
-void task_enqueue(int task_code, void *arr)
+void task_enqueue(int task_code)
 {
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
-	task_queue[write_idx].code = task_code;
-    task_queue[write_idx].arr = arr;
+	task_queue[write_idx] = task_code;
 	write_idx = (write_idx + 1) % TASK_QUEUE_SIZE;
 	__set_PRIMASK(primask);
 }
@@ -35,7 +29,7 @@ bool task_available(void)
 
 int task_consume(void)
 {
-    int result = task_queue[read_idx].code;
+    int result = task_queue[read_idx];
 	read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
 	return result;
 }

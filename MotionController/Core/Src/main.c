@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "dma.h"
 #include "spi.h"
 #include "tim.h"
@@ -26,7 +27,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stddef.h>
 #include <stdbool.h>
 #include "task.h"
 #include "delay.h"
@@ -114,13 +114,14 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM9_Init();
   MX_UART4_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   delay_init();
   protocol_start_receive_host();
   motor_init();
   kick_reset();
   bmi088_init_gyro();
-  beep(200);
+  beep(100);
   bmi088_calibrate_gyro_offset(3500, 500);
   /* motor_target_wheels_rpm[0] = 500; */
   /* USER CODE END 2 */
@@ -201,7 +202,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-		task_enqueue(TASK_UPDATE_WHEELS_PWM, NULL);
+		task_enqueue(TASK_UPDATE_WHEELS_PWM);
 		break;
 	default:
 		break;
@@ -227,7 +228,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
     case (uint32_t)SPI2:
     	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-    	task_enqueue(TASK_PROCESS_GYRO_ANGLE, NULL);
+    	task_enqueue(TASK_PROCESS_GYRO_ANGLE);
       break;
     default:
         break;
@@ -239,7 +240,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
 		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
-			task_enqueue(TASK_PROCESS_RECEIVED_FRAME, NULL);
+			task_enqueue(TASK_PROCESS_RECEIVED_FRAME);
 		break;
 	default:
 		break;

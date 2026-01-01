@@ -199,6 +199,9 @@ void SysTick_Handler(void)
     case DELAY_TASK_BEEP_RESET:
       beep_reset();
       break;
+    case DELAY_TASK_BEEP_CONTINUE:
+      beep_continue();
+      break;
     default:
       break;
     }
