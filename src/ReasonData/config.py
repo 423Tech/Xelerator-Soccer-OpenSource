@@ -177,7 +177,7 @@ class Prompts(object):
             self.ClsPos = [85,35,0]
             self.FarPos = [95,75,0]
             self.Short = 200
-            self.Long = 260
+            self.Long = 250
 
     class _checkpoints(object):
         def __init__(self):

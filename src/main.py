@@ -1,25 +1,35 @@
 from LunaPre import *
 
 Cache = False
+##BallX, BallY 获取[球]相对于[机器几何中心]的距离
 
 try:
-    while(1):
-        if Positions().Pos2Pos([0,0,0]):
-            break
-        else:
-            pass
-        # pass
-    while(1):
-    #     # Positions().Move2Path([[40,40,90],[40,-40,90],[-40,-40,90],[-40,40,90]],0.8)
-        print(Positions().Relative_Ball_Position())
-    #     # time.sleep(1)
-        # from BasicFuc import *    
-        # LockSeries().LockBallSlip()
-    #     # Positions().Pos2Pos([0,0,0])
-        # chassis.AbsMoveVetor(0,100,0)
-        # chassis.AbsTurn(90)
-        # print(chassis.GetYaw())
-        # chassis.SetMotor([0,0,0,0])
+    '''
+    ball = Positions().AbsBallDistance()
+    rob = Positions()._UpdateAbsRoboPosition()
+    XXX=ball[0]
+    YYY=ball[1]
+    XX=rob[0]
+    YY=rob[1]
+    '''
+    '''   
+    if(XXX<0 and YY>0):
+        chassis.AbsMoveVetor(XXX-10,YY-10,0)
+        chassis.AbsMoveVetor(XXX-10,YYY,0)
+        chassis.AbsMoveVetor(XXX,YYY,0)
+    '''
+
+        # print(rob[1])
+
+    # while(1):
+    #     chassis.AbsMoveVetor(20,0,0)
+    #     time.sleep(5)
+    #     chassis.AbsMoveVetor(0,-20,0)
+    #     time.sleep(5)
+    #     chassis.AbsMoveVetor(-20,0,0)
+    #     time.sleep(5)
+    #     chassis.AbsMoveVetor(-0,-20,0)
+    #     time.sleep(5)
 
 except Exception as e:
     raise e

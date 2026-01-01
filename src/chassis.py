@@ -7,7 +7,7 @@ class Car:
         self.SetMotorFunc = SetMotorFunc
         self.GetYaw = GetYaw
         self.MotorEncoder = MotorEncoder
-        self.Kp = 0.8
+        self.Kp = 1
         self.cfg = Settings
         if self.cfg.Debug.Database:
             from ReasonData.data import Outputs
@@ -20,7 +20,10 @@ class Car:
         number = [self.cfg.Ports.LeftFront,self.cfg.Ports.LeftBack,self.cfg.Ports.RightFront,self.cfg.Ports.RightBack]
         speed = [0,0,0,0]
         for n in number:
-            speed[n-1] = int(speedCache[n-1])
+            if speedCache[n-1] > self.cfg.ExpectedVals.MaxSpeedValue:
+                speed[n-1] = self.cfg.ExpectedVals.MaxSpeedValue
+            else:
+                speed[n-1] = int(speedCache[n-1])
         if self.cfg.Debug.FullLog:
             if self.MotorEncoder:
                 EncoderCache = self.MotorEncoder()
@@ -31,7 +34,7 @@ class Car:
                                    (speed[0], speed[1], speed[2], speed[3],Encoder)
                                    )
             else:
-                self.logger.debug("SetMotorVals: %s, %s, %s, %s" % (speed[0], speed[1], speed[2], speed[3]))
+                self.logger.debug("SetMotorVals: %s, %s, %s, %s" % (speed[0], speed[1], -speed[2], -speed[3]))
         self.SetMotorFunc(speed[0], speed[1], speed[2], speed[3])
     
     def SetKp(self,Kp):
@@ -44,12 +47,10 @@ class Car:
         '''
         a vector movement (SpeedX,SpeedY,SpeedZ) without YawCorrect
         '''
-        Speed1 = SpeedX - SpeedY + SpeedZ
-        Speed2 = SpeedX + SpeedY + SpeedZ
-        Speed3 = SpeedX + SpeedY - SpeedZ
-        Speed4 = SpeedX - SpeedY - SpeedZ
-        if self.cfg.Debug.FullLog:
-            self.DataBase.SetOutput(Speed1,Speed2,Speed3,Speed4)
+        Speed1 = SpeedX - SpeedY - SpeedZ
+        Speed2 = SpeedX + SpeedY - SpeedZ
+        Speed3 = SpeedX + SpeedY + SpeedZ
+        Speed4 = SpeedX - SpeedY + SpeedZ
         output = [Speed1, Speed2, Speed3, Speed4]
         self.SetMotor(output)
     
@@ -72,10 +73,16 @@ class Car:
         # FacingAngle = 360 - FacingAngle
         Error = Yaw - FacingAngle
         Error = -( (Error + 180) % 360 - 180 ) # Normalize to [-180, 180]
-        self.logger.warning(Error)
         if not Kp:
             Kp = self.Kp
         SpeedZ = Error * Kp
+        # rad = math.radians(Yaw)
+        SpeedX = int(SpeedX * math.cos(math.radians(Yaw))+SpeedY * math.sin(math.radians(Yaw)))
+        SpeedY = int(SpeedY * math.cos(math.radians(Yaw))+SpeedX * math.sin(math.radians(Yaw)))
+        self.logger.success(Yaw)
+        self.logger.warning(SpeedX)
+        self.logger.error(SpeedY)
+        
         self.RelMoveVetor(SpeedX, SpeedY, SpeedZ)
     
     def RelXMove(self,Angle,Speed):

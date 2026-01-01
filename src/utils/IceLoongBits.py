@@ -255,6 +255,20 @@ class IceLoongBits:
         # 发送握手命令0x04，
         resp = self.SendHexCommand("04", read_response=False)
         
+    def SetIO(self,port,status):
+        """设置IO口状态
+
+        Args:
+            port: IO口编号
+            status: IO口状态
+        """
+        if port == 3:
+            if status == 1:
+                pass
+            else:
+                self.Kick()
+
+
     def __enter__(self):
         self.OpenPort()
         return self

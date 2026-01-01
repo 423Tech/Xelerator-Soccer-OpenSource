@@ -293,6 +293,8 @@ class ArisuIntelligence:
                         BottomY = YMax
                         CenterX = int((XMin + XMax) / 2)
                         X,Y = self.Pixel2CM(CenterX, BottomY, i)
+                        X -= 15
+                        Y -= 15
                         if i == 0:
                             BX = -X
                             BY = Y
