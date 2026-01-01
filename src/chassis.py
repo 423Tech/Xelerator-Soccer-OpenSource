@@ -54,6 +54,15 @@ class Car:
         output = [Speed1, Speed2, Speed3, Speed4]
         self.SetMotor(output)
     
+    def RelMoveAngle(self,Angle,Speed,Kp:float|None = None):
+        '''
+        angle movement (Angle,Speed) without YawCorrect
+        '''
+        rad = math.radians(Angle)
+        SpeedX = int(math.sin(rad) * Speed)
+        SpeedY = int(math.cos(rad) * Speed)
+        self.RelMoveVetor(SpeedX,SpeedY,0,Kp)
+
     def AbsMoveAngle(self,FacingAngle,MovingAngle,Speed,Kp:float|None = None):
         '''
         angle movement (FacingAngle,MovingAngle,speed) with YawCorrect
@@ -76,14 +85,9 @@ class Car:
         if not Kp:
             Kp = self.Kp
         SpeedZ = Error * Kp
-        # rad = math.radians(Yaw)
-        SpeedX = int(SpeedX * math.cos(math.radians(Yaw))+SpeedY * math.sin(math.radians(Yaw)))
-        SpeedY = int(SpeedY * math.cos(math.radians(Yaw))+SpeedX * math.sin(math.radians(Yaw)))
-        self.logger.success(Yaw)
-        self.logger.warning(SpeedX)
-        self.logger.error(SpeedY)
-        
-        self.RelMoveVetor(SpeedX, SpeedY, SpeedZ)
+        WheelX = SpeedX * math.cos(math.radians(Yaw)) + SpeedY * math.sin(math.radians(Yaw))
+        WheelY = SpeedX * math.sin(math.radians(Yaw)) + SpeedY * math.cos(math.radians(Yaw))
+        self.RelMoveVetor(WheelX, WheelY, SpeedZ)
     
     def RelXMove(self,Angle,Speed):
         self.RelMoveVetor(90,Angle,Speed)
