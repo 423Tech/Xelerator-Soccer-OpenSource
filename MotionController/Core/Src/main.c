@@ -119,8 +119,8 @@ int main(void)
   kick_reset();
   bmi088_init_gyro();
   beep(100);
+  start_battery_voltage_monitoring();
   bmi088_calibrate_gyro_offset(3500, 500);
-  /* motor_target_wheels_rpm[0] = 500; */
   /* USER CODE END 2 */
 
   /* Infinite loop */
