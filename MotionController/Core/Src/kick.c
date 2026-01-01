@@ -7,7 +7,7 @@
 
 #include "gpio.h"
 #include "delay.h"
-#include "kick.h"
+#include "delay_task_code.h"
 
 void kick_reset(void)
 {

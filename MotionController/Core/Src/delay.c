@@ -20,7 +20,7 @@ struct delay_task {
 };
 
 static volatile struct delay_task delay_task_queue[DELAY_TASK_QUEUE_SIZE];
-volatile uint32_t sys_tick_count = 0;
+static volatile uint32_t sys_tick_count = 0;
 
 static int compare_delay_task(const void *a, const void *b)
 {
@@ -62,6 +62,11 @@ void delay_us(uint32_t us)
     uint32_t cycles = us * (SystemCoreClock / 1000000);
 
     while (DWT->CYCCNT - start < cycles);
+}
+
+void delay_add_sys_tick_count(void)
+{
+	sys_tick_count++;
 }
 
 void delay_task_enqueue(int delay_task_code, int32_t delay_ms)

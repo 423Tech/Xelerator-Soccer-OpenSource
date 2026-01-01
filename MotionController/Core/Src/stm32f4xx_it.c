@@ -22,9 +22,12 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "task.h"
+#include "task_code.h"
 #include "delay.h"
 #include "kick.h"
 #include "beep.h"
+#include "battery.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -191,22 +194,9 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-  if (delay_task_available()) {
-    switch(delay_task_consume()) {
-    case DELAY_TASK_KICK_RESET:
-      kick_reset();
-      break;
-    case DELAY_TASK_BEEP_RESET:
-      beep_reset();
-      break;
-    case DELAY_TASK_BEEP_CONTINUE:
-      beep_continue();
-      break;
-    default:
-      break;
-    }
-  }
-	sys_tick_count++;
+  if (delay_task_available())
+    task_enqueue(TASK_PROCESS_DELAY_TASK);
+	delay_add_sys_tick_count();
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */

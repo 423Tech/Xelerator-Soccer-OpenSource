@@ -27,24 +27,21 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
 #include "task.h"
+#include "task_code.h"
 #include "delay.h"
+#include "delay_task_code.h"
 #include "bmi088.h"
 #include "motor.h"
 #include "protocol.h"
 #include "kick.h"
 #include "beep.h"
+#include "battery.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-enum task_code {
-	TASK_NONE,
-	TASK_UPDATE_WHEELS_PWM,
-	TASK_PROCESS_GYRO_ANGLE,
-	TASK_PROCESS_RECEIVED_FRAME
-};
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -140,6 +137,24 @@ int main(void)
 	  	  case TASK_PROCESS_RECEIVED_FRAME:
 	  		  protocol_process_received_frame();
 		  	  break;
+        case TASK_PROCESS_DELAY_TASK:
+          switch(delay_task_consume()) {
+          case DELAY_TASK_KICK_RESET:
+            kick_reset();
+            break;
+          case DELAY_TASK_BEEP_RESET:
+            beep_reset();
+            break;
+          case DELAY_TASK_BEEP_CONTINUE:
+            beep_continue();
+            break;
+          case DELAY_TASK_BATTERY_VOLTAGE_MONITORING:
+            start_battery_voltage_monitoring();
+            break;
+          default:
+            break;
+          }
+          break;
 	  	  default:
 		  	  break;
 	  	  }

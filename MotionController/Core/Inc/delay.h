@@ -10,10 +10,9 @@
 
 #include <stdbool.h>
 
-extern volatile uint32_t sys_tick_count;
-
 void delay_init(void);
 void delay_us(uint32_t us);
+void delay_add_sys_tick_count(void);
 void delay_task_enqueue(int delay_task_code, int32_t delay_ms);
 bool delay_task_available(void);
 int delay_task_consume(void);

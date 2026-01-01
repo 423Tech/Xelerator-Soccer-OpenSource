@@ -8,6 +8,6 @@
 #ifndef INC_BATTERY_H_
 #define INC_BATTERY_H_
 
-#define DELAY_TASK_BATTERY_VOLTAGE_MONITORING (4)
+void start_battery_voltage_monitoring(void);
 
 #endif /* INC_BATTERY_H_ */

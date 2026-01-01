@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include "main.h"
 #include "delay.h"
+#include "delay_task_code.h"
 #include "beep.h"
 
 static int beep_cycles_count;
