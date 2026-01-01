@@ -191,7 +191,7 @@ void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
   if (delay_task_available()) {
-    switch(task_consume()) {
+    switch(delay_task_consume()) {
     case DELAY_TASK_KICK_RESET:
       kick_reset();
       break;

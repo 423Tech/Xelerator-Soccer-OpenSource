@@ -1,0 +1,3 @@
+../Core/Src/task.c:21:6:task_enqueue	4	static,ignoring_inline_asm
+../Core/Src/task.c:31:6:task_available	0	static
+../Core/Src/task.c:36:5:task_consume	0	static

@@ -33,6 +33,7 @@
 #include "bmi088.h"
 #include "motor.h"
 #include "protocol.h"
+#include "kick.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -116,6 +117,7 @@ int main(void)
   delay_init();
   protocol_start_receive_host();
   motor_init();
+  kick_reset();
   bmi088_init_gyro();
   bmi088_calibrate_gyro_offset(3500, 500);
   /* motor_target_wheels_rpm[0] = 500; */

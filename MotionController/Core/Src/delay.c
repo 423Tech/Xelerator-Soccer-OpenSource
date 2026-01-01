@@ -25,9 +25,9 @@ static int compare_delay_task(const void *a, const void *b)
 {
 	const struct delay_task *ta = a, *tb = b;
 	if (ta->active && tb->active)
-		return (int)(((int32_t)ta->start - (int32_t)tb->start) + ((int32_t)ta->delay - (int32_t)tb->delay));
+		return (int)(((int32_t)ta->start + (int32_t)ta->delay) - ((int32_t)tb->start + (int32_t)tb->delay));
 	else
-		return (int)ta->active - (int)tb->active;
+		return (int)tb->active - (int)ta->active;
 }
 
 static void delay_init_task_queue(void)
@@ -61,7 +61,7 @@ void delay_us(uint32_t us)
     while (DWT->CYCCNT - start < cycles);
 }
 
-void delay_task_enqueue(uint16_t delay_ms, int delay_task_code)
+void delay_task_enqueue(int delay_task_code, uint16_t delay_ms)
 {
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
@@ -69,7 +69,7 @@ void delay_task_enqueue(uint16_t delay_ms, int delay_task_code)
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].start = sys_tick_count;
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].delay = delay_ms;
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].code = delay_task_code;
-	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue), compare_delay_task);
+	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue[0]), compare_delay_task);
 	__set_PRIMASK(primask);
 }
 
