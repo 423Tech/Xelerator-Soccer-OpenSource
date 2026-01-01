@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "delay.h"
 #include "kick.h"
+#include "beep.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -194,6 +195,9 @@ void SysTick_Handler(void)
     switch(delay_task_consume()) {
     case DELAY_TASK_KICK_RESET:
       kick_reset();
+      break;
+    case DELAY_TASK_BEEP_RESET:
+      beep_reset();
       break;
     default:
       break;

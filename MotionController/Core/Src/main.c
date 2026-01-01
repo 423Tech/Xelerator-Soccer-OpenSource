@@ -34,6 +34,7 @@
 #include "motor.h"
 #include "protocol.h"
 #include "kick.h"
+#include "beep.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,6 +120,7 @@ int main(void)
   motor_init();
   kick_reset();
   bmi088_init_gyro();
+  beep(200);
   bmi088_calibrate_gyro_offset(3500, 500);
   /* motor_target_wheels_rpm[0] = 500; */
   /* USER CODE END 2 */
