@@ -1,4 +1,0 @@
-../Core/Src/pid.c:10:6:pid_init_context	0	static
-../Core/Src/pid.c:22:6:pid_set_gains	0	static
-../Core/Src/pid.c:29:6:pid_set_zero_deadband	0	static
-../Core/Src/pid.c:34:7:pid	0	static

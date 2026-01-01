@@ -1,2 +1,0 @@
-../Core/Src/motor.c:119:6:motor_init	2
-../Core/Src/motor.c:128:6:motor_update_wheels_pwm	14

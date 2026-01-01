@@ -7,13 +7,14 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include "main.h"
 
 #define DELAY_TASK_QUEUE_SIZE (8)
 
 struct delay_task {
-	uint16_t start;
-	uint16_t delay;
+	uint32_t start;
+	uint32_t delay;
 	int code;
 	bool active;
 };
@@ -24,10 +25,12 @@ volatile uint32_t sys_tick_count = 0;
 static int compare_delay_task(const void *a, const void *b)
 {
 	const struct delay_task *ta = a, *tb = b;
-	if (ta->active && tb->active)
-		return (int)(((int32_t)ta->start + (int32_t)ta->delay) - ((int32_t)tb->start + (int32_t)tb->delay));
+	if (ta->active && tb->active) {
+		int32_t diff = (int32_t)((ta->start - tb->start) + (ta->delay - tb->delay));
+		return (diff > 0) - (diff < 0);
+	}
 	else
-		return (int)tb->active - (int)ta->active;
+		return tb->active - ta->active;
 }
 
 static void delay_init_task_queue(void)
@@ -61,7 +64,7 @@ void delay_us(uint32_t us)
     while (DWT->CYCCNT - start < cycles);
 }
 
-void delay_task_enqueue(int delay_task_code, uint16_t delay_ms)
+void delay_task_enqueue(int delay_task_code, int32_t delay_ms)
 {
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
