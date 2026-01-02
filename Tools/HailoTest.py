@@ -36,7 +36,7 @@ def batch_inference_demo():
             print("VDevice 创建成功")
             
             # 创建推理模型
-            hef_path = '/xel/yolov11s.hef'
+            hef_path = './src/vision_utils/models/yolov8s.hef'
             infer_model = vdevice.create_infer_model(hef_path)
             print(f"模型加载成功: {hef_path}")
             

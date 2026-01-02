@@ -1,30 +1,9 @@
 #!/bin/bash
-
-# 备份原始 sources.list
-sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-
-# 写入新的清华源（仅保留 bookworm 稳定版）
-cat << 'EOF' | sudo tee /etc/apt/sources.list
-# Debian 12 (bookworm) - 清华大学镜像站
-deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware
-deb https://mirrors.tuna.tsinghua.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware
-
-# deb-src 行默认关闭，如需源码包请取消注释
-# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware
-# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware
-EOF
-
 # 更新 apt 缓存
 sudo apt clean
 sudo apt update
 
-echo "✅ 已成功切换为清华大学 Debian bookworm 源！"
-echo "📦 原始配置已备份至 /etc/apt/sources.list.bak"
-
 sudo apt update
-sudo apt install hailort-driver-dkms
 
 sudo apt install hailo-all -y
 
