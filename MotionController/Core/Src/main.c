@@ -120,7 +120,7 @@ int main(void)
   bmi088_init_gyro();
   beep(100);
   start_battery_voltage_monitoring();
-  bmi088_calibrate_gyro_offset(3500, 500);
+  delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -139,6 +139,9 @@ int main(void)
 		  	  break;
         case TASK_PROCESS_DELAY_TASK:
           switch(delay_task_consume()) {
+          case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
+            bmi088_calibrate_gyro_offset(3000);
+            break;
           case DELAY_TASK_KICK_RESET:
             kick_reset();
             break;
@@ -231,6 +234,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     case GPIO_PIN_8:
     	BMI088_CAPTURE_DRDY_TIMESTAMP();
     	bmi088_burst_read_gyro(0x02, 6);
+      break;
+    case GPIO_PIN_11:
+      if (!is_calibrating_gyro_offset)
+        delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500);
       break;
     default:
         break;

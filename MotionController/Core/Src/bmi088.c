@@ -19,7 +19,6 @@ static union {
 
 static int gyro_target_samples;
 static int gyro_calibrated_samples;
-static int gyro_target_skip_samples;
 static int32_t gyro_offset_sum[3];
 static float gyro_offset[3] = {0, 0, 0};
 bool is_calibrating_gyro_offset = false;
@@ -80,7 +79,7 @@ void bmi088_process_gyro_angle(void)
 	} else {
 		for (i = 0; i < 3; i++) {
 			int16_t raw = (int16_t)(rx_buff.v[2 * i + 2] << 8 | rx_buff.v[2 * i + 1]);
-			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples && gyro_calibrated_samples >= gyro_target_skip_samples)
+			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples)
 				gyro_offset_sum[i] += raw;
 			rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
 			bmi088_gyro_angle[i] += (last_rate[i] + rate[i]) * (float)(current_dwt_cycle - last_dwt_cycle) / (float)SystemCoreClock * 0.5f;
@@ -94,18 +93,20 @@ void bmi088_process_gyro_angle(void)
 		gyro_calibrated_samples++;
 	if (is_calibrating_gyro_offset && gyro_calibrated_samples == gyro_target_samples) {
 		for (i = 0; i < 3; i++) {
-			gyro_offset[i] = (float)gyro_offset_sum[i] / (float)(gyro_calibrated_samples - gyro_target_skip_samples);
+			gyro_offset[i] = (float)gyro_offset_sum[i] / (float)gyro_calibrated_samples;
 			bmi088_gyro_angle[i] = 0;
 		}
 		is_calibrating_gyro_offset = false;
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, GPIO_PIN_RESET);
 	}
 }
 
-void bmi088_calibrate_gyro_offset(int calibration_samples, int skip_first)
+void bmi088_calibrate_gyro_offset(int calibration_samples)
 {
 	gyro_calibrated_samples = 0;
 	memset((void *)gyro_offset_sum, 0, sizeof(gyro_offset_sum));
 	gyro_target_samples = calibration_samples;
-	gyro_target_skip_samples = skip_first;
 	is_calibrating_gyro_offset = true;
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, GPIO_PIN_SET);
+
 }

@@ -2,6 +2,7 @@
 "./Core/Src/battery.o"
 "./Core/Src/beep.o"
 "./Core/Src/bmi088.o"
+"./Core/Src/debug.o"
 "./Core/Src/delay.o"
 "./Core/Src/dma.o"
 "./Core/Src/gpio.o"
