@@ -6,4 +6,3 @@ pyserial==3.5
 ujson==5.11.0
 uvicorn==0.37.0
 gradio
-open3da

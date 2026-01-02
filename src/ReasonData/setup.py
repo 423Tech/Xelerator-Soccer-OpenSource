@@ -4,39 +4,8 @@ import json
 import time
 import os
 
-# try to import loguru for rich logging; if not available provide a minimal compatible fallback
-try:
-    from loguru import logger
-except Exception:
-    import logging
 
-    class _SimpleLogger:
-        def __init__(self):
-            self._logger = logging.getLogger("ReasonData")
-            self._logger.setLevel(logging.INFO)
-            if not self._logger.handlers:
-                sh = logging.StreamHandler()
-                sh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-                self._logger.addHandler(sh)
-
-        def add(self, file):
-            fh = logging.FileHandler(str(file))
-            fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-            self._logger.addHandler(fh)
-
-        def info(self, msg):
-            self._logger.info(msg)
-
-        def debug(self, msg):
-            self._logger.debug(msg)
-
-        def warning(self, msg):
-            self._logger.warning(msg)
-
-        def error(self, msg):
-            self._logger.error(msg)
-
-    logger = _SimpleLogger()
+from loguru import logger
 
 Date = time.strftime("%Y%m", time.localtime())
 APP_DIR = Path(__file__).parent
@@ -55,12 +24,12 @@ def AutoSetup():
         logger.info("create config.json")
     from .config import Preference
     Preference().__init__()
-    from .data import SetupDatabase
-    RoBotName = Preference().read("model","number")
-    DATABASE_FILE = DATA_DIR / f"Xel-{RoBotName}.{Date}.sqlite"
-    if not DATABASE_FILE.exists():
-        SetupDatabase()
-        logger.info("Database is created successfully!")
+    # from .data import SetupDatabase
+    # RoBotName = Preference().read("model","number")
+    # DATABASE_FILE = DATA_DIR / f"Xel-{RoBotName}.{Date}.sqlite"
+    # if not DATABASE_FILE.exists():
+    #     SetupDatabase()
+    #     logger.info("Database is created successfully!")
 
 
 AutoSetup()
