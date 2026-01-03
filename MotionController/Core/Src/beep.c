@@ -5,6 +5,7 @@
  *      Author: yehui
  */
 
+#include <stddef.h>
 #include <stdbool.h>
 #include "main.h"
 #include "delay.h"
@@ -20,14 +21,14 @@ static int continue_cycles;
 void beep(int ms)
 {
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-    delay_task_enqueue(DELAY_TASK_BEEP_RESET, ms);
+    delay_task_enqueue(DELAY_TASK_BEEP_RESET, ms, NULL);
 }
 
 void beep_reset(void)
 {
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
     if (continue_beep)
-        delay_task_enqueue(DELAY_TASK_BEEP_CONTINUE, continue_interval_ms);
+        delay_task_enqueue(DELAY_TASK_BEEP_CONTINUE, continue_interval_ms, NULL);
 }
 
 void beep_continue(void)

@@ -5,6 +5,7 @@
  *      Author: yehui
  */
 
+#include <stddef.h>
 #include <stdbool.h>
 #include "main.h"
 #include "adc.h"
@@ -12,7 +13,7 @@
 #include "delay_task_code.h"
 #include "beep.h"
 
-#define BATTERY_VOLTAGE_LOW_THRESHOLD (10.0f)
+#define BATTERY_VOLTAGE_LOW_THRESHOLD (10.5f)
 #define ADC_VREF (3.3f)
 #define ADC_RESOLUTIOON (4095.0f)
 #define VOLTAGE_DIVIDER_RATIO ((100.0f + 10.0f) / 10.0f)
@@ -68,5 +69,5 @@ void start_battery_voltage_monitoring(void)
 			beep_stop_cycle();
 		alarm_last_state = alarm;
 	}
-	delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 1000);
+	delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 1000, NULL);
 }

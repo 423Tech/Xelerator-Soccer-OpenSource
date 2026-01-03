@@ -27,6 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stddef.h>
 #include "task.h"
 #include "task_code.h"
 #include "delay.h"
@@ -120,14 +121,15 @@ int main(void)
   bmi088_init_gyro();
   beep(100);
   start_battery_voltage_monitoring();
-  delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500);
+  delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)3000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
 	  if (task_available()) {
-		  switch (task_consume()) {
+      void *arg;
+		  switch (task_consume(&arg)) {
 	  	  case TASK_UPDATE_WHEELS_PWM:
 		  	  motor_update_wheels_pwm();
 		  	  break;
@@ -138,9 +140,9 @@ int main(void)
 	  		  protocol_process_received_frame();
 		  	  break;
         case TASK_PROCESS_DELAY_TASK:
-          switch(delay_task_consume()) {
+          switch(delay_task_consume(&arg)) {
           case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
-            bmi088_calibrate_gyro_offset(3000);
+            bmi088_calibrate_gyro_offset((int)arg);
             break;
           case DELAY_TASK_KICK_RESET:
             kick_reset();
@@ -220,7 +222,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-		task_enqueue(TASK_UPDATE_WHEELS_PWM);
+		task_enqueue(TASK_UPDATE_WHEELS_PWM, NULL);
 		break;
 	default:
 		break;
@@ -237,7 +239,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       break;
     case GPIO_PIN_11:
       if (!is_calibrating_gyro_offset)
-        delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500);
+        delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)3000);
       break;
     default:
         break;
@@ -250,7 +252,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     {
     case (uint32_t)SPI2:
     	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-    	task_enqueue(TASK_PROCESS_GYRO_ANGLE);
+    	task_enqueue(TASK_PROCESS_GYRO_ANGLE, NULL);
       break;
     default:
         break;
@@ -262,7 +264,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
 		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
-			task_enqueue(TASK_PROCESS_RECEIVED_FRAME);
+			task_enqueue(TASK_PROCESS_RECEIVED_FRAME, NULL);
 		break;
 	default:
 		break;

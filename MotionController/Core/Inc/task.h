@@ -10,8 +10,8 @@
 
 #include <stdbool.h>
 
-void task_enqueue(int task_code);
+void task_enqueue(int task_code, void *arg);
 bool task_available(void);
-int task_consume(void);
+int task_consume(void **get_arg);
 
 #endif /* INC_TASK_H_ */

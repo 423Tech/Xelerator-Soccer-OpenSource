@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stddef.h>
 #include "task.h"
 #include "task_code.h"
 #include "delay.h"
@@ -195,7 +196,7 @@ void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
   if (delay_task_available())
-    task_enqueue(TASK_PROCESS_DELAY_TASK);
+    task_enqueue(TASK_PROCESS_DELAY_TASK, NULL);
 	delay_add_sys_tick_count();
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();

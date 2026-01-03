@@ -13,8 +13,8 @@
 void delay_init(void);
 void delay_us(uint32_t us);
 void delay_add_sys_tick_count(void);
-void delay_task_enqueue(int delay_task_code, int32_t delay_ms);
+void delay_task_enqueue(int delay_task_code, int32_t delay_ms, void *arg);
 bool delay_task_available(void);
-int delay_task_consume(void);
+int delay_task_consume(void **get_arg);
 
 #endif /* INC_DELAY_H_ */

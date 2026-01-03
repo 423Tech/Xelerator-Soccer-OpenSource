@@ -6,8 +6,8 @@
  */
 
 #include <stdarg.h>
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 #include "main.h"
 #include "usart.h"
 

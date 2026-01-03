@@ -13,6 +13,7 @@
 #define DELAY_TASK_QUEUE_SIZE (8)
 
 struct delay_task {
+	void *arg;
 	uint32_t start;
 	uint32_t delay;
 	int code;
@@ -69,7 +70,7 @@ void delay_add_sys_tick_count(void)
 	sys_tick_count++;
 }
 
-void delay_task_enqueue(int delay_task_code, int32_t delay_ms)
+void delay_task_enqueue(int delay_task_code, int32_t delay_ms, void *arg)
 {
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
@@ -77,6 +78,7 @@ void delay_task_enqueue(int delay_task_code, int32_t delay_ms)
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].start = sys_tick_count;
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].delay = delay_ms;
 	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].code = delay_task_code;
+	delay_task_queue[DELAY_TASK_QUEUE_SIZE - 1].arg = arg;
 	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue[0]), compare_delay_task);
 	__set_PRIMASK(primask);
 }
@@ -86,9 +88,10 @@ bool delay_task_available(void)
 	return delay_task_queue[0].active && sys_tick_count - delay_task_queue[0].start >= delay_task_queue[0].delay;
 }
 
-int delay_task_consume(void)
+int delay_task_consume(void **get_arg)
 {
 	int result = delay_task_queue[0].code;
+	*get_arg = delay_task_queue[0].arg;
 	delay_task_queue[0].active = false;
 	qsort((void *)delay_task_queue, DELAY_TASK_QUEUE_SIZE, sizeof(delay_task_queue[0]), compare_delay_task);
 	return result;
