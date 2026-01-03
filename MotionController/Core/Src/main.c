@@ -38,6 +38,7 @@
 #include "kick.h"
 #include "beep.h"
 #include "battery.h"
+#include "button.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -121,7 +122,7 @@ int main(void)
   bmi088_init_gyro();
   beep(100);
   start_battery_voltage_monitoring();
-  delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)3000);
+  delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,7 +143,7 @@ int main(void)
         case TASK_PROCESS_DELAY_TASK:
           switch(delay_task_consume(&arg)) {
           case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
-            bmi088_calibrate_gyro_offset((int)arg);
+            bmi088_calibrate_gyro_offset((int)(uintptr_t)arg);
             break;
           case DELAY_TASK_KICK_RESET:
             kick_reset();
@@ -155,6 +156,9 @@ int main(void)
             break;
           case DELAY_TASK_BATTERY_VOLTAGE_MONITORING:
             start_battery_voltage_monitoring();
+            break;
+          case DELAY_TASK_BUTTON_DEBOUNCE_END:
+            button_debounce_end((uint16_t)(uintptr_t)arg);
             break;
           default:
             break;
@@ -238,8 +242,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     	bmi088_burst_read_gyro(0x02, 6);
       break;
     case GPIO_PIN_11:
-      if (!is_calibrating_gyro_offset)
-        delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)3000);
+      if (button_get_event(GPIOE, GPIO_PIN_11) == BUTTON_EVENT_RISING_EDGE) {
+        HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, GPIO_PIN_RESET);
+        delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
+      }
       break;
     default:
         break;

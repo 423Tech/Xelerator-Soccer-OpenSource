@@ -108,5 +108,4 @@ void bmi088_calibrate_gyro_offset(int calibration_samples)
 	gyro_target_samples = calibration_samples;
 	is_calibrating_gyro_offset = true;
 	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, GPIO_PIN_SET);
-
 }
