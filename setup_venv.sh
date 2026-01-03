@@ -50,7 +50,7 @@ fi
 echo "🔧 安装hailo8环境..."
 sudo apt install linux-headers-$(uname -r) linux-modules-extra-$(uname -r) build-essential dkms
 sudo dpkg -i hailort-pcie-driver_4.23.0_all.deb
-sudo apt install ./hailort_4.23.0_arm64.deb
+sudo dpkg -i hailort_4.23.0_arm64.deb
 sudo apt --fix-broken install
 
 echo "🔧 创建新的虚拟环境..."
