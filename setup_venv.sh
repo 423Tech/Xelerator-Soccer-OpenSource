@@ -1,11 +1,42 @@
 #!/bin/bash
-# 更新 apt 缓存
+set -e  # 遇错退出
+
+echo "🚀 正在检测系统..."
+if ! lsb_release -d | grep -q "Ubuntu 24.04"; then
+    echo "⚠️  警告：此脚本仅适用于 Ubuntu 24.04 LTS。"
+    echo "当前系统：$(lsb_release -d)"
+    read -p "是否继续？(y/N): " confirm
+    [[ "${confirm,,}" != "y" ]] && exit 1
+fi
+
+ARCH=$(dpkg --print-architecture)
+if [[ "$ARCH" != "arm64" ]]; then
+    echo "⚠️  警告：检测到非 ARM64 架构（$ARCH），但将继续使用 ubuntu-ports。"
+fi
+
+echo "💾 正在备份原始 sources.list 到 /etc/apt/sources.list.bak ..."
+sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+
+echo "📝 正在写入清华大学镜像源..."
+cat > /tmp/sources.list.tsinghua <<EOF
+# Ubuntu 24.04 LTS (Noble Numbat) - 清华大学开源软件镜像站 (ARM64/Raspberry Pi)
+# https://mirrors.tuna.tsinghua.edu.cn/help/ubuntu-ports/
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-security main restricted universe multiverse
+EOF
+
+sudo mv /tmp/sources.list.tsinghua /etc/apt/sources.list
+
+echo "🧹 清理旧缓存并更新软件源..."
 sudo apt clean
 sudo apt update
 
-sudo apt update
-
-sudo apt install hailo-all -y
+echo ""
+echo "✅ 操作完成！APT 源已成功切换为清华大学镜像。"
+echo "💡 提示：如需恢复原配置，请运行："
+echo "   sudo cp /etc/apt/sources.list.bak /etc/apt/sources.list"
 
 # === 6. 重建虚拟环境 ===
 PROJECT_DIR="$HOME/Xelerator-Soccer-OpenSource"
@@ -16,8 +47,15 @@ if [ -d "$VENV_DIR" ]; then
     mv "$VENV_DIR" "$VENV_DIR.bak_$(date +%Y%m%d_%H%M%S)"
 fi
 
+echo "🔧 安装hailo8环境..."
+sudo apt install linux-headers-$(uname -r) linux-modules-extra-$(uname -r) build-essential dkms
+sudo dpkg -i hailort-pcie-driver_4.23.0_all.deb
+sudo apt install ./hailort_4.23.0_arm64.deb
+sudo apt --fix-broken install
+
 echo "🔧 创建新的虚拟环境..."
-python -m venv "$VENV_DIR" --system-site-packages
+sudo apt install python3.12-venv
+python3 -m venv "$VENV_DIR" --system-site-packages
 
 # 激活新环境
 source "$VENV_DIR/bin/activate"
@@ -107,3 +145,5 @@ echo ""
 echo "💡 请重新打开终端，或运行：source ~/.bashrc"
 echo "然后进入项目目录：cd ~/Xelerator-Soccer-OpenSource && source venv/bin/activate"
 
+echo "🔧 安装hailo8环境..."
+wget http://fishros.com/install -O fishros && . fishros
