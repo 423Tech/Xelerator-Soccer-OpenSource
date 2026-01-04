@@ -161,19 +161,20 @@ class UnitedVision(Detect_Method):
             Balls = []
             for i in range(4):
                 try:
-                    CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
-                    CameraIndex = i
+                    CameraIndex, CenterX, BottomY, BallWidth, BallHeight, Confidence = OutputBuffer[i]
                     X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
-                    if i == 0:
+                    X -= 15
+                    Y -= 15
+                    if CameraIndex == 0:
                         BX = -X
                         BY = Y
-                    elif i == 1:
+                    elif CameraIndex == 1:
                         BX = Y
                         BY = X
-                    elif i == 2:
+                    elif CameraIndex == 2:
                         BX = X
                         BY = Y
-                    elif i == 3:
+                    elif CameraIndex == 3:
                         BX = -Y
                         BY = -X
                     BallTuple = (BX, BY, BallWidth, BallHeight, Confidence)

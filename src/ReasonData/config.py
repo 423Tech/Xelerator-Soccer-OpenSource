@@ -31,16 +31,16 @@ class Preference:
                 "RoboInfo": {
                     "number" : 1,
                     "type": "OP", # OffencePlayer/DefencePlayer
-                    "Bit" : "AB", # AB(Arisu Bits)/QB (3Q Bits RPI)/ 3Q (3Q Bits) .etc
+                    "Bit" : "IL", # AB(Arisu Bits)/IL (IceLoong Bits)/ 3Q (3Q Bits) .etc
                     "Rec" : "AI", # AI(Arisu Intelligence)/TV(Tuna Vision)/BB(Blob Based)
-                    "LidarType": "s2", # "s1" or "s2" to select lidar launch file
+                    "LidarType": "s1", # "s1" or "s2" to select lidar launch file
                 },
                 "Ports": {
                     "LowTigger" : 0, 
                     "ReferPort": 1,
                     "ElecMagnet" : 3,
                     "Dribble" : 4,
-                    "LidarID": 99,
+                    "LidarID": 88,
                     "LeftFront" : 1,
                     "LeftBack" : 2,
                     "RightFront" : 3,
@@ -88,8 +88,8 @@ class Preference:
                     "PWD" : "MisakaNetwork20001/",
                 },
                 "Debug": {
-                    "FullLog": True,
-                    "Database": True,
+                    "FullLog": False,
+                    "Database": False,
                 }
             }
         try:
@@ -144,7 +144,7 @@ class Prompts(object):
         def __init__(self):
             self.number = 0
             self.type = 'OP'
-            self.Bit = 'AB'
+            self.Bit = 'IL'
             self.Rec = 'AI'
             self.LidarType = 's1'  # default lidar type: 's1' or 's2'
 
@@ -177,7 +177,7 @@ class Prompts(object):
             self.ClsPos = [85,35,0]
             self.FarPos = [95,75,0]
             self.Short = 200
-            self.Long = 260
+            self.Long = 250
 
     class _checkpoints(object):
         def __init__(self):
@@ -210,8 +210,8 @@ class Prompts(object):
 
     class _debug(object):
         def __init__(self):
-            self.FullLog = True
-            self.Database = True
+            self.FullLog = False
+            self.Database = False
 
     def __init__(self):
         self.RoboInfo = self._roboinfo()

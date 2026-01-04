@@ -40,7 +40,7 @@ def linear_map(value, input_range, output_range):
     return mapped_value
 
 def ChasingBall():
-    iBX,iBY = Positions().AbsBallPos()
+    iBX,iBY = Positions().Relative_Ball_Position()
     Compass = chassis.GetYaw()
     Angle = (math.degrees(math.atan2(iBX, iBY)) + 360) % 360
     AbsAngle = Angle + Compass
@@ -54,13 +54,14 @@ class LockSeries:
         self.D_time = 0
 
     def Lockballangle(self):#贝尔巴托夫转身
-        iBX,iBY = Positions().AbsBallPos()#获取球的位置
+        # iBX,iBY = Positions().AbsBallPos()#获取球的位置
         #  = lBallPos[0],lBallPos[1]#将球的位置赋值给iBX和iBY
         
         # Compass = chassis.GetYaw()#获取机器人的航向
-        Angle = (math.degrees(math.atan2(iBX, iBY))) % 360
+        # Angle = (math.degrees(math.atan2(iBX, iBY))) % 360
+        Angle = Positions().AbsBallAngle()
         # Fangle = -(Angle - Compass)
-        # logger.debug("Ball Angle: %f" % Fangle)
+        logger.debug("Ball Angle: %f" % Angle)
         chassis.AbsTurn(Angle)
 
     def Lockballmove(self):
@@ -77,7 +78,7 @@ class LockSeries:
         elif [iBX,iBY] == [0xddd,0xddd]:
             chassis.stop()
             self.D_time = 0
-            return
+            return True
         else:
             Compass = compass()
             Angle = ((math.degrees(math.atan2(iBY, iBX))) % 360)

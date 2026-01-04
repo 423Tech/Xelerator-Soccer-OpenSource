@@ -246,6 +246,29 @@ class IceLoongBits:
         # self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
         self.UpdateYaw()
 
+    def Kick(self):
+        """弹射踢球
+        
+        发送: 0x04
+        不需要等待回复。
+        """
+        # 发送握手命令0x04，
+        resp = self.SendHexCommand("04", read_response=False)
+        
+    def SetIO(self,port,status):
+        """设置IO口状态
+
+        Args:
+            port: IO口编号
+            status: IO口状态
+        """
+        if port == 3:
+            if status == 1:
+                pass
+            else:
+                self.Kick()
+
+
     def __enter__(self):
         self.OpenPort()
         return self
