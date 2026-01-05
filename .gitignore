@@ -188,3 +188,5 @@ resource/*
 ROS_Nodes/*
 src/ROS2_Nodes/*
 AB/
+
+./py_result.jpg
