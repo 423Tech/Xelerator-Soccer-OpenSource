@@ -1,7 +1,9 @@
 from . import setup
 from .config import Preference, Settings
-from .data import Positions, Date
+# from .data import Positions, Date
 
+import time
+Date = time.strftime("%Y%m", time.localtime())
 __version__ = '0.2.0'
 # ReasonData 0.2.0(20250722A) Updated Preference instead QKjson
 try:
