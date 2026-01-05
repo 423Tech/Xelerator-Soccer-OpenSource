@@ -55,6 +55,10 @@ if ! grep -q "$SWAP_FILE" /etc/fstab; then
     echo "💾 已将交换文件添加到 /etc/fstab（开机自动启用）"
 fi
 
+sudo apt install -y zram-config
+echo "ALGO=zstd" | sudo tee -a /etc/default/zramswap
+sudo systemctl restart zramswap
+
 # 可选：调整 swappiness（默认 60，建议 Pi 上设为 10~30 减少 SD 卡写入）
 CURRENT_SWAPPINESS=$(cat /proc/sys/vm/swappiness)
 if [ "$CURRENT_SWAPPINESS" -gt 30 ]; then
