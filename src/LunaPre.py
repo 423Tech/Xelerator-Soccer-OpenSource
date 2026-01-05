@@ -52,7 +52,7 @@ class Positions:
         self.LidarScale = 10
         self.BoundsScale = 1
         # Values for timer
-        self.WaitTime = 1.8
+        self.WaitTime = 2.5
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
@@ -134,6 +134,7 @@ class Positions:
             time.sleep(self.WaitTime) # wait 1 second for starting lidar
             if self.WarnedLidarCount >= cfg.ExpectedVals.MaxWarnCount:
                 logger.error("No Lidar Data Recieved! Please Check Lidar Modules!")
+                lidar.stop()
                 raise RuntimeError("No Lidar Data Recieved! Please Check Lidar Modules!")
             return [0xfff,0xfff,0xfff,0xfff]
         else:
@@ -408,7 +409,7 @@ class Positions:
         # else:
         #     iDeltaZ = (abs(iAimZ) - abs(iLocZ))
         iErrorRange = Settings.ExpectedVals.ErrorRange
-        iMovedAngle = (int(math.degrees(math.atan2(iDeltaY,iDeltaX))))
+        iMovedAngle = (int(math.degrees(math.atan2(iDeltaY,iDeltaX))))%360
         if iErrorRange/2 > abs(iDeltaX) and iErrorRange/2 > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
             self.P2P_I = 0
@@ -418,14 +419,15 @@ class Positions:
         else:
             self.P2P_I +=1
             if Speed:
-                chassis.AbsMoveAngle(AimPos[2],iMovedAngle,Speed+self.P2P_I)
+                chassis.AbsMoveAngle(AimPos[2],iMovedAngle,Speed)
                 # pass
             else:
-                # pass
-                # chassis.AbsMoveAngle(AimPos[2],iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+self.P2P_I)
+                # time.sleep(0.5)
+                # chassis.stop()
+                # chassis.AbsMoveAngle(AimPos[2],iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))/3)+self.P2P_I)
                 chassis.AbsMoveVetor(iDeltaX,iDeltaY,iAimZ)
-            print(iDeltaX,iDeltaY,iAimZ)
-            print(iMovedAngle)
+            # print(AimPos[2],iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+self.P2P_I)
+            # print(iMovedAngle)
             return False
 
     def Move2Path(self,Posistions:list[list[int,int,int],list[int,int,int]],iWaitMs:int,A2O:bool | None = False):

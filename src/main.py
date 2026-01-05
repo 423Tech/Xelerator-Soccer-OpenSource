@@ -1,7 +1,13 @@
-from LunaPre import *
+# from LunaPre import *
 
 Cache = False
 ##BallX, BallY 获取[球]相对于[机器几何中心]的距离
+# p =Positions()
+from utils.IceLoongBits import IceLoongBits
+from chassis import Car, Peripherals, Key # Universal-Movement-Standard
+
+Bits = IceLoongBits()
+chassis = Car(Bits.SetWheelSpeed,Bits.GetYaw)
 
 try:
     '''
@@ -20,11 +26,10 @@ try:
     '''
 
         # print(rob[1])
-
-    # while(1):
-    #     chassis.AbsMoveVetor(20,0,0)
+    while(1):
+        chassis.AbsMoveAngle(0,0,-100)
     #     time.sleep(5)
-    #     chassis.AbsMoveVetor(0,-20,0)
+        # chassis.AbsMoveVetor(0,-20,0)
     #     time.sleep(5)
     #     chassis.AbsMoveVetor(-20,0,0)
     #     time.sleep(5)
@@ -35,4 +40,4 @@ except Exception as e:
     raise e
 finally:
     chassis.stop()
-    lidar.stop()
+    # lidar.stop()

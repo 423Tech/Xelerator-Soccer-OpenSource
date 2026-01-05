@@ -165,6 +165,7 @@ class UnitedVision(Detect_Method):
                     X,Y = self.Pixel2CM(CenterX, BottomY, CameraIndex)
                     X -= 15
                     Y -= 15
+                    # X = int(1.50117*X-5.10171)
                     if CameraIndex == 0:
                         BX = -X
                         BY = Y

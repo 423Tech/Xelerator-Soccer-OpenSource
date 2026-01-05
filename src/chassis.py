@@ -68,9 +68,9 @@ class Car:
         angle movement (FacingAngle,MovingAngle,speed) with YawCorrect
         '''
         Yaw = self.GetYaw()
-        rad = math.radians(MovingAngle-Yaw)
-        SpeedX = int(math.sin(rad) * Speed)
-        SpeedY = int(math.cos(rad) * Speed)
+        rad = math.radians((MovingAngle-Yaw+FacingAngle))
+        SpeedX = int(math.cos(rad) * Speed)
+        SpeedY = int(math.sin(rad) * Speed)
         self.AbsMoveVetor(SpeedX,SpeedY,FacingAngle,Kp)
         
     def AbsMoveVetor(self,SpeedX,SpeedY,FacingAngle,Kp:float|None = None):

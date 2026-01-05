@@ -38,6 +38,11 @@ echo "✅ 操作完成！APT 源已成功切换为清华大学镜像。"
 echo "💡 提示：如需恢复原配置，请运行："
 echo "   sudo cp /etc/apt/sources.list.bak /etc/apt/sources.list"
 
+sudo apt-get update
+sudo apt-get install libgl1-mesa-glx
+# Or use the following for newer Ubuntu versions if the above fails
+sudo apt-get install libgl1 libglx-mesa0
+
 # === 6. 重建虚拟环境 ===
 PROJECT_DIR="$HOME/Xelerator-Soccer-OpenSource"
 VENV_DIR="$PROJECT_DIR/venv"
