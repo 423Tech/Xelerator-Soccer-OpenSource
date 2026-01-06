@@ -54,7 +54,7 @@ static void init_pid_context(void)
 	int i;
 	for (i = 0; i < 4; i++) {
 		pid_init_context(&pid_context_wheels[i]);
-		pid_set_gains(&pid_context_wheels[i], 100, 10, 5);
+		pid_set_gains(&pid_context_wheels[i], 100, 10, 1);
 		pid_set_zero_deadband(&pid_context_wheels[i], 1);
 	}
 }
