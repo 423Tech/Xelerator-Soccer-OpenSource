@@ -5,4 +5,5 @@ pyserial==3.5
 ujson==5.11.0
 uvicorn==0.37.0
 gradio
-./hailort-4.23.0-cp312-cp312-linux_aarch64.whl
+simple_pid
+# ./hailort-4.23.0-cp312-cp312-linux_aarch64.whl

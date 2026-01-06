@@ -2,6 +2,7 @@
 import struct
 import time
 from typing import Optional, Tuple, List
+import threading
 
 from loguru import logger
 from pathlib import Path
@@ -35,7 +36,11 @@ class IceLoongBits:
         self.Yaw =  0.0
         # 串口句柄（运行时为 serial.Serial 实例），这里不在类型注解中引用 serial 变量以避免 lint 问题
         self.ser = None
+        self.LockSerial = False
         self.logger = logger
+        self.GetYawThread = threading.Thread(self.UpdateYaw)
+        self.GetYawThread.daemon(True)
+        self.GetYawThread.start()
 
     def OpenPort(self) -> None:
         """打开串口（如果尚未打开）。"""
@@ -93,9 +98,11 @@ class IceLoongBits:
             pass
         data.hex()
         # self.logger.info("发送: "+)
-        self.ser.write(data)
+        self.LockSerial = True
         time.sleep(0.001)
+        self.ser.write(data)
         self.ser.flush()
+        self.LockSerial = False
 
         if not read_response:
             return b""
@@ -160,7 +167,7 @@ class IceLoongBits:
         # self.logger.info("获取航向: "+ str(self.Yaw))
         return self.Yaw
 
-    def UpdateYaw(self):
+    def _UpdateYaw(self):
         """向 F407 请求航向（Yaw），并解析为 float 和时间戳。
 
         发送: 0x02
@@ -210,6 +217,16 @@ class IceLoongBits:
             self.logger.error("解析数据失败: %s，原始数据: %s", e, resp.hex())
             self.Yaw =  0.0
 
+    def UpdateYaw(self):
+        while(1):
+            if not self.LockSerial:
+                self.Yaw = self._UpdateYaw()
+                time.sleep(0.001)
+            else:
+                time.sleep(0.001)
+                continue
+
+
     def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
         """设置四个轮子的转速。
         
@@ -244,7 +261,6 @@ class IceLoongBits:
         
         # 记录调试信息
         # self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
-        self.UpdateYaw()
 
     def Kick(self):
         """弹射踢球

@@ -11,6 +11,14 @@ cfg = Settings
 from Vision import UnitedVision
 vision = UnitedVision()
 
+from simple_pid import PID
+PositionP = 3
+PositionI = 0.1
+PositionD = 0.05
+Pid_controller_1 = PID(PositionP, PositionI, PositionD, setpoint=1)
+Pid_controller_2 = PID(PositionP, PositionI, PositionD, setpoint=1)
+Pid_controller_3 = PID(PositionP, PositionI, PositionD, setpoint=1)
+
 from Sensor import Lidar
 from chassis import Car, Peripherals, Key # Universal-Movement-Standard
 if cfg.RoboInfo.Bit == "AB":
@@ -25,11 +33,12 @@ if cfg.RoboInfo.Bit == "AB":
     logger.info("Arisu Bit loaded.")
 elif cfg.RoboInfo.Bit == "IL":
     from utils.IceLoongBits import IceLoongBits
-    Bits = IceLoongBits()
+    Bits = IceLoongBits(port=Settings.Ports.IceLoongPort)
     lidar = Lidar(Bits.GetYaw)
     peripheral = Peripherals(Bits.SetIO) #TODO
     chassis = Car(Bits.SetWheelSpeed,Bits.GetYaw)
     compass = Bits.GetYaw
+    key = Key(Bits.GetKey)
     # Odometer = Bits.Odometer #TODO add odometer support
     logger.info("IceLoongBits Bit loaded.")
 # elif cfg.RoboInfo.Bit == "3Q":
@@ -39,6 +48,8 @@ elif cfg.RoboInfo.Bit == "IL":
 else:
     logger.error("None Bit Model Fetched.")
     raise ImportError("None Bits Model Set.")
+
+Beta_Func = False
 
 class Positions:
     def __init__(self):
@@ -56,8 +67,6 @@ class Positions:
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
-        self.P2P_I = 0
-
     class Calculate:
         def Local2Angle(lAimPos:list[int,int]) -> int:
             '''
@@ -65,7 +74,7 @@ class Positions:
             '''
             iAimX = lAimPos[0]
             iAimY = lAimPos[1]
-            iLocX,iLocY = Positions._UpdateAbsRoboPosition()[0]
+            iLocX,iLocY,_ = Positions().AbsRoboPosition()
             iDeltaX = iAimX - iLocX
             iDeltaY = iAimY - iLocY
             try:
@@ -146,7 +155,7 @@ class Positions:
         logger.debug("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         return self.BoundsDistance
 
-    def _UpdateAbsRoboPosition(self,lower:bool|None = False):
+    def AbsRoboPosition(self,lower:bool|None = False):
         '''
         Get the [Absolute] Position of the Robot
         获取[机器人几何中心]相对于[场地几何中心]的位置 [x_forward,y_left,yaw]
@@ -187,9 +196,6 @@ class Positions:
             pass
         return self.LidarPos
 
-    def AbsRoboPosition(self):
-        return self.LidarPos
-
     def AbsChassisPos(self):
         '''
         获取[对方机器人]相对于[场地几何中心]的位置 [[x_forward,y_left],[x_forward,y_left],[x_forward,y_left]]
@@ -204,7 +210,7 @@ class Positions:
         '''
         # 20251017 already changed X,Y dimension
         ChassisRawList = vision.GetChassisPos()
-        SelfX,SelfY,SelfZ = self._UpdateAbsRoboPosition()
+        SelfX,SelfY,SelfZ = self.AbsRoboPosition()
         OutputDistanceList = []
         for c in ChassisRawList:
             cDistance = math.sqrt(c[0]**2 + c[1]**2)
@@ -269,7 +275,7 @@ class Positions:
             `0xddd` stand for `CatchBall`
         '''
         BallX, BallY = self.Relative_Ball_Position()
-        x, y, _ = self._UpdateAbsRoboPosition()
+        x, y, _ = self.AbsRoboPosition()
         if [BallX, BallY] == [0xfff,0xfff]:
             self.BallDistance = 0xfff
         elif [BallX, BallY] == [0xddd,0xddd]:
@@ -297,7 +303,7 @@ class Positions:
         if [ballX,ballY] == cfg.ExpectedVals.CatchVal:
             return [0xddd,0xddd]
         else:
-            SelfX,SelfY,SelfZ = self._UpdateAbsRoboPosition()
+            SelfX,SelfY,SelfZ = self.AbsRoboPosition()
             ballDistance = math.sqrt(ballX**2 + ballY**2)
             if ballY == 0:
                 ballRltAngle = 0
@@ -356,26 +362,13 @@ class Positions:
                 OutputAngles.append(int(ChassisAngleCache))
         return OutputAngles
 
-
-    def MoveToPosition(self, Position: list[int, int, int], Kp: float | None = None):
-        selfPosition = self._UpdateAbsRoboPosition()
-        dX = Position[0] - selfPosition[0]
-        dY = Position[1] - selfPosition[1]
-        dW = Position[2] - selfPosition[2]
-
-        if abs(dX) < 5 and abs(dY) < 5 and abs(dW) < 5:
-            chassis.stop()
-            return [0, 0, 0]  # 已经到达目标位置
-        else:
-            chassis.AbsMoveVetor(dX, dY, dW)
-
     def Pos2Pos(self,AimPos:list, Speed:int | None = None) -> int:
         '''
         iFacingAngle 移动时面对的方向 0~360
         lAimPos 目标坐标位置 如[0,0] 距离越近速度越小
         # TODO 调整PID
         '''
-        iLocX,iLocY,iLocZ = self._UpdateAbsRoboPosition()
+        iLocX,iLocY,iLocZ = self.AbsRoboPosition()
         if (iLocX,iLocY,iLocZ) == (0xfff,0xfff,0xfff):
             chassis.stop()
             return False
@@ -404,20 +397,14 @@ class Positions:
                 iAimY = (RestrictedY - 3)*kY
         except:
             iAimX,iAimY,iAimZ = AimPos
-        # if iLocZ > 180:
-        #     iDeltaZ = 360 - abs(iAimZ) - abs(iLocZ)
-        # else:
-        #     iDeltaZ = (abs(iAimZ) - abs(iLocZ))
         iErrorRange = Settings.ExpectedVals.ErrorRange
         iMovedAngle = (int(math.degrees(math.atan2(iDeltaY,iDeltaX))))%360
         if iErrorRange/2 > abs(iDeltaX) and iErrorRange/2 > abs(iDeltaY) and abs(iErrorRange) > iDeltaZ:
             chassis.stop()
-            self.P2P_I = 0
             return True
         elif iErrorRange/2 > abs(iDeltaX) and iErrorRange/2 > abs(iDeltaY) and not abs(iErrorRange) > abs(iDeltaZ):
             chassis.AbsTurn(iAimZ)
         else:
-            self.P2P_I +=1
             if Speed:
                 chassis.AbsMoveAngle(AimPos[2],iMovedAngle,Speed)
                 # pass
@@ -425,7 +412,13 @@ class Positions:
                 # time.sleep(0.5)
                 # chassis.stop()
                 # chassis.AbsMoveAngle(AimPos[2],iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))/3)+self.P2P_I)
-                chassis.AbsMoveVetor(iDeltaX,iDeltaY,iAimZ)
+                if Beta_Func:
+                    Pid_X = Pid_controller_1(iLocX)
+                    Pid_Y = Pid_controller_1(iLocY)
+                    Pid_Z = Pid_controller_1(iLocZ)
+                    chassis.AbsMoveVetor(Pid_X,Pid_Y,Pid_Z)
+                else:
+                    chassis.AbsMoveVetor(iDeltaX,iDeltaY,iAimZ)
             # print(AimPos[2],iMovedAngle,int((abs(iDeltaX)+abs(iDeltaY))*2.5)+self.P2P_I)
             # print(iMovedAngle)
             return False
@@ -451,6 +444,9 @@ class Positions:
 
     def referee2Start(self):
         pass
+
+UnitedPosition = Positions()
+
 
 class Communication:
     def __init__(self):
@@ -487,7 +483,7 @@ class Communication:
         ### use `Sendstatus()` instead
         '''
         while (1):
-            SelfPosition = Positions.UpdateAbsRoboPosition()
+            SelfPosition = Positions.AbsRoboPosition()
             try:
                 # make sure all the values are integer
                 ball_self = int(self.BallFlag[0]) if isinstance(self.BallFlag[0], (int, float, str)) else 0
@@ -569,5 +565,3 @@ class Communication:
         else:
             pass
 
-
-UnitedPosition = Positions()

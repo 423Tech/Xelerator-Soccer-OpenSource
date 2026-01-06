@@ -2,7 +2,7 @@
 
 Cache = False
 ##BallX, BallY 获取[球]相对于[机器几何中心]的距离
-# p =Positions()
+# p =UnitedPosition
 from utils.IceLoongBits import IceLoongBits
 from chassis import Car, Peripherals, Key # Universal-Movement-Standard
 
@@ -11,8 +11,8 @@ chassis = Car(Bits.SetWheelSpeed,Bits.GetYaw)
 
 try:
     '''
-    ball = Positions().AbsBallDistance()
-    rob = Positions()._UpdateAbsRoboPosition()
+    ball = UnitedPosition.AbsBallDistance()
+    rob = UnitedPosition._UpdateAbsRoboPosition()
     XXX=ball[0]
     YYY=ball[1]
     XX=rob[0]

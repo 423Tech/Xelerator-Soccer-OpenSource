@@ -95,10 +95,10 @@ class Car:
     def RelYMove(self,Angle,Speed,Kp=None):
         self.RelMoveVetor(0,Angle,Speed,Kp)
 
-    def AbsTurn(self,Angle,Kp=None):
+    def AbsTurn(self,Angle):
         if self.GetYaw is None:
             return False
-        self.AbsMoveAngle(Angle,0,0,Kp)
+        self.AbsMoveVetor(0,0,Angle)
 
     def RelTurn(self,Speed): #自转
         self.RelMoveVetor(0,0,Speed)
@@ -109,6 +109,7 @@ class Car:
             if not abs(Error) < 5:
                 self.AbsMoveVetor(0,0,Angle)
             else:
+                self.stop()
                 break
             time.sleep(0.03)
             

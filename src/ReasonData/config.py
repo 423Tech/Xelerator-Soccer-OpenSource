@@ -36,11 +36,12 @@ class Preference:
                     "LidarType": "s1", # "s1" or "s2" to select lidar launch file
                 },
                 "Ports": {
+                    "LidarID": 88,
+                    "IceLoongPort": '/dev/ttyUSB0',
                     "LowTigger" : 0, 
                     "ReferPort": 1,
                     "ElecMagnet" : 3,
                     "Dribble" : 4,
-                    "LidarID": 88,
                     "LeftFront" : 1,
                     "LeftBack" : 2,
                     "RightFront" : 3,
@@ -151,6 +152,7 @@ class Prompts(object):
     class _ports(object):
         def __init__(self):
             self.LowTigger = 0
+            self.IceLoongPort = '/dev/ttyUSB0'
             self.ReferPort = 1
             self.ElecMagnet = 3
             self.Dribble = 4
