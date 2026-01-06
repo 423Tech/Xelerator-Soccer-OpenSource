@@ -21,7 +21,7 @@ class IceLoongBits:
     方法命名使用大驼峰（PascalCase）。
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 921600, timeout: float = 0.02):
+    def __init__(self, port: str = "/dev/ttyUSB1", baudrate: int = 921600, timeout: float = 0.02):
         """初始化串口参数（不自动打开）。
 
         Args:

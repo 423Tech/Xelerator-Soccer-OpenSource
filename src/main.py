@@ -27,7 +27,7 @@ try:
 
         # print(rob[1])
     while(1):
-        chassis.AbsMoveAngle(0,0,-100)
+        chassis.AbsMoveAngle(0,0,100)
     #     time.sleep(5)
         # chassis.AbsMoveVetor(0,-20,0)
     #     time.sleep(5)

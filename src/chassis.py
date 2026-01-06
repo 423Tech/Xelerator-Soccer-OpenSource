@@ -103,17 +103,11 @@ class Car:
     def RelTurn(self,Speed): #自转
         self.RelMoveVetor(0,0,Speed)
     
-    def TurnTo(self,Angle,AimSpeed,Kp=None):
+    def TurnTo(self,Angle,Kp=None):
         while True:
             Error = self.GetYaw() - Angle
-            Error = (Error + 180) % 360 - 180
-
-            Speed = AimSpeed
-            
-            if Error < -5:
-                self.RelTurn(Speed)
-            elif Error > 5:
-                self.RelTurn(-Speed)
+            if not abs(Error) < 5:
+                self.AbsMoveVetor(0,0,Angle)
             else:
                 break
             time.sleep(0.03)

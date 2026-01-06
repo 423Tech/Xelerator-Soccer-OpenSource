@@ -568,3 +568,6 @@ class Communication:
             self.PeerStatus()
         else:
             pass
+
+
+UnitedPosition = Positions()
