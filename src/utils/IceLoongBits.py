@@ -39,7 +39,7 @@ class IceLoongBits:
         self.LockSerial = False
         self.logger = logger
         self.GetYawThread = threading.Thread(target=self.UpdateYaw)
-        self.GetYawThread.daemon(True)
+        self.GetYawThread.daemon = True
         self.GetYawThread.start()
 
     def OpenPort(self) -> None:
