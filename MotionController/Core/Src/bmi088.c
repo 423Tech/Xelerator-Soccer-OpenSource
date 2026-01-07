@@ -12,10 +12,8 @@
 
 #define TX_RX_BUFF_SIZE (6 + 1)
 
-static union {
-	uint8_t n[TX_RX_BUFF_SIZE];
-	volatile uint8_t v[TX_RX_BUFF_SIZE];
-} tx_buff, rx_buff;
+uint8_t tx_buff[TX_RX_BUFF_SIZE];
+uint8_t rx_buff[TX_RX_BUFF_SIZE];
 
 static int gyro_target_samples;
 static int gyro_calibrated_samples;
@@ -28,20 +26,20 @@ float bmi088_gyro_angle[3] = {0, 0, 0};
 
 static void bmi088_write_gyro(uint8_t reg, uint8_t data)
 {
-	tx_buff.n[0] = reg & 0x7F;
-	tx_buff.n[1] = data;
+	tx_buff[0] = reg & 0x7F;
+	tx_buff[1] = data;
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi2, tx_buff.n, 2, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(&hspi2, tx_buff, 2, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
 	delay_us(2);
 }
 
 void bmi088_burst_read_gyro(uint8_t reg, int size)
 {
-	tx_buff.n[0] = reg | 0x80;
-	memset(tx_buff.n + 1, 0xFF, size);
+	tx_buff[0] = reg | 0x80;
+	memset(tx_buff + 1, 0xFF, size);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buff.n, rx_buff.n, size + 1);
+	HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buff, rx_buff, size + 1);
 }
 
 void bmi088_init_gyro(void)
@@ -72,13 +70,13 @@ void bmi088_process_gyro_angle(void)
 
 	if (is_first_call) {
 		for (i = 0; i < 3; i++) {
-			int16_t raw = (int16_t)(rx_buff.v[2 * i + 2] << 8 | rx_buff.v[2 * i + 1]);
+			int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
 			last_rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
 		}
 		is_first_call = false;
 	} else {
 		for (i = 0; i < 3; i++) {
-			int16_t raw = (int16_t)(rx_buff.v[2 * i + 2] << 8 | rx_buff.v[2 * i + 1]);
+			int16_t raw = (int16_t)(rx_buff[2 * i + 2] << 8 | rx_buff[2 * i + 1]);
 			if (is_calibrating_gyro_offset && gyro_calibrated_samples < gyro_target_samples)
 				gyro_offset_sum[i] += raw;
 			rate[i] = ((float)raw - gyro_offset[i]) * (2000.0f / 32767.0f);
