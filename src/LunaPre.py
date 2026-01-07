@@ -38,7 +38,7 @@ elif cfg.RoboInfo.Bit == "IL":
     peripheral = Peripherals(Bits.SetIO) #TODO
     chassis = Car(Bits.SetWheelSpeed,Bits.GetYaw)
     compass = Bits.GetYaw
-    key = Key(Bits.GetKey)
+    # key = Key(Bits.GetKey)
     # Odometer = Bits.Odometer #TODO add odometer support
     logger.info("IceLoongBits Bit loaded.")
 # elif cfg.RoboInfo.Bit == "3Q":
