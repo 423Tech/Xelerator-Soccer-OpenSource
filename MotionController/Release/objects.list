@@ -7,6 +7,7 @@
 "./Core/Src/debug.o"
 "./Core/Src/delay.o"
 "./Core/Src/dma.o"
+"./Core/Src/dribble.o"
 "./Core/Src/gpio.o"
 "./Core/Src/kick.o"
 "./Core/Src/main.o"

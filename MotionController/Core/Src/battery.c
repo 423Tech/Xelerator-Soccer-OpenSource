@@ -13,42 +13,46 @@
 #include "delay_task_code.h"
 #include "beep.h"
 
-#define BATTERY_VOLTAGE_LOW_THRESHOLD (10.5f)
-#define ADC_VREF (3.3f)
-#define ADC_RESOLUTIOON (4095.0f)
+#define BATTERY_NOMINAL_VOLTAGE_V (11.1f)
+#define BATTERY_VOLTAGE_LOW_THRESHOLD_V (10.5f)
+#define ADC_VREF_V (3.3f)
+#define ADC_RESOLUTION (4095.0f)
 #define VOLTAGE_DIVIDER_RATIO ((100.0f + 10.0f) / 10.0f)
 
-static float get_battery_voltage(void)
-{
-	HAL_ADC_Start(&hadc1);
-	HAL_ADC_PollForConversion(&hadc1, 1);
-	HAL_ADC_Stop(&hadc1);
-	return (float)HAL_ADC_GetValue(&hadc1) * (ADC_VREF / ADC_RESOLUTIOON) * VOLTAGE_DIVIDER_RATIO;
-}
-
-static float get_average_battery_voltage(int samples)
+static float get_battery_voltage(int sample_count)
 {
 	int i;
-	float sum = 0;
-	for (i = 0; i < samples; i++)
-		sum += get_battery_voltage();
-	return sum / samples;
+	uint32_t sum = 0;
+	HAL_ADC_Start(&hadc1);
+	for (i = 0; i < sample_count; i++) {
+		HAL_ADC_Start(&hadc1);
+        HAL_ADC_PollForConversion(&hadc1, 1);
+        sum += HAL_ADC_GetValue(&hadc1);
+	}
+	HAL_ADC_Stop(&hadc1);
+	return (float)sum / sample_count * (ADC_VREF_V / ADC_RESOLUTION) * VOLTAGE_DIVIDER_RATIO;
 }
 
 void start_battery_voltage_monitoring(void)
 {
 	int i;
-	bool alarm = false;
-	static bool alarm_last_state = false;
-	static float recent_voltage[3] = {12.0f, 12.0f, 12.0f};
+	static bool alarm = false;
+	bool alarm_last_state = alarm;
+	static float recent_voltage[] = {
+		BATTERY_NOMINAL_VOLTAGE_V, 
+		BATTERY_NOMINAL_VOLTAGE_V, 
+		BATTERY_NOMINAL_VOLTAGE_V, 
+		BATTERY_NOMINAL_VOLTAGE_V, 
+		BATTERY_NOMINAL_VOLTAGE_V
+	};
 	static int voltage_ptr = 0;
 	static const int  recent_voltage_size = (sizeof(recent_voltage) / sizeof(recent_voltage[0]));
-	recent_voltage[voltage_ptr] = get_average_battery_voltage(10);
+	recent_voltage[voltage_ptr] = get_battery_voltage(10);
 	voltage_ptr = (voltage_ptr + 1) % recent_voltage_size;
 	if (alarm) {
 		alarm = false;
 		for(i = 0; i < recent_voltage_size; i++) {
-			if (recent_voltage[i] < BATTERY_VOLTAGE_LOW_THRESHOLD) {
+			if (recent_voltage[i] < BATTERY_VOLTAGE_LOW_THRESHOLD_V) {
 				alarm = true;
 				break;
 			}
@@ -56,7 +60,7 @@ void start_battery_voltage_monitoring(void)
 	} else {
 		alarm = true;
 		for (i = 0; i < recent_voltage_size; i++) {
-			if (recent_voltage[i] >= BATTERY_VOLTAGE_LOW_THRESHOLD) {
+			if (recent_voltage[i] >= BATTERY_VOLTAGE_LOW_THRESHOLD_V) {
 				alarm = false;
 				break;
 			}
@@ -67,7 +71,6 @@ void start_battery_voltage_monitoring(void)
 			beep_cycle(100, 100, BEEP_CYCLES_INFINITE);
 		else
 			beep_stop_cycle();
-		alarm_last_state = alarm;
 	}
 	delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 1000, NULL);
 }
