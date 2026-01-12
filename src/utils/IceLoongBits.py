@@ -22,7 +22,7 @@ class IceLoongBits:
     方法命名使用大驼峰（PascalCase）。
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB1", baudrate: int = 921600, timeout: float = 0.02):
+    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 921600, timeout: float = 0.02):
         """初始化串口参数（不自动打开）。
 
         Args:
@@ -184,7 +184,7 @@ class IceLoongBits:
 
         # 检查响应长度
         if len(resp) < resp_len:
-            self.logger.warning("响应长度不足，期望"+ resp_len + "字节，实际收到"+ len(resp) +"字节")
+            self.logger.warning("响应长度不足，期望"+ str(resp_len) + "字节，实际收到"+ str(len(resp)) +"字节")
             self.Yaw =  0.0
 
         # 检查响应头
@@ -220,10 +220,10 @@ class IceLoongBits:
     def UpdateYaw(self):
         while(1):
             if not self.LockSerial:
-                self.Yaw = self._UpdateYaw()
-                time.sleep(0.001)
+                self._UpdateYaw()
+                time.sleep(0.002)
             else:
-                time.sleep(0.001)
+                time.sleep(0.01)
                 continue
 
 
