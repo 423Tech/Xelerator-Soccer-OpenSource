@@ -39,7 +39,6 @@ echo "💡 提示：如需恢复原配置，请运行："
 echo "   sudo cp /etc/apt/sources.list.bak /etc/apt/sources.list"
 
 sudo apt-get update
-sudo apt-get install libgl1-mesa-glx
 # Or use the following for newer Ubuntu versions if the above fails
 sudo apt-get install libgl1 libglx-mesa0
 
