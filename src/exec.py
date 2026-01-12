@@ -3,7 +3,8 @@ from LunaPre import *
 try:
     
         # #Put ins
-        # rob = UnitedPosition._UpdateAbsRoboPosition()
+        while(1):
+            rob = UnitedPosition.AbsRoboPosition()
         # print(rob)
         # chassis.stop()
         # UnitedPosition.Move2Path([[-60,80,0],[50,50,0]],1)
@@ -18,7 +19,7 @@ try:
         #     else:
         #         print(ccc)
         #         continue
-        peripheral.ShootBall()
+        # peripheral.ShootBall()
         
 
 except Exception as e:
