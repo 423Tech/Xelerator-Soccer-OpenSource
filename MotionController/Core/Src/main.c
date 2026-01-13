@@ -128,7 +128,6 @@ int main(void)
   delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
   __HAL_TIM_SET_COUNTER(&htim6, 0);
 	HAL_TIM_Base_Start_IT(&htim6);
-  dribble_speed_level = 1;
   /* USER CODE END 2 */
 
   /* Infinite loop */
