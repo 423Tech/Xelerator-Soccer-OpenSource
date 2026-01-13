@@ -1,0 +1,6 @@
+../Core/Src/protocol.c:22:6:protocol_start_receive_host	8	static
+../Core/Src/protocol.c:28:13:process_handshake	24	static
+../Core/Src/protocol.c:36:13:process_get_bmi088_data	24	static
+../Core/Src/protocol.c:45:13:process_set_wheels_speed	24	static
+../Core/Src/protocol.c:53:13:process_kick	24	static
+../Core/Src/protocol.c:62:6:protocol_process_received_frame	24	static

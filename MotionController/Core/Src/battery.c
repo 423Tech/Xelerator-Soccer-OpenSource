@@ -12,25 +12,16 @@
 #include "delay.h"
 #include "delay_task_code.h"
 #include "beep.h"
+#include "voltage.h"
 
 #define BATTERY_NOMINAL_VOLTAGE_V (11.1f)
 #define BATTERY_VOLTAGE_LOW_THRESHOLD_V (10.5f)
-#define ADC_VREF_V (3.3f)
-#define ADC_RESOLUTION (4095.0f)
 #define VOLTAGE_DIVIDER_RATIO ((100.0f + 10.0f) / 10.0f)
 
 static float get_battery_voltage(int sample_count)
 {
-	int i;
-	uint32_t sum = 0;
-	HAL_ADC_Start(&hadc1);
-	for (i = 0; i < sample_count; i++) {
-		HAL_ADC_Start(&hadc1);
-        HAL_ADC_PollForConversion(&hadc1, 1);
-        sum += HAL_ADC_GetValue(&hadc1);
-	}
-	HAL_ADC_Stop(&hadc1);
-	return (float)sum / sample_count * (ADC_VREF_V / ADC_RESOLUTION) * VOLTAGE_DIVIDER_RATIO;
+	float raw = voltage_get_v(&hadc1, sample_count);
+	return raw * VOLTAGE_DIVIDER_RATIO;
 }
 
 void start_battery_voltage_monitoring(void)

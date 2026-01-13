@@ -9,7 +9,7 @@
 #include <string.h>
 #include "usart.h"
 #include "bmi088.h"
-#include "motor.h"
+#include "wheel.h"
 #include "kick.h"
 
 #define TX_MAX_LEN (32)
@@ -45,9 +45,9 @@ static void process_get_bmi088_data(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, 
 static void process_set_wheels_speed(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
 {
 	(void)tx;
-	memcpy(motor_target_wheels_rpm, rx + 1, sizeof(motor_target_wheels_rpm));
+	memcpy(wheel_target_speed_rpm, rx + 1, sizeof(wheel_target_speed_rpm));
 	*end_tx += 1;
-	*end_rx += 1 + sizeof(motor_target_wheels_rpm);
+	*end_rx += 1 + sizeof(wheel_target_speed_rpm);
 }
 
 static void process_kick(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)

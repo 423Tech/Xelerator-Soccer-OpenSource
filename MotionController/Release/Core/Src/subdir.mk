@@ -18,7 +18,6 @@ C_SRCS += \
 ../Core/Src/gpio.c \
 ../Core/Src/kick.c \
 ../Core/Src/main.c \
-../Core/Src/motor.c \
 ../Core/Src/pid.c \
 ../Core/Src/protocol.c \
 ../Core/Src/spi.c \
@@ -29,7 +28,9 @@ C_SRCS += \
 ../Core/Src/system_stm32f4xx.c \
 ../Core/Src/task.c \
 ../Core/Src/tim.c \
-../Core/Src/usart.c 
+../Core/Src/usart.c \
+../Core/Src/voltage.c \
+../Core/Src/wheel.c 
 
 OBJS += \
 ./Core/Src/adc.o \
@@ -45,7 +46,6 @@ OBJS += \
 ./Core/Src/gpio.o \
 ./Core/Src/kick.o \
 ./Core/Src/main.o \
-./Core/Src/motor.o \
 ./Core/Src/pid.o \
 ./Core/Src/protocol.o \
 ./Core/Src/spi.o \
@@ -56,7 +56,9 @@ OBJS += \
 ./Core/Src/system_stm32f4xx.o \
 ./Core/Src/task.o \
 ./Core/Src/tim.o \
-./Core/Src/usart.o 
+./Core/Src/usart.o \
+./Core/Src/voltage.o \
+./Core/Src/wheel.o 
 
 C_DEPS += \
 ./Core/Src/adc.d \
@@ -72,7 +74,6 @@ C_DEPS += \
 ./Core/Src/gpio.d \
 ./Core/Src/kick.d \
 ./Core/Src/main.d \
-./Core/Src/motor.d \
 ./Core/Src/pid.d \
 ./Core/Src/protocol.d \
 ./Core/Src/spi.d \
@@ -83,7 +84,9 @@ C_DEPS += \
 ./Core/Src/system_stm32f4xx.d \
 ./Core/Src/task.d \
 ./Core/Src/tim.d \
-./Core/Src/usart.d 
+./Core/Src/usart.d \
+./Core/Src/voltage.d \
+./Core/Src/wheel.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -93,7 +96,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/adc.cyclo ./Core/Src/adc.d ./Core/Src/adc.o ./Core/Src/adc.su ./Core/Src/attitude.cyclo ./Core/Src/attitude.d ./Core/Src/attitude.o ./Core/Src/attitude.su ./Core/Src/battery.cyclo ./Core/Src/battery.d ./Core/Src/battery.o ./Core/Src/battery.su ./Core/Src/beep.cyclo ./Core/Src/beep.d ./Core/Src/beep.o ./Core/Src/beep.su ./Core/Src/bmi088.cyclo ./Core/Src/bmi088.d ./Core/Src/bmi088.o ./Core/Src/bmi088.su ./Core/Src/button.cyclo ./Core/Src/button.d ./Core/Src/button.o ./Core/Src/button.su ./Core/Src/debug.cyclo ./Core/Src/debug.d ./Core/Src/debug.o ./Core/Src/debug.su ./Core/Src/delay.cyclo ./Core/Src/delay.d ./Core/Src/delay.o ./Core/Src/delay.su ./Core/Src/dma.cyclo ./Core/Src/dma.d ./Core/Src/dma.o ./Core/Src/dma.su ./Core/Src/dribble.cyclo ./Core/Src/dribble.d ./Core/Src/dribble.o ./Core/Src/dribble.su ./Core/Src/gpio.cyclo ./Core/Src/gpio.d ./Core/Src/gpio.o ./Core/Src/gpio.su ./Core/Src/kick.cyclo ./Core/Src/kick.d ./Core/Src/kick.o ./Core/Src/kick.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/motor.cyclo ./Core/Src/motor.d ./Core/Src/motor.o ./Core/Src/motor.su ./Core/Src/pid.cyclo ./Core/Src/pid.d ./Core/Src/pid.o ./Core/Src/pid.su ./Core/Src/protocol.cyclo ./Core/Src/protocol.d ./Core/Src/protocol.o ./Core/Src/protocol.su ./Core/Src/spi.cyclo ./Core/Src/spi.d ./Core/Src/spi.o ./Core/Src/spi.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su ./Core/Src/task.cyclo ./Core/Src/task.d ./Core/Src/task.o ./Core/Src/task.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su ./Core/Src/usart.cyclo ./Core/Src/usart.d ./Core/Src/usart.o ./Core/Src/usart.su
+	-$(RM) ./Core/Src/adc.cyclo ./Core/Src/adc.d ./Core/Src/adc.o ./Core/Src/adc.su ./Core/Src/attitude.cyclo ./Core/Src/attitude.d ./Core/Src/attitude.o ./Core/Src/attitude.su ./Core/Src/battery.cyclo ./Core/Src/battery.d ./Core/Src/battery.o ./Core/Src/battery.su ./Core/Src/beep.cyclo ./Core/Src/beep.d ./Core/Src/beep.o ./Core/Src/beep.su ./Core/Src/bmi088.cyclo ./Core/Src/bmi088.d ./Core/Src/bmi088.o ./Core/Src/bmi088.su ./Core/Src/button.cyclo ./Core/Src/button.d ./Core/Src/button.o ./Core/Src/button.su ./Core/Src/debug.cyclo ./Core/Src/debug.d ./Core/Src/debug.o ./Core/Src/debug.su ./Core/Src/delay.cyclo ./Core/Src/delay.d ./Core/Src/delay.o ./Core/Src/delay.su ./Core/Src/dma.cyclo ./Core/Src/dma.d ./Core/Src/dma.o ./Core/Src/dma.su ./Core/Src/dribble.cyclo ./Core/Src/dribble.d ./Core/Src/dribble.o ./Core/Src/dribble.su ./Core/Src/gpio.cyclo ./Core/Src/gpio.d ./Core/Src/gpio.o ./Core/Src/gpio.su ./Core/Src/kick.cyclo ./Core/Src/kick.d ./Core/Src/kick.o ./Core/Src/kick.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/pid.cyclo ./Core/Src/pid.d ./Core/Src/pid.o ./Core/Src/pid.su ./Core/Src/protocol.cyclo ./Core/Src/protocol.d ./Core/Src/protocol.o ./Core/Src/protocol.su ./Core/Src/spi.cyclo ./Core/Src/spi.d ./Core/Src/spi.o ./Core/Src/spi.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su ./Core/Src/task.cyclo ./Core/Src/task.d ./Core/Src/task.o ./Core/Src/task.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su ./Core/Src/usart.cyclo ./Core/Src/usart.d ./Core/Src/usart.o ./Core/Src/usart.su ./Core/Src/voltage.cyclo ./Core/Src/voltage.d ./Core/Src/voltage.o ./Core/Src/voltage.su ./Core/Src/wheel.cyclo ./Core/Src/wheel.d ./Core/Src/wheel.o ./Core/Src/wheel.su
 
 .PHONY: clean-Core-2f-Src
 

@@ -33,7 +33,8 @@
 #include "delay.h"
 #include "delay_task_code.h"
 #include "bmi088.h"
-#include "motor.h"
+#include "wheel.h"
+#include "dribble.h"
 #include "protocol.h"
 #include "kick.h"
 #include "beep.h"
@@ -118,12 +119,16 @@ int main(void)
   /* USER CODE BEGIN 2 */
   delay_init();
   protocol_start_receive_host();
-  motor_init();
+  wheel_init();
+  dribble_init();
   kick_reset();
   bmi088_init_gyro();
   beep(100);
   start_battery_voltage_monitoring();
   delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
+  __HAL_TIM_SET_COUNTER(&htim6, 0);
+	HAL_TIM_Base_Start_IT(&htim6);
+  dribble_speed_level = 1;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -132,8 +137,9 @@ int main(void)
 	  if (task_available()) {
       void *arg;
 		  switch (task_consume(&arg)) {
-	  	  case TASK_UPDATE_WHEELS_PWM:
-		  	  motor_update_wheels_pwm();
+	  	  case TASK_UPDATE_PWM:
+		  	  wheel_update_pwm();
+		  	  dribble_update_pwm();
 		  	  break;
 	  	  case TASK_PROCESS_GYRO_ANGLE:
 		  	  bmi088_process_gyro_angle();
@@ -227,7 +233,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	switch ((uint32_t)htim->Instance) {
 	case (uint32_t)TIM6:
-		task_enqueue(TASK_UPDATE_WHEELS_PWM, NULL);
+		task_enqueue(TASK_UPDATE_PWM, NULL);
 		break;
 	default:
 		break;
