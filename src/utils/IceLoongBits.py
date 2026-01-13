@@ -268,7 +268,7 @@ class IceLoongBits:
         发送: 0x04
         不需要等待回复。
         """
-        # 发送握手命令0x04，
+        # 发送弹射踢球命令0x04，
         resp = self.SendHexCommand("04", read_response=False)
         
     def SetIO(self,port,status):
