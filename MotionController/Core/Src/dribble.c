@@ -10,9 +10,9 @@
 int dribble_speed_level = 0;
 
 uint16_t speed_tabe[] = {
-    0,
+	0,
 	21000,
-    42000
+	42000
 };
 
 static void start_all_pwm_channels(void)
@@ -28,10 +28,10 @@ static void set_pwm(uint16_t pwm)
 
 void dribble_init(void)
 {
-    start_all_pwm_channels();
+	start_all_pwm_channels();
 }
 
 void dribble_update_pwm(void)
 {
-    set_pwm(speed_tabe[dribble_speed_level]);
+	set_pwm(speed_tabe[dribble_speed_level]);
 }

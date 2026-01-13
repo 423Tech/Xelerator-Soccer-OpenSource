@@ -64,6 +64,7 @@ void protocol_process_received_frame(void)
 	uint8_t *tx_buff_ptr = tx_buff;
 	uint8_t *rx_buff_ptr = rx_buff[current_rx_buff_idx];
 	bool is_processing_composite_cmd = false;
+	protocol_start_receive_host();
 	do {
 		tx_buff_ptr[0] = rx_buff_ptr[0] | 0x80;
 		switch(rx_buff_ptr[0]) {
@@ -89,5 +90,4 @@ void protocol_process_received_frame(void)
 		}
 	} while (is_processing_composite_cmd);
 	HAL_UART_Transmit_IT(&huart4, tx_buff, tx_buff_ptr - tx_buff);
-	protocol_start_receive_host();
 }

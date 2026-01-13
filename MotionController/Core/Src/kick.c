@@ -12,11 +12,11 @@
 
 void kick_reset(void)
 {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
 }
 
 void kick(void)
 {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-    delay_task_enqueue(DELAY_TASK_KICK_RESET, 100, NULL);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+	delay_task_enqueue(DELAY_TASK_KICK_RESET, 100, NULL);
 }

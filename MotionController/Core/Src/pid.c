@@ -9,26 +9,26 @@
 
 void pid_init_context(struct pid_context *context)
 {
-    context->kp = 0;
-    context->ki = 0;
-    context->kd = 0;
-    context->last_error = 0;
-    context->integral = 0;
-    context->derivative = 0;
-    context->zero_deadband = 0;
-    context->state = PID_INACTIVE;
+	context->kp = 0;
+	context->ki = 0;
+	context->kd = 0;
+	context->last_error = 0;
+	context->integral = 0;
+	context->derivative = 0;
+	context->zero_deadband = 0;
+	context->state = PID_INACTIVE;
 }
 
 void pid_set_gains(struct pid_context *context, float kp, float ki, float kd)
 {
-    context->kp = kp;
-    context->ki = ki;
-    context->kd = kd;
+	context->kp = kp;
+	context->ki = ki;
+	context->kd = kd;
 }
 
 void pid_set_zero_deadband(struct pid_context *context, float zero_deadband)
 {
-    context->zero_deadband = zero_deadband;
+	context->zero_deadband = zero_deadband;
 }
 
 float pid(struct pid_context *context, float expected, float actual)
@@ -58,5 +58,5 @@ float pid(struct pid_context *context, float expected, float actual)
 	context->integral += error;
 	context->derivative = error - context->last_error;
 	context->last_error = error;
-    return context->kp * error + context->ki * context->integral + context->kd * context->derivative;
+	return context->kp * error + context->ki * context->integral + context->kd * context->derivative;
 }

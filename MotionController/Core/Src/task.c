@@ -30,12 +30,12 @@ void task_enqueue(int task_code, void *arg)
 
 bool task_available(void)
 {
-    return read_idx != write_idx;
+	return read_idx != write_idx;
 }
 
 int task_consume(void **get_arg)
 {
-    int result = task_queue[read_idx].code;
+	int result = task_queue[read_idx].code;
 	*get_arg = task_queue[read_idx].arg;
 	read_idx = (read_idx + 1) % TASK_QUEUE_SIZE;
 	return result;

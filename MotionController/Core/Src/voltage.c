@@ -17,8 +17,8 @@ float voltage_get_v(ADC_HandleTypeDef *hadc, int sample_count)
 	HAL_ADC_Start(hadc);
 	for (i = 0; i < sample_count; i++) {
 		HAL_ADC_Start(hadc);
-        HAL_ADC_PollForConversion(hadc, 1);
-        sum += HAL_ADC_GetValue(hadc);
+		HAL_ADC_PollForConversion(hadc, 1);
+		sum += HAL_ADC_GetValue(hadc);
 	}
 	HAL_ADC_Stop(hadc);
 	return (float)sum / (float)sample_count * (ADC_VREF_V / ADC_RESOLUTION);
