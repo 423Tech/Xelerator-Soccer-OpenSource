@@ -74,7 +74,7 @@ class LockSeries:
         if [iBX,iBY] == [4095,4095]:
             chassis.stop()
             self.D_time = 0
-            return
+            return False
         elif [iBX,iBY] == [0xddd,0xddd]:
             chassis.stop()
             self.D_time = 0
