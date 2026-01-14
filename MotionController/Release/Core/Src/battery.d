@@ -31,9 +31,8 @@ Core/Src/battery.o: ../Core/Src/battery.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/delay.h \
- ../Core/Inc/delay_task_code.h ../Core/Inc/beep.h ../Core/Inc/voltage.h \
- ../Core/Inc/adc.h
+ ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/beep.h \
+ ../Core/Inc/voltage.h ../Core/Inc/adc.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -69,8 +68,6 @@ Core/Src/battery.o: ../Core/Src/battery.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/adc.h:
 ../Core/Inc/main.h:
-../Core/Inc/delay.h:
-../Core/Inc/delay_task_code.h:
 ../Core/Inc/beep.h:
 ../Core/Inc/voltage.h:
 ../Core/Inc/adc.h:

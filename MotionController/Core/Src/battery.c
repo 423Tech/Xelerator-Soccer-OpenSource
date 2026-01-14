@@ -9,8 +9,6 @@
 #include <stdbool.h>
 #include "main.h"
 #include "adc.h"
-#include "delay.h"
-#include "delay_task_code.h"
 #include "beep.h"
 #include "voltage.h"
 
@@ -24,7 +22,7 @@ static float get_battery_voltage(int sample_count)
 	return raw * VOLTAGE_DIVIDER_RATIO;
 }
 
-void battery_voltage_monitoring(void)
+void battery_monit_voltage(void)
 {
 	int i;
 	static bool alarm = false;
@@ -63,5 +61,4 @@ void battery_voltage_monitoring(void)
 		else
 			beep_stop_cycle();
 	}
-	delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 1000, NULL);
 }

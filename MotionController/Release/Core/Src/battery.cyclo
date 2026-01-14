@@ -1,1 +1,1 @@
-../Core/Src/battery.c:27:6:start_battery_voltage_monitoring	16
+../Core/Src/battery.c:25:6:battery_monit_voltage	16

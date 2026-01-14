@@ -110,7 +110,6 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM5_Init();
-  MX_TIM6_Init();
   MX_TIM8_Init();
   MX_TIM9_Init();
   MX_UART4_Init();
@@ -124,7 +123,9 @@ int main(void)
   kick_reset();
   bmi088_init_gyro();
   beep(100);
-  delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 0, NULL);
+  delay_task_enqueue(DELAY_TASK_WHEEL_UPDATE_PWM, 0, NULL);
+  delay_task_enqueue(DELAY_TASK_DRIBBLE_UPDATE_PWM, 0, NULL);
+  delay_task_enqueue(DELAY_TASK_BATTERY_MONIT_VOLTAGE, 0, NULL);
   delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
   /* USER CODE END 2 */
 
@@ -134,10 +135,6 @@ int main(void)
 	  if (task_available()) {
       void *arg;
 		  switch (task_consume(&arg)) {
-	  	  case TASK_UPDATE_PWM:
-		  	  wheel_update_pwm();
-		  	  dribble_update_pwm();
-		  	  break;
 	  	  case TASK_PROCESS_GYRO_ANGLE:
 		  	  bmi088_process_gyro_angle();
 		  	  break;
@@ -150,6 +147,14 @@ int main(void)
             case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
               bmi088_calibrate_gyro_offset((int)(uintptr_t)arg);
               break;
+            case DELAY_TASK_WHEEL_UPDATE_PWM:
+              wheel_update_pwm();
+              delay_task_enqueue(DELAY_TASK_WHEEL_UPDATE_PWM, 10, NULL);
+              break;
+            case DELAY_TASK_DRIBBLE_UPDATE_PWM:
+              dribble_update_pwm();
+              delay_task_enqueue(DELAY_TASK_DRIBBLE_UPDATE_PWM, 50, NULL);
+              break;
             case DELAY_TASK_KICK_RESET:
               kick_reset();
               break;
@@ -159,8 +164,9 @@ int main(void)
             case DELAY_TASK_BEEP_CONTINUE:
               beep_continue();
               break;
-            case DELAY_TASK_BATTERY_VOLTAGE_MONITORING:
-              battery_voltage_monitoring();
+            case DELAY_TASK_BATTERY_MONIT_VOLTAGE:
+              battery_monit_voltage();
+	            delay_task_enqueue(DELAY_TASK_BATTERY_MONIT_VOLTAGE, 1000, NULL);
               break;
             case DELAY_TASK_BUTTON_DEBOUNCE_END:
               button_debounce_end((uint16_t)(uintptr_t)arg);
@@ -228,17 +234,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	switch ((uint32_t)htim->Instance) {
-	case (uint32_t)TIM6:
-		task_enqueue(TASK_UPDATE_PWM, NULL);
-		break;
-	default:
-		break;
-	}
-}
-
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     switch(GPIO_Pin)
@@ -275,8 +270,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	switch((uint32_t)huart->Instance) {
 	case (uint32_t)UART4:
-		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE)
+		if (huart->RxEventType == HAL_UART_RXEVENT_IDLE) {
 			task_enqueue(TASK_PROCESS_RECEIVED_FRAME, NULL);
+  	  protocol_start_receive_host();
+    }
 		break;
 	default:
 		break;

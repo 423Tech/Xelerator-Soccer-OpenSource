@@ -10,7 +10,7 @@
 #include <string.h>
 #include "main.h"
 
-#define DELAY_TASK_QUEUE_SIZE (8)
+#define DELAY_TASK_QUEUE_SIZE (16)
 
 struct delay_task {
 	void *arg;

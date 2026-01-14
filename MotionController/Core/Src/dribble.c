@@ -9,7 +9,7 @@
 
 int dribble_speed_level = 0;
 
-uint16_t speed_tabe[] = {
+static uint16_t speed_tabe[] = {
 	0,
 	21000,
 	42000

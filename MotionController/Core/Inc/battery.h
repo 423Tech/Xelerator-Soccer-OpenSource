@@ -8,6 +8,6 @@
 #ifndef INC_BATTERY_H_
 #define INC_BATTERY_H_
 
-void battery_voltage_monitoring(void);
+void battery_monit_voltage(void);
 
 #endif /* INC_BATTERY_H_ */

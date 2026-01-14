@@ -19,12 +19,6 @@ static uint8_t tx_buff[TX_MAX_LEN];
 static uint8_t rx_buff[2][RX_MAX_LEN];
 static int current_rx_buff_idx = 0;
 
-void protocol_start_receive_host(void)
-{
-	current_rx_buff_idx ^= 1;
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff[current_rx_buff_idx], RX_MAX_LEN);
-}
-
 static void process_handshake(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
 {
 	(void)rx;
@@ -59,12 +53,18 @@ static void process_kick(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **e
 	*end_rx += 1;
 }
 
+void protocol_start_receive_host(void)
+{
+	current_rx_buff_idx ^= 1;
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buff[current_rx_buff_idx], RX_MAX_LEN);
+}
+
 void protocol_process_received_frame(void)
 {
+	int last_rx_buff_idx = current_rx_buff_idx ^ 1;
 	uint8_t *tx_buff_ptr = tx_buff;
-	uint8_t *rx_buff_ptr = rx_buff[current_rx_buff_idx];
+	uint8_t *rx_buff_ptr = rx_buff[last_rx_buff_idx];
 	bool is_processing_composite_cmd = false;
-	protocol_start_receive_host();
 	do {
 		tx_buff_ptr[0] = rx_buff_ptr[0] | 0x80;
 		switch(rx_buff_ptr[0]) {
