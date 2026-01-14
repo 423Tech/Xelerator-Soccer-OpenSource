@@ -38,9 +38,9 @@ class IceLoongBits:
         self.ser = None
         self.LockSerial = False
         self.logger = logger
-        self.GetYawThread = threading.Thread(target=self.UpdateYaw)
-        self.GetYawThread.daemon = True
-        self.GetYawThread.start()
+        # self.GetYawThread = threading.Thread(target=self.UpdateYaw)
+        # self.GetYawThread.daemon = True
+        # self.GetYawThread.start()
 
     def OpenPort(self) -> None:
         """打开串口（如果尚未打开）。"""
@@ -217,15 +217,6 @@ class IceLoongBits:
             self.logger.error("解析数据失败: %s，原始数据: %s", e, resp.hex())
             self.Yaw =  0.0
 
-    def UpdateYaw(self):
-        while(1):
-            if not self.LockSerial:
-                self._UpdateYaw()
-                time.sleep(0.002)
-            else:
-                time.sleep(0.01)
-                continue
-
 
     def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
         """设置四个轮子的转速。
@@ -260,6 +251,8 @@ class IceLoongBits:
         self.SendHexCommand(full_data.hex(), read_response=False)
         
         # 记录调试信息
+        time.sleep(0.001)
+        self._UpdateYaw()
         # self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
 
     def Kick(self):

@@ -268,8 +268,8 @@ class Lidar:
                     frameCount += 1
                     CurrentTime = time.time()
                     if CurrentTime - lastTime >= 1.0:
-                        if Settings.Debug.FullLog:
-                            logger.debug(f"FPS: {frameCount}")
+                        # if Settings.Debug.FullLog:
+                        print(f"FPS: {frameCount}")
                         frameCount = 0
                         lastTime = CurrentTime
 

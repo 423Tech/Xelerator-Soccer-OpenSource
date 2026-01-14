@@ -63,7 +63,7 @@ class Positions:
         self.LidarScale = 10
         self.BoundsScale = 1
         # Values for timer
-        self.WaitTime = 2.5
+        self.WaitTime = 3.5
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
