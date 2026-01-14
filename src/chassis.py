@@ -86,7 +86,7 @@ class Car:
             Kp = self.Kp
         SpeedZ = Error * Kp
         WheelX = SpeedX * math.cos(math.radians(Yaw)) + SpeedY * math.sin(math.radians(Yaw))
-        WheelY = SpeedX * math.sin(math.radians(Yaw)) + SpeedY * math.cos(math.radians(Yaw))
+        WheelY = - SpeedX * math.sin(math.radians(Yaw)) - SpeedY * math.cos(math.radians(Yaw))
         print(SpeedX,SpeedY,SpeedZ,WheelX,WheelY)
         self.RelMoveVetor(WheelX, WheelY, SpeedZ)
     
