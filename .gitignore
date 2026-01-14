@@ -173,10 +173,23 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-main.py
+# main.py
 cfg.json
 config.json
+test.py
 .vscode
 
 .DS_Store
-test.py
+
+data/
+
+Records/*
+resource/*
+ROS_Nodes/*
+src/ROS2_Nodes/*
+AB/
+
+./py_result.jpg
+
+.python-version
+
