@@ -24,7 +24,7 @@ static float get_battery_voltage(int sample_count)
 	return raw * VOLTAGE_DIVIDER_RATIO;
 }
 
-void start_battery_voltage_monitoring(void)
+void battery_voltage_monitoring(void)
 {
 	int i;
 	static bool alarm = false;

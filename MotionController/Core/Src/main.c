@@ -124,10 +124,8 @@ int main(void)
   kick_reset();
   bmi088_init_gyro();
   beep(100);
-  start_battery_voltage_monitoring();
+  delay_task_enqueue(DELAY_TASK_BATTERY_VOLTAGE_MONITORING, 0, NULL);
   delay_task_enqueue(DELAY_TASK_BMI088_CALIBRATE_OFFSET, 500, (void *)(uintptr_t)3000);
-  __HAL_TIM_SET_COUNTER(&htim6, 0);
-	HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -147,27 +145,29 @@ int main(void)
 	  		  protocol_process_received_frame();
 		  	  break;
         case TASK_PROCESS_DELAY_TASK:
-          switch(delay_task_consume(&arg)) {
-          case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
-            bmi088_calibrate_gyro_offset((int)(uintptr_t)arg);
-            break;
-          case DELAY_TASK_KICK_RESET:
-            kick_reset();
-            break;
-          case DELAY_TASK_BEEP_RESET:
-            beep_reset();
-            break;
-          case DELAY_TASK_BEEP_CONTINUE:
-            beep_continue();
-            break;
-          case DELAY_TASK_BATTERY_VOLTAGE_MONITORING:
-            start_battery_voltage_monitoring();
-            break;
-          case DELAY_TASK_BUTTON_DEBOUNCE_END:
-            button_debounce_end((uint16_t)(uintptr_t)arg);
-            break;
-          default:
-            break;
+          while (delay_task_available()) {
+            switch(delay_task_consume(&arg)) {
+            case DELAY_TASK_BMI088_CALIBRATE_OFFSET:
+              bmi088_calibrate_gyro_offset((int)(uintptr_t)arg);
+              break;
+            case DELAY_TASK_KICK_RESET:
+              kick_reset();
+              break;
+            case DELAY_TASK_BEEP_RESET:
+              beep_reset();
+              break;
+            case DELAY_TASK_BEEP_CONTINUE:
+              beep_continue();
+              break;
+            case DELAY_TASK_BATTERY_VOLTAGE_MONITORING:
+              battery_voltage_monitoring();
+              break;
+            case DELAY_TASK_BUTTON_DEBOUNCE_END:
+              button_debounce_end((uint16_t)(uintptr_t)arg);
+              break;
+            default:
+              break;
+            }
           }
           break;
 	  	  default:
