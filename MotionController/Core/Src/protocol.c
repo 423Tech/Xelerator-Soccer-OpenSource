@@ -19,38 +19,33 @@ static uint8_t tx_buff[TX_MAX_LEN];
 static uint8_t rx_buff[2][RX_MAX_LEN];
 static int current_rx_buff_idx = 0;
 
-static void process_handshake(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
+static void process_handshake(uint8_t **tx, uint8_t **rx)
 {
-	(void)rx;
-	tx[1] = is_calibrating_gyro_offset ? 0x01 : 0x00;
-	*end_tx += 1 + sizeof(uint8_t);
-	*end_rx += 1;
+	(**tx)[1] = is_calibrating_gyro_offset ? 0x01 : 0x00;
+	*tx += 1 + sizeof(uint8_t);
+	*rx += 1;
 }
 
-static void process_get_bmi088_data(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
+static void process_get_bmi088_data(uint8_t **tx, uint8_t **rx)
 {
-	(void)rx;
-	memcpy(tx + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
-	memcpy(tx + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
-	*end_tx += 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp);
-	*end_rx += 1;
+	memcpy(**tx + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
+	memcpy(**tx + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
+	*tx += 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp);
+	*rx += 1;
 }
 
-static void process_set_wheels_speed(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
+static void process_set_wheels_speed(uint8_t **tx, uint8_t **rx)
 {
-	(void)tx;
-	memcpy(wheel_target_speed_rpm, rx + 1, sizeof(wheel_target_speed_rpm));
-	*end_tx += 1;
-	*end_rx += 1 + sizeof(wheel_target_speed_rpm);
+	memcpy(wheel_target_speed_rpm, **rx + 1, sizeof(wheel_target_speed_rpm));
+	*tx += 1;
+	*rx += 1 + sizeof(wheel_target_speed_rpm);
 }
 
-static void process_kick(uint8_t *tx, uint8_t *rx, uint8_t **end_tx, uint8_t **end_rx)
+static void process_kick(uint8_t **tx, uint8_t **rx)
 {
-	(void)tx;
-	(void)rx;
 	kick();
-	*end_tx += 1;
-	*end_rx += 1;
+	*tx += 1;
+	*rx += 1;
 }
 
 void protocol_start_receive_host(void)
@@ -74,16 +69,16 @@ void protocol_process_received_frame(void)
 			rx_buff_ptr++;
 			break;
 		case 0x01:
-			process_handshake(tx_buff_ptr, rx_buff_ptr, &tx_buff_ptr, &rx_buff_ptr);
+			process_handshake(&tx_buff_ptr, &rx_buff_ptr);
 			break;
 		case 0x02:
-			process_get_bmi088_data(tx_buff_ptr, rx_buff_ptr, &tx_buff_ptr, &rx_buff_ptr);
+			process_get_bmi088_data(&tx_buff_ptr, &rx_buff_ptr);
 			break;
 		case 0x03:
-			process_set_wheels_speed(tx_buff_ptr, rx_buff_ptr, &tx_buff_ptr, &rx_buff_ptr);
+			process_set_wheels_speed(&tx_buff_ptr, &rx_buff_ptr);
 			break;
 		case 0x04:
-			process_kick(tx_buff_ptr, rx_buff_ptr, &tx_buff_ptr, &rx_buff_ptr);
+			process_kick(&tx_buff_ptr, &rx_buff_ptr);
 			break;
 		default:
 			break;
