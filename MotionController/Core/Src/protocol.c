@@ -21,22 +21,22 @@ static int current_rx_buff_idx = 0;
 
 static void process_handshake(uint8_t **tx, uint8_t **rx)
 {
-	(**tx)[1] = is_calibrating_gyro_offset ? 0x01 : 0x00;
+	(*tx)[1] = is_calibrating_gyro_offset ? 0x01 : 0x00;
 	*tx += 1 + sizeof(uint8_t);
 	*rx += 1;
 }
 
 static void process_get_bmi088_data(uint8_t **tx, uint8_t **rx)
 {
-	memcpy(**tx + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
-	memcpy(**tx + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
+	memcpy(*tx + 1, bmi088_gyro_angle, sizeof(bmi088_gyro_angle));
+	memcpy(*tx + 1 + sizeof(bmi088_gyro_angle), (void *)(&bmi088_drdy_timestamp), sizeof(bmi088_drdy_timestamp));
 	*tx += 1 + sizeof(bmi088_gyro_angle) + sizeof(bmi088_drdy_timestamp);
 	*rx += 1;
 }
 
 static void process_set_wheels_speed(uint8_t **tx, uint8_t **rx)
 {
-	memcpy(wheel_target_speed_rpm, **rx + 1, sizeof(wheel_target_speed_rpm));
+	memcpy(wheel_target_speed_rpm, *rx + 1, sizeof(wheel_target_speed_rpm));
 	*tx += 1;
 	*rx += 1 + sizeof(wheel_target_speed_rpm);
 }
