@@ -241,29 +241,23 @@ class Lidar:
             logger.error(f"ParseLidar exception: {e}")
     
     def LidarNormalize(self):
-        step = 5
+        step = 2
         frameCount = 0
         lastTime = time.time()
         
         try:
             while(1):
                 Ranges = self.dirLidarQueue.get()
-                print(len(Ranges))
                 lines = []
                 points = []
-                Cache = []
-                c = 0
-                for i in range(0,len(Ranges),step):
-                    Cache.append(Ranges[i])
-                    c += 1
-                for Element in Cache:
+                for Element in Ranges:
                     if 0 < Element[1] < 2.5:
                         X = Element[1] * math.sin(math.radians(Element[0]))
                         Y = Element[1] * math.cos(math.radians(Element[0]))
                         points.append((X, Y, Element[0]))
                 
                 if points:
-                    for i in range(0,len(points),1):
+                    for i in range(0,len(points),step):
                         if i + 1 < len(points):
                             Line = (points[i][0], points[i][1], points[i+1][0], points[i+1][1])
                             Theta = GetLineTheta(Line)
