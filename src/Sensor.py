@@ -241,23 +241,29 @@ class Lidar:
             logger.error(f"ParseLidar exception: {e}")
     
     def LidarNormalize(self):
-        step = 2
+        step = 5
         frameCount = 0
         lastTime = time.time()
         
         try:
             while(1):
                 Ranges = self.dirLidarQueue.get()
+                print(len(Ranges))
                 lines = []
                 points = []
-                for Element in Ranges:
+                Cache = []
+                c = 0
+                for i in range(0,len(Ranges),step):
+                    Cache.append(Ranges[i])
+                    c += 1
+                for Element in Cache:
                     if 0 < Element[1] < 2.5:
                         X = Element[1] * math.sin(math.radians(Element[0]))
                         Y = Element[1] * math.cos(math.radians(Element[0]))
                         points.append((X, Y, Element[0]))
                 
                 if points:
-                    for i in range(0,len(points),step):
+                    for i in range(0,len(points),1):
                         if i + 1 < len(points):
                             Line = (points[i][0], points[i][1], points[i+1][0], points[i+1][1])
                             Theta = GetLineTheta(Line)
@@ -268,8 +274,8 @@ class Lidar:
                     frameCount += 1
                     CurrentTime = time.time()
                     if CurrentTime - lastTime >= 1.0:
-                        if Settings.Debug.FullLog:
-                            logger.debug(f"FPS: {frameCount}")
+                        # if Settings.Debug.FullLog:
+                        logger.debug(f"FPS: {frameCount}")
                         frameCount = 0
                         lastTime = CurrentTime
 
@@ -321,6 +327,7 @@ class Lidar:
 
                         self.dirNormalizedDistance = LidarDists
         except Exception as e:
+            raise e
             self.LidarNormalize()
 
     def GetDists(self):
@@ -374,7 +381,7 @@ class Lidar:
             time.sleep(5)
     
     def __exit__(self):
-        self.stop_process_group(self.lidar_service)
+        self.stop_process_group(self.stop)
 
 # class LidarWithoutYaw:
 #     def start_sllidar_driver(self, enforce_settings: bool = True, bashrc: str = ROS_ENV):

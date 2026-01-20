@@ -63,7 +63,7 @@ class Positions:
         self.LidarScale = 10
         self.BoundsScale = 1
         # Values for timer
-        self.WaitTime = 2.5
+        self.WaitTime = 3.5
         # Values for configs
         self.FullLog = cfg.Debug.FullLog
 
@@ -121,7 +121,8 @@ class Positions:
             self.ballPosOut = [0xddd,0xddd]
         else:
             self.ballPosOut = self.ballPos
-        logger.debug("[Relative] Ball Position: %s"%self.ballPos)
+        if Settings.Debug.FullLog:
+            logger.debug("[Relative] Ball Position: %s"%self.ballPos)
         return self.ballPosOut
 
     def direct_distance(self):
@@ -152,7 +153,7 @@ class Positions:
                 logger.success("Lidar System Started!Read [Direct] Robot Distance: %s"%self.BoundsDistance)
             else:
                 pass
-        logger.debug("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
+        # logger.debug("Read [Direct] Robot Distance: %s"%self.BoundsDistance)
         return self.BoundsDistance
 
     def AbsRoboPosition(self,lower:bool|None = False):
@@ -186,7 +187,7 @@ class Positions:
         else:
             X = -((cfg.Bounds.Short*self.LidarScale/2 - _distance[1]) + (_distance[3] - cfg.Bounds.Short*self.LidarScale/2))/2
         self.LidarPos = [Y/10,X/10,compass()]
-        logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
+        # logger.info("[Absolute] Robot Position: %s"%self.LidarPos)
         # 20251216 already changed X_forward,Y_left dimension  [tested]
         try:
             if Bits.Odometer:# if use odometer datas

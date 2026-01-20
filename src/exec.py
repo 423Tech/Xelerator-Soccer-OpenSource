@@ -5,7 +5,7 @@ try:
         # #Put ins
         while(1):
             rob = UnitedPosition.AbsRoboPosition()
-        # print(rob)
+            # print(rob)
         # chassis.stop()
         # UnitedPosition.Move2Path([[-60,80,0],[50,50,0]],1)
         
