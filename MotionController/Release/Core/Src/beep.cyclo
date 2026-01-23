@@ -1,5 +1,0 @@
-../Core/Src/beep.c:21:6:beep	1
-../Core/Src/beep.c:27:6:beep_reset	2
-../Core/Src/beep.c:34:6:beep_continue	3
-../Core/Src/beep.c:42:6:beep_cycle	3
-../Core/Src/beep.c:52:6:beep_stop_cycle	1

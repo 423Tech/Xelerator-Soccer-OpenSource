@@ -85,20 +85,16 @@ static void set_pwm(int32_t (*pwm_array_ptr)[4])
 static void get_encoder_count_delta(int32_t (*delta_array_ptr)[4])
 {
 	int i;
-	static int32_t last_count[4] = {0, 0, 0, 0};
+	static uint16_t last_count[4] = {0, 0, 0, 0};
 	static TIM_HandleTypeDef * const phtim[4] = {&htim1, &htim2, &htim3, &htim5};
 
 	for (i = 0; i < 4; i++) {
-		int32_t current_count = __HAL_TIM_GET_COUNTER(phtim[i]);
-		int32_t delta = current_count - last_count[i];
-
-		if (delta > 32767)
-			delta -= 65536;
-		else if (delta < -32768)
-			delta += 65536;
-
+		uint16_t current_count = __HAL_TIM_GET_COUNTER(phtim[i]);
+		uint16_t delta = current_count - last_count[i];
+		int16_t tmp;
 		last_count[i] = current_count;
-		(*delta_array_ptr)[i] = delta;
+		tmp = *(int16_t *)&delta;
+		(*delta_array_ptr)[i] = tmp;
 	}
 }
 

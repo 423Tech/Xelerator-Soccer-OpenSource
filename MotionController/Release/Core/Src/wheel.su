@@ -1,2 +1,0 @@
-../Core/Src/wheel.c:115:6:wheel_init	32	static
-../Core/Src/wheel.c:122:6:wheel_update_pwm	72	static

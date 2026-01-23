@@ -1,0 +1,8 @@
+../Core/Src/delay.c:26:12:compare_delay_task	32	static
+../Core/Src/delay.c:37:13:delay_init_task_queue	16	static
+../Core/Src/delay.c:48:6:delay_init	8	static
+../Core/Src/delay.c:60:6:delay_us	24	static
+../Core/Src/delay.c:67:6:delay_add_sys_tick_count	4	static
+../Core/Src/delay.c:72:6:delay_task_enqueue	40	static,ignoring_inline_asm
+../Core/Src/delay.c:85:6:delay_task_available	4	static
+../Core/Src/delay.c:90:5:delay_task_consume	24	static

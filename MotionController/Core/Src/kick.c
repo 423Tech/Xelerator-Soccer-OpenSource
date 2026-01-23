@@ -18,5 +18,5 @@ void kick_reset(void)
 void kick(void)
 {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-	delay_task_enqueue(DELAY_TASK_KICK_RESET, 100, NULL);
+	delay_task_enqueue(DELAY_TASK_KICK_RESET, 500, NULL);
 }

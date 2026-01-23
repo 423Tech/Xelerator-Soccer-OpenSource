@@ -1,0 +1,2 @@
+../Core/Src/battery.c:19:14:get_battery_voltage	1
+../Core/Src/battery.c:25:6:battery_monit_voltage	8

@@ -1,2 +1,0 @@
-../Core/Src/protocol.c:56:6:protocol_start_receive_host	4	static
-../Core/Src/protocol.c:62:6:protocol_process_received_frame	32	static

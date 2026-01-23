@@ -166,7 +166,7 @@ int main(void)
               break;
             case DELAY_TASK_BATTERY_MONIT_VOLTAGE:
               battery_monit_voltage();
-	            delay_task_enqueue(DELAY_TASK_BATTERY_MONIT_VOLTAGE, 1000, NULL);
+	          delay_task_enqueue(DELAY_TASK_BATTERY_MONIT_VOLTAGE, 1000, NULL);
               break;
             case DELAY_TASK_BUTTON_DEBOUNCE_END:
               button_debounce_end((uint16_t)(uintptr_t)arg);

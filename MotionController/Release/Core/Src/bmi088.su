@@ -1,4 +1,0 @@
-../Core/Src/bmi088.c:37:6:bmi088_burst_read_gyro	16	static
-../Core/Src/bmi088.c:45:6:bmi088_init_gyro	16	static
-../Core/Src/bmi088.c:62:6:bmi088_process_gyro_angle	32	static
-../Core/Src/bmi088.c:102:6:bmi088_calibrate_gyro_offset	4	static

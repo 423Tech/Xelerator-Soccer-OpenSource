@@ -1,0 +1,5 @@
+../Core/Src/beep.c:21:6:beep	16	static
+../Core/Src/beep.c:27:6:beep_reset	8	static
+../Core/Src/beep.c:34:6:beep_continue	8	static
+../Core/Src/beep.c:42:6:beep_cycle	24	static
+../Core/Src/beep.c:52:6:beep_stop_cycle	4	static
