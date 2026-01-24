@@ -1,4 +1,0 @@
-../Core/Src/dribble.c:18:13:start_all_pwm_channels	8	static
-../Core/Src/dribble.c:24:13:set_pwm	16	static
-../Core/Src/dribble.c:29:6:dribble_init	8	static
-../Core/Src/dribble.c:34:6:dribble_update_pwm	8	static

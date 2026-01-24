@@ -114,7 +114,6 @@ int main(void)
   MX_TIM9_Init();
   MX_UART4_Init();
   MX_ADC1_Init();
-  MX_ADC3_Init();
   /* USER CODE BEGIN 2 */
   delay_init();
   protocol_start_receive_host();
