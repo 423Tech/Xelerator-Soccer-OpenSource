@@ -1,16 +1,22 @@
+# IceLoongBits.py
 
+import logging
+from typing import Optional, List, Tuple
+from enum import IntEnum
 import struct
-import time
-from typing import Optional, Tuple, List
-import threading
 
-from loguru import logger
-from pathlib import Path
-Date = time.strftime("%Y%m", time.localtime())
-APP_DIR = Path(__file__).parent
-LOG_FILE = APP_DIR / f"{Date}_IceLoong.log"
-logger.add(LOG_FILE)
+class Commands(IntEnum):
+    HAND_SHAKE        = 0x01
+    GET_BMI088_DATA   = 0x02
+    SET_WHEELS_SPEED  = 0x03
+    KICK              = 0x04
 
+COMMAND_RESPONSE_LENGTHS = {
+    Commands.HAND_SHAKE:       1 + 1, 
+    Commands.GET_BMI088_DATA:  1 + 3 * 4 + 4, 
+    Commands.SET_WHEELS_SPEED: 1, 
+    Commands.KICK:             1,
+}
 
 try:
     import serial
@@ -22,7 +28,7 @@ class IceLoongBits:
     方法命名使用大驼峰（PascalCase）。
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 921600, timeout: float = 0.02):
+    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, timeout: float = 0.02):
         """初始化串口参数（不自动打开）。
 
         Args:
@@ -33,33 +39,28 @@ class IceLoongBits:
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
-        self.Yaw =  0.0
         # 串口句柄（运行时为 serial.Serial 实例），这里不在类型注解中引用 serial 变量以避免 lint 问题
         self.ser = None
-        self.LockSerial = False
-        self.logger = logger
-        # self.GetYawThread = threading.Thread(target=self.UpdateYaw)
-        # self.GetYawThread.daemon = True
-        # self.GetYawThread.start()
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if not self.logger.handlers:
+            # 避免多次添加 handler
+            self.logger.addHandler(logging.NullHandler())
 
     def OpenPort(self) -> None:
         """打开串口（如果尚未打开）。"""
         if serial is None:
             raise RuntimeError("pyserial 未安装，请运行: pip install pyserial")
         if self.ser and getattr(self.ser, "is_open", False):
-            # self.logger.info("串口已打开: %s", self.port)
             return
         self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-        # self.logger.info("已打开串口 %s @ %d", self.port, self.baudrate)
 
     def ClosePort(self) -> None:
         """关闭串口并释放句柄。"""
         if self.ser:
             try:
                 self.ser.close()
-                self.logger.success("已关闭串口 %s", self.port)
             except Exception as e:
-                self.logger.error("关闭串口失败: %s", e)
+                self.logger.exception("关闭串口失败: %s", e)
             finally:
                 self.ser = None
 
@@ -73,7 +74,7 @@ class IceLoongBits:
             buf.extend(b)
         return bytes(buf)
 
-    def SendCommand(self, data: bytes, read_response: bool = False, response_length: int = 0, response_timeout: Optional[float] = None) -> bytes:
+    def SendHex(self, data: bytes, read_response: bool = False, response_length: int = 0, response_timeout: Optional[float] = None) -> bytes:
         """发送原始字节命令到 F407。
 
         Args:
@@ -96,13 +97,9 @@ class IceLoongBits:
         except Exception:
             # 有些 serial 实现可能没有该方法
             pass
-        data.hex()
-        # self.logger.info("发送: "+)
-        self.LockSerial = True
-        time.sleep(0.001)
+
         self.ser.write(data)
         self.ser.flush()
-        self.LockSerial = False
 
         if not read_response:
             return b""
@@ -118,165 +115,10 @@ class IceLoongBits:
             else:
                 # 读取直到超时
                 resp = self._ReadUntilTimeout()
-            resp.hex()
-            # self.logger.info("接收: "+)
             return resp
         finally:
             if response_timeout is not None:
                 self.ser.timeout = old_timeout
-
-    def SendHexCommand(self, hexstr: str, read_response: bool = False, response_length: int = 0, response_timeout: Optional[float] = None) -> bytes:
-        """便捷方法：从十六进制字符串发送命令，如 'AA0101AB'。"""
-        data = bytes.fromhex(hexstr)
-        return self.SendCommand(data, read_response=read_response, response_length=response_length, response_timeout=response_timeout)
-
-    def HandShake(self) -> Tuple[bool, str]:
-        """与下位机握手，确认下位机状态。
-        
-        发送: 0x01
-        接收: 0x81 + 状态字节(0x00:空闲, 0x01:忙)
-        
-        Returns:
-            Tuple[bool, str]: (握手成功, 状态描述)
-        """
-        # 发送握手命令0x01，等待2字节响应
-        resp = self.SendHexCommand("01", read_response=True, response_length=2, response_timeout=0.1)
-        
-        if len(resp) < 2:
-            self.logger.error("握手响应长度不足，期望2字节，实际收到"+ len(resp) +"字节")
-            return False, "响应长度不足"
-        
-        # 检查响应头
-        if resp[0] != 0x81:
-            self.logger.error("握手响应头错误，期望0x81，实际收到0x%02x", resp[0])
-            return False, f"响应头错误: 0x{resp[0]:02x}"
-        
-        # 检查状态字节
-        status = resp[1]
-        if status == 0x00:
-            self.logger("下位机状态: 空闲")
-            return True, "空闲"
-        elif status == 0x01:
-            self.logger("下位机状态: 忙")
-            return True, "忙"
-        else:
-            self.logger.warning("未知状态字节: 0x%02x", status)
-            return True, f"未知状态: 0x{status:02x}"
-
-    def GetYaw(self):
-        # self.logger.info("获取航向: "+ str(self.Yaw))
-        return self.Yaw
-
-    def _UpdateYaw(self):
-        """向 F407 请求航向（Yaw），并解析为 float 和时间戳。
-
-        发送: 0x02
-        接收: 0x82 + 3个float(小端) + 1个uint32_t(小端)
-
-        Returns:
-            Tuple[float, int]: (yaw值, 时间戳)
-        """
-        # 总共17字节: 1字节头 + 3*4字节float + 4字节uint32
-        resp_len = 1 + (3 * 4) + 4
-        resp = self.SendHexCommand("02", read_response=True,
-                                  response_length=resp_len,
-                                  response_timeout=0.01)  # 10ms超时
-
-        # 检查响应长度
-        if len(resp) < resp_len:
-            self.logger.warning("响应长度不足，期望"+ str(resp_len) + "字节，实际收到"+ str(len(resp)) +"字节")
-            self.Yaw =  0.0
-
-        # 检查响应头
-        if resp[0] != 0x82:
-            self.logger.warning("响应头错误，期望0x82，实际收到0x%02x", resp[0])
-            self.Yaw =  0.0
-
-        try:
-            # 解析数据部分（跳过第一个字节的响应头）
-            # 数据格式: 3个float + 1个uint32，都是小端
-            data_part = resp[1:]  # 跳过0x82头
-
-            # 确保数据部分长度足够
-            if len(data_part) < 16:
-                self.logger.error("数据部分长度不足，期望16字节，实际"+ len(data_part) + "字节")
-                self.Yaw =  0.0
-
-            # 解析所有数据
-            # <fffI: 3个float + 1个unsigned int，都是小端
-            float1, float2, float3, timestamp = struct.unpack('<fffI', data_part)
-
-            # 记录调试信息
-            # self.logger.info("解析到数据: float1=%f, float2=%f, yaw=%f, timestamp=%u", 
-            #                   float1, float2, float3, timestamp)
-
-            # 返回第三个float（yaw）和时间戳
-            self.Yaw = float3 % 360
-
-        except struct.error as e:
-            self.logger.error("解析数据失败: %s，原始数据: %s", e, resp.hex())
-            self.Yaw =  0.0
-
-
-    def SetWheelSpeed(self, speeds1,speeds2,speeds3,speeds4) -> None:
-        """设置四个轮子的转速。
-        
-        发送: 0x03 + 4个float(小端)
-        不需要等待回复。
-        
-        Args:
-            speeds: 包含4个浮点数的列表，分别对应四个轮子的转速(rpm)
-        
-        earaises:
-            ValueError: 如果输入不是4个浮点数
-        """
-        speeds = [speeds1,speeds2,-speeds3,-speeds4]
-        if len(speeds) != 4:
-            raise ValueError(f"需要4个轮子的速度，但收到了{len(speeds)}个")
-        
-        # 将速度值转换为float类型（确保是浮点数）
-        try:
-            speed_values = [float(speed) for speed in speeds]
-        except (ValueError, TypeError) as e:
-            raise ValueError("速度值必须是数字类型") from e
-        
-        # 构建数据包: 0x03 + 4个float(小端)
-        # 使用struct.pack打包4个浮点数，格式为'<ffff'表示4个小端浮点数
-        data_bytes = struct.pack('<ffff', *speed_values)
-        
-        # 添加命令头0x03
-        full_data = b'\x03' + data_bytes
-        
-        # 发送数据，不等待回复
-        self.SendHexCommand(full_data.hex(), read_response=False)
-        
-        # 记录调试信息
-        time.sleep(0.001)
-        self._UpdateYaw()
-        # self.logger.info("设置轮子转速: "+ str(speed_values[0]) +' ' + str(speed_values[1]) + ' '+ str(speed_values[2]) + ' ' + str(speed_values[3]))
-
-    def Kick(self):
-        """弹射踢球
-        
-        发送: 0x04
-        不需要等待回复。
-        """
-        # 发送弹射踢球命令0x04，
-        resp = self.SendHexCommand("04", read_response=False)
-        
-    def SetIO(self,port,status):
-        """设置IO口状态
-
-        Args:
-            port: IO口编号
-            status: IO口状态
-        """
-        if port == 3:
-            if status == 1:
-                pass
-            else:
-                self.Kick()
-
 
     def __enter__(self):
         self.OpenPort()
@@ -285,4 +127,52 @@ class IceLoongBits:
     def __exit__(self, exc_type, exc, tb):
         self.ClosePort()
 
+    def ExecuteCommands(self, commands: List[tuple]) -> tuple:
+        """执行单条或多条命令"""
+        
+        if len(commands) > 1:
+            tx_bytes, resp_len = bytes([0x00]), 1
+        else:
+            tx_bytes, resp_len = bytes(), 0
 
+        for cmd in commands:
+            match cmd[0]:
+                case Commands.HAND_SHAKE:
+                    tx_bytes += bytes([cmd[0]])
+                case Commands.GET_BMI088_DATA:
+                    tx_bytes += bytes([cmd[0]])
+                case Commands.SET_WHEELS_SPEED:
+                    tx_bytes += bytes([cmd[0]]) + struct.pack('<ffff', cmd[1], cmd[2], cmd[3], cmd[4])
+                case Commands.KICK:
+                    tx_bytes += bytes([cmd[0]])
+                case _:
+                    continue
+            resp_len += COMMAND_RESPONSE_LENGTHS.get(cmd[0], 0)
+
+        if len(commands) > 1:
+            tx_bytes += bytes([0])
+            resp_len += 1
+
+        # 发送帧，返回接收帧
+        resp = self.SendHex(tx_bytes, True, resp_len, 0.01)
+
+        rx_data = []
+        if resp and len(resp) == resp_len:
+            i = 0
+            while i < resp_len:
+                match resp[i] ^ 0x80:
+                    case 0x00:
+                        i += 1
+                        continue
+                    case Commands.HAND_SHAKE:
+                        rx_data.append((resp[i], resp[i+1]))
+                    case Commands.GET_BMI088_DATA:
+                        rx_data.append((resp[i], *struct.unpack('<fffi', resp[i+1:i+17])))
+                    case Commands.SET_WHEELS_SPEED:
+                        rx_data.append((resp[i],))
+                    case Commands.KICK:
+                        rx_data.append((resp[i],))
+                    case _:
+                        continue
+                i += COMMAND_RESPONSE_LENGTHS.get(resp[i] ^ 0x80, 1)
+        return rx_data
